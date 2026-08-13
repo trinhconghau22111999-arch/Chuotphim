@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/statusText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:background="#212121"
+        android:textColor="#FFFFFF"
+        android:text="Chưa đăng ký HID" />
+
+    <!-- Nửa trên: TRACKPAD -->
+    <com.example.btremote.TrackpadView
+        android:id="@+id/trackpad"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#444444" />
+
+    <!-- Nửa dưới: BÀN PHÍM + điều khiển kết nối -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#1B1B1B">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <Button
+                android:id="@+id/btnRegister"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="1. Đăng ký làm bàn phím + chuột Bluetooth" />
+
+            <Button
+                android:id="@+id/btnPickDevice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="2. Chọn thiết bị đã pair để kết nối" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#888888"
+                android:text="(Nếu chưa pair: vào Cài đặt Bluetooth của máy này, pair với TV/PC trước, rồi quay lại bấm nút 2)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenKeyboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Mở bàn phím để gõ chữ" />
+
+            <CheckBox
+                android:id="@+id/chkTelex"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:textColor="#CCCCCC"
+                android:text="Tự chuyển sang Telex khi gõ có dấu (cần máy đích đang bật gõ Telex)" />
+
+            <EditText
+                android:id="@+id/hiddenInput"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:alpha="0"
+                android:importantForAutofill="no"
+                android:inputType="text" />
+
+            <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:columnCount="3">
+
+                <Button android:id="@+id/keyBackspace" style="@style/KeyBtn" android:text="⌫" />
+                <Button android:id="@+id/keyEnter" style="@style/KeyBtn" android:text="Enter" />
+                <Button android:id="@+id/keyTab" style="@style/KeyBtn" android:text="Tab" />
+
+                <Button android:id="@+id/keyLeft" style="@style/KeyBtn" android:text="◀" />
+                <Button android:id="@+id/keyUp" style="@style/KeyBtn" android:text="▲" />
+                <Button android:id="@+id/keyRight" style="@style/KeyBtn" android:text="▶" />
+
+                <Button android:id="@+id/keyHome" style="@style/KeyBtn" android:text="Home" />
+                <Button android:id="@+id/keyDown" style="@style/KeyBtn" android:text="▼" />
+                <Button android:id="@+id/keyEsc" style="@style/KeyBtn" android:text="Esc" />
+            </GridLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>
