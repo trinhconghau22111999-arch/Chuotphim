@@ -87,17 +87,30 @@ class MainActivity : AppCompatActivity() {
             imm.showSoftInput(hiddenInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
         }
 
-        hiddenInput.addTextChangedListener(object : android.text.TextWatcher {
+        // Tắt gợi ý/autocorrect/composing để bàn phím ảo (Gboard...) không tự chèn lại
+        // ký tự đang "composing" mỗi khi ta clear() nội dung bên dưới.
+        hiddenInput.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+            android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+
+        lateinit var textWatcher: android.text.TextWatcher
+        textWatcher = object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
                 val text = s?.toString() ?: return
                 if (text.isNotEmpty()) {
                     hidManager.typeText(text)
+                    // QUAN TRỌNG: gỡ listener trước khi clear() rồi gắn lại ngay sau.
+                    // Nếu không, việc sửa Editable ngay trong afterTextChanged sẽ khiến
+                    // IME (đặc biệt Gboard khi đang composing/gợi ý tiếng Việt) chèn lại
+                    // ký tự vừa gõ, gây ra hiện tượng ký tự lặp liên tục không dừng.
+                    hiddenInput.removeTextChangedListener(textWatcher)
                     s.clear()
+                    hiddenInput.addTextChangedListener(textWatcher)
                 }
             }
-        })
+        }
+        hiddenInput.addTextChangedListener(textWatcher)
 
         // Bắt phím Backspace/Enter thật từ bàn phím ảo (không chỉ ký tự thường)
         hiddenInput.setOnKeyListener { _, keyCode, event ->
