@@ -1,89 +1,86 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+    Root là FrameLayout để chứa 2 lớp:
+      - mainColumn: cột nội dung chính (trạng thái / trackpad / 3 phím), thứ tự
+        của trackpad và controlsRow trong đây được MainActivity đổi chỗ tự động
+        tuỳ theo bàn phím ảo đang ẩn hay hiện (xem applyLayoutState() trong code).
+      - hiddenInput: ô nhập ẩn dùng để hứng bàn phím ảo hệ thống, đặt NGOÀI
+        mainColumn và không bao giờ bị gỡ/gắn lại, để tránh mất focus gây
+        vòng lặp ẩn/hiện bàn phím liên tục khi layout tự sắp xếp lại.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/statusText"
+    <LinearLayout
+        android:id="@+id/mainColumn"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:background="#212121"
-        android:textColor="#FFFFFF"
-        android:text="Chưa đăng ký HID" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <!-- Nửa trên: TRACKPAD -->
-    <com.example.btremote.TrackpadView
-        android:id="@+id/trackpad"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#444444" />
-
-    <!-- Nửa dưới: BÀN PHÍM + điều khiển kết nối -->
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="#1B1B1B">
-
-        <LinearLayout
+        <TextView
+            android:id="@+id/statusText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="8dp"
+            android:background="#212121"
+            android:textColor="#FFFFFF"
+            android:text="Chưa đăng ký HID" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+        <!-- Trackpad: chiếm hết phần còn lại, diện tích tự co giãn theo
+             vị trí của 3 phím và chiều cao bàn phím ảo. -->
+        <com.example.btremote.TrackpadView
+            android:id="@+id/trackpad"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
 
-                <Button
-                    android:id="@+id/btnPickDevice"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="Chọn thiết bị" />
+        <View
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#444444" />
 
-                <Button
-                    android:id="@+id/keyHome"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="8dp"
-                    android:text="Home" />
+        <!-- 3 phím điều khiển: cùng 1 style RemoteKeyButton => cùng kích cỡ,
+             cùng chiều cao, canh lề đều nhau. -->
+        <LinearLayout
+            android:id="@+id/controlsRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#1B1B1B"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnOpenKeyboard"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:layout_marginStart="8dp"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
-                    android:padding="0dp"
-                    android:text="⌨"
-                    android:textSize="22sp"
-                    android:contentDescription="Mở bàn phím để gõ chữ" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPickDevice"
+                style="@style/RemoteKeyButton"
+                android:text="Chọn thiết bị" />
 
-            </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/keyHome"
+                style="@style/RemoteKeyButton"
+                android:text="Home" />
 
-            <EditText
-                android:id="@+id/hiddenInput"
-                android:layout_width="1dp"
-                android:layout_height="1dp"
-                android:alpha="0"
-                android:importantForAutofill="no"
-                android:inputType="text" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenKeyboard"
+                style="@style/RemoteKeyButton"
+                android:text="⌨"
+                android:textSize="22sp"
+                android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
-    </ScrollView>
 
-</LinearLayout>
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/hiddenInput"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:alpha="0"
+        android:importantForAutofill="no"
+        android:inputType="text" />
+
+</FrameLayout>

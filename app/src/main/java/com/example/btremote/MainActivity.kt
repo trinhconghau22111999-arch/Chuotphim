@@ -6,10 +6,13 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.view.ViewTreeObserver
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -23,6 +26,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var trackpad: TrackpadView
     private lateinit var hiddenInput: EditText
+
+    // Các thành phần dùng để tự sắp xếp lại layout (chuột / 3 phím / bàn phím ảo)
+    private lateinit var mainColumn: LinearLayout
+    private lateinit var controlsRow: LinearLayout
+    private lateinit var divider: android.view.View
+    private var isKeyboardVisible = false
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -48,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Launcher mở hộp thoại hệ thống "Cho phép BT Remote bật Bluetooth?"
+    // Launcher mở hộp thoại hệ thống "Cho phép Remote TV Bluetooth bật Bluetooth?"
     private val enableBluetoothLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
     ) { /* không cần xử lý kết quả — tuỳ người dùng đồng ý hay không */ }
@@ -60,6 +69,9 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         trackpad = findViewById(R.id.trackpad)
         hiddenInput = findViewById(R.id.hiddenInput)
+        mainColumn = findViewById(R.id.mainColumn)
+        controlsRow = findViewById(R.id.controlsRow)
+        divider = findViewById(R.id.divider)
 
         hidManager = HidManager(this)
         hidManager.listener = object : HidManager.Listener {
@@ -137,9 +149,62 @@ class MainActivity : AppCompatActivity() {
         trackpad.onClick = { rightButton -> hidManager.sendMouseClick(rightButton) }
         trackpad.onScroll = { dy -> hidManager.sendMouseScroll(dy) }
 
+        setupAutoLayout()
+
         // Mở app là tự đăng ký làm bàn phím + chuột Bluetooth luôn (xin quyền nếu cần),
         // xong rồi mới hỏi bật Bluetooth nếu máy đang tắt.
         autoRegisterAndPromptBluetooth()
+    }
+
+    /**
+     * Theo dõi việc bàn phím ảo hệ thống hiện/ẩn để tự canh chỉnh lại layout:
+     *  - Bàn phím ẩn: hạ 3 phím (controlsRow) xuống dưới cùng, trackpad chiếm gần
+     *    hết màn hình -> diện tích chuột lớn nhất.
+     *  - Bàn phím hiện: đưa 3 phím lên trên (ngay dưới statusText), trackpad nằm
+     *    giữa 3 phím và bàn phím. Vì trackpad dùng layout_weight="1" trong phần
+     *    không gian còn lại của cửa sổ (đã co lại do windowSoftInputMode="adjustResize"),
+     *    bàn phím càng thấp thì phần còn lại càng nhiều -> trackpad càng cao.
+     */
+    private fun setupAutoLayout() {
+        applyLayoutState(keyboardVisible = false)
+
+        val rootView = mainColumn.rootView
+        val listener = ViewTreeObserver.OnGlobalLayoutListener {
+            val visibleFrame = Rect()
+            rootView.getWindowVisibleDisplayFrame(visibleFrame)
+            val screenHeight = rootView.height
+            if (screenHeight <= 0) return@OnGlobalLayoutListener
+            val keypadHeight = screenHeight - visibleFrame.bottom
+            val visibleNow = keypadHeight > screenHeight * 0.15
+            if (visibleNow != isKeyboardVisible) {
+                applyLayoutState(visibleNow)
+            }
+        }
+        rootView.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+    private fun applyLayoutState(keyboardVisible: Boolean) {
+        isKeyboardVisible = keyboardVisible
+        mainColumn.removeAllViews()
+
+        val trackpadParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
+        )
+
+        mainColumn.addView(statusText)
+        if (keyboardVisible) {
+            // 3 phím lên trên -> rồi tới chuột, sát ngay phần bàn phím ảo bên dưới.
+            mainColumn.addView(controlsRow)
+            mainColumn.addView(divider)
+            trackpad.layoutParams = trackpadParams
+            mainColumn.addView(trackpad)
+        } else {
+            // Chưa bật bàn phím: hạ 3 phím xuống dưới cùng, chuột chiếm tối đa diện tích.
+            trackpad.layoutParams = trackpadParams
+            mainColumn.addView(trackpad)
+            mainColumn.addView(divider)
+            mainColumn.addView(controlsRow)
+        }
     }
 
     /** Tự đăng ký HID (bàn phím + chuột) ngay khi mở app, xin quyền trước nếu chưa có. */

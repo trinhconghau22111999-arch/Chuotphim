@@ -26,9 +26,9 @@ class HidManager(private val context: Context) {
     var listener: Listener? = null
 
     private val sdpSettings = BluetoothHidDeviceAppSdpSettings(
-        "BT Remote",                       // tên hiển thị khi pair
+        "Remote TV Bluetooth",             // tên hiển thị khi pair
         "Trackpad + Keyboard qua Bluetooth HID",
-        "BTRemote",
+        "RemoteTVBluetooth",
         BluetoothHidDevice.SUBCLASS1_COMBO, // báo là combo mouse+keyboard
         HidDescriptor.DESCRIPTOR
     )

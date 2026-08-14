@@ -14,6 +14,10 @@ import android.view.View
  *  - chạm nhẹ    -> click trái
  *  - giữ lâu     -> click phải
  *  - 2 ngón kéo dọc -> cuộn trang
+ *
+ * Dòng gợi ý cách dùng (bao gồm hướng dẫn click phải) chỉ hiện cho tới khi
+ * người dùng chạm vào trackpad lần đầu tiên, sau đó biến mất vĩnh viễn
+ * (trạng thái được lưu lại nên mở app lại cũng không hiện nữa).
  */
 class TrackpadView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -22,6 +26,9 @@ class TrackpadView @JvmOverloads constructor(
     var onMove: ((dx: Int, dy: Int) -> Unit)? = null
     var onClick: ((rightButton: Boolean) -> Unit)? = null
     var onScroll: ((dy: Int) -> Unit)? = null
+
+    private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
+    private var hintDismissed = prefs.getBoolean(PREF_HINT_DISMISSED, false)
 
     private val paint = Paint().apply {
         color = Color.parseColor("#333333")
@@ -52,21 +59,33 @@ class TrackpadView @JvmOverloads constructor(
         }
     }
 
+    /** Gọi khi người dùng vừa có thao tác đầu tiên trên trackpad -> ẩn gợi ý vĩnh viễn. */
+    private fun dismissHintIfNeeded() {
+        if (!hintDismissed) {
+            hintDismissed = true
+            prefs.edit().putBoolean(PREF_HINT_DISMISSED, true).apply()
+            invalidate()
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
-        canvas.drawText(
-            "Trackpad — kéo để di chuyển, chạm = click trái,",
-            width / 2f, height / 2f - 20, textPaint
-        )
-        canvas.drawText(
-            "giữ = click phải, 2 ngón kéo dọc = cuộn",
-            width / 2f, height / 2f + 30, textPaint
-        )
+        if (!hintDismissed) {
+            canvas.drawText(
+                "Trackpad — kéo để di chuyển, chạm = click trái,",
+                width / 2f, height / 2f - 20, textPaint
+            )
+            canvas.drawText(
+                "giữ = click phải, 2 ngón kéo dọc = cuộn",
+                width / 2f, height / 2f + 30, textPaint
+            )
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                dismissHintIfNeeded()
                 pointerCount = 1
                 lastX = event.x
                 lastY = event.y
@@ -121,5 +140,9 @@ class TrackpadView @JvmOverloads constructor(
             }
         }
         return true
+    }
+
+    companion object {
+        private const val PREF_HINT_DISMISSED = "trackpad_hint_dismissed"
     }
 }
