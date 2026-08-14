@@ -131,7 +131,6 @@ class MainActivity : AppCompatActivity() {
             } else false
         }
 
-        findViewById<Button>(R.id.keyBackspace).setOnClickListener { hidManager.sendSpecialKey("BACKSPACE") }
         findViewById<Button>(R.id.keyHome).setOnClickListener { hidManager.sendSpecialKey("HOME") }
 
         trackpad.onMove = { dx, dy -> hidManager.sendMouseMove(dx, dy) }

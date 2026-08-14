@@ -83,15 +83,6 @@
                 android:importantForAutofill="no"
                 android:inputType="text" />
 
-            <GridLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:columnCount="1">
-
-                <Button android:id="@+id/keyBackspace" style="@style/KeyBtn" android:text="⌫" />
-            </GridLayout>
-
         </LinearLayout>
     </ScrollView>
 
