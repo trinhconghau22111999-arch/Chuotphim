@@ -18,14 +18,36 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/statusText"
+        <!-- topBar: khi CHƯA đăng ký HID thì ẩn statusText, hiện nút đăng ký để
+             người dùng bấm; khi ĐÃ đăng ký thì đảo lại — chỉ 1 trong 2 hiện tại
+             1 thời điểm (xem MainActivity: setHidRegisteredUi()). -->
+        <FrameLayout
+            android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:background="#212121"
-            android:textColor="#FFFFFF"
-            android:text="Chưa đăng ký HID" />
+            android:background="#212121">
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:textColor="#FFFFFF"
+                android:text="Chưa đăng ký HID"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRegisterHid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:textAllCaps="false"
+                android:text="Đăng ký làm bàn phím và chuột" />
+
+        </FrameLayout>
 
         <!-- Trackpad: chiếm hết phần còn lại, diện tích tự co giãn theo
              vị trí của 3 phím và chiều cao bàn phím ảo. -->

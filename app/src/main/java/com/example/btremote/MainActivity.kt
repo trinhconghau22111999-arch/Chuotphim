@@ -23,7 +23,9 @@ import androidx.core.content.ContextCompat
 class MainActivity : AppCompatActivity() {
 
     private lateinit var hidManager: HidManager
+    private lateinit var topBar: android.widget.FrameLayout
     private lateinit var statusText: TextView
+    private lateinit var btnRegisterHid: com.google.android.material.button.MaterialButton
     private lateinit var trackpad: TrackpadView
     private lateinit var hiddenInput: EditText
 
@@ -66,25 +68,39 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        topBar = findViewById(R.id.topBar)
         statusText = findViewById(R.id.statusText)
+        btnRegisterHid = findViewById(R.id.btnRegisterHid)
         trackpad = findViewById(R.id.trackpad)
         hiddenInput = findViewById(R.id.hiddenInput)
         mainColumn = findViewById(R.id.mainColumn)
         controlsRow = findViewById(R.id.controlsRow)
         divider = findViewById(R.id.divider)
 
+        // Ban đầu: chưa đăng ký HID -> hiện nút, ẩn dòng trạng thái.
+        setHidRegisteredUi(registered = false)
+        btnRegisterHid.setOnClickListener {
+            btnRegisterHid.isEnabled = false
+            btnRegisterHid.text = "Đang đăng ký..."
+            autoRegisterAndPromptBluetooth()
+        }
+
         hidManager = HidManager(this)
         hidManager.listener = object : HidManager.Listener {
             override fun onRegistered() {
-                runOnUiThread { statusText.text = "Đã đăng ký HID — hãy chọn thiết bị để kết nối" }
+                runOnUiThread {
+                    setHidRegisteredUi(registered = true)
+                    statusText.text = "Đã đăng ký HID — hãy chọn thiết bị để kết nối"
+                }
             }
 
             override fun onUnregistered() {
-                runOnUiThread { statusText.text = "Đã huỷ đăng ký HID" }
+                runOnUiThread { setHidRegisteredUi(registered = false) }
             }
 
             override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) {
                 runOnUiThread {
+                    setHidRegisteredUi(registered = true)
                     statusText.text = if (connected)
                         "Đã kết nối: ${safeName(device)}"
                     else
@@ -93,7 +109,12 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onError(message: String) {
-                runOnUiThread { Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show() }
+                runOnUiThread {
+                    // Đăng ký thất bại (Bluetooth tắt, thiếu quyền...) -> cho bấm lại nút.
+                    btnRegisterHid.isEnabled = true
+                    btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
+                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+                }
             }
         }
 
@@ -183,6 +204,12 @@ class MainActivity : AppCompatActivity() {
         rootView.viewTreeObserver.addOnGlobalLayoutListener(listener)
     }
 
+    /** Chưa đăng ký HID -> ẩn dòng trạng thái, hiện nút để bấm đăng ký; đã đăng ký thì ngược lại. */
+    private fun setHidRegisteredUi(registered: Boolean) {
+        statusText.visibility = if (registered) android.view.View.VISIBLE else android.view.View.GONE
+        btnRegisterHid.visibility = if (registered) android.view.View.GONE else android.view.View.VISIBLE
+    }
+
     private fun applyLayoutState(keyboardVisible: Boolean) {
         isKeyboardVisible = keyboardVisible
         mainColumn.removeAllViews()
@@ -191,7 +218,7 @@ class MainActivity : AppCompatActivity() {
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
         )
 
-        mainColumn.addView(statusText)
+        mainColumn.addView(topBar)
         if (keyboardVisible) {
             // 3 phím lên trên -> rồi tới chuột, sát ngay phần bàn phím ảo bên dưới.
             mainColumn.addView(controlsRow)
