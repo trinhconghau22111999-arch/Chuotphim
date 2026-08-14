@@ -35,25 +35,17 @@ class MainActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN)
         }
 
-    private val permissionLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-    ) { grants ->
-        if (grants.values.all { it }) {
-            hidManager.start()
-        } else {
-            Toast.makeText(this, "Cần cấp quyền Bluetooth để hoạt động", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // Launcher riêng cho việc xin quyền TRƯỚC KHI hỏi bật Bluetooth lúc mở app
-    // (khác với permissionLauncher ở trên, cái đó xin quyền xong sẽ tự start() luôn).
+    // Launcher xin quyền lúc mở app: xin quyền xong thì tự đăng ký HID
+    // (bàn phím + chuột) rồi mới hỏi bật Bluetooth.
     private val startupPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         if (grants.values.all { it }) {
+            hidManager.start()
             promptEnableBluetoothIfNeeded()
+        } else {
+            Toast.makeText(this, "Cần cấp quyền Bluetooth để hoạt động", Toast.LENGTH_LONG).show()
         }
-        // Nếu người dùng từ chối quyền thì thôi, không ép — họ vẫn có thể bấm nút "1." sau.
     }
 
     // Launcher mở hộp thoại hệ thống "Cho phép BT Remote bật Bluetooth?"
@@ -93,7 +85,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        findViewById<Button>(R.id.btnRegister).setOnClickListener { ensurePermissionsThenStart() }
         findViewById<Button>(R.id.btnPickDevice).setOnClickListener { showBondedDevicesDialog() }
         // Checkbox Telex đã bị ẩn khỏi giao diện — luôn dùng Telex mặc định (đã true sẵn trong HidManager).
         // Nếu ký tự nào không map được (không hỗ trợ), KeyMapper sẽ tự bỏ qua ký tự đó (xem typeText()).
@@ -147,8 +138,22 @@ class MainActivity : AppCompatActivity() {
         trackpad.onClick = { rightButton -> hidManager.sendMouseClick(rightButton) }
         trackpad.onScroll = { dy -> hidManager.sendMouseScroll(dy) }
 
-        // Mở app là hỏi luôn: nếu Bluetooth máy đang tắt thì bật lên (xin quyền trước nếu cần).
-        promptEnableBluetoothIfNeeded()
+        // Mở app là tự đăng ký làm bàn phím + chuột Bluetooth luôn (xin quyền nếu cần),
+        // xong rồi mới hỏi bật Bluetooth nếu máy đang tắt.
+        autoRegisterAndPromptBluetooth()
+    }
+
+    /** Tự đăng ký HID (bàn phím + chuột) ngay khi mở app, xin quyền trước nếu chưa có. */
+    private fun autoRegisterAndPromptBluetooth() {
+        val missing = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) {
+            hidManager.start()
+            promptEnableBluetoothIfNeeded()
+        } else {
+            startupPermissionLauncher.launch(missing.toTypedArray())
+        }
     }
 
     /** Nếu Bluetooth đang tắt, bật hộp thoại hệ thống để người dùng bật lên ngay khi mở app. */
@@ -169,17 +174,6 @@ class MainActivity : AppCompatActivity() {
 
         if (!adapter.isEnabled) {
             enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
-        }
-    }
-
-    private fun ensurePermissionsThenStart() {
-        val missing = requiredPermissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (missing.isEmpty()) {
-            hidManager.start()
-        } else {
-            permissionLauncher.launch(missing.toTypedArray())
         }
     }
 

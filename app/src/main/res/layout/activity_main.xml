@@ -38,38 +38,25 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <Button
-                android:id="@+id/btnRegister"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="1. Đăng ký làm bàn phím + chuột Bluetooth" />
-
-            <Button
-                android:id="@+id/btnPickDevice"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="2. Chọn thiết bị đã pair để kết nối" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:textColor="#888888"
-                android:text="(Nếu chưa pair: vào Cài đặt Bluetooth của máy này, pair với TV/PC trước, rồi quay lại bấm nút 2)" />
-
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
+
+                <Button
+                    android:id="@+id/btnPickDevice"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Chọn thiết bị" />
 
                 <Button
                     android:id="@+id/keyHome"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:layout_marginStart="8dp"
                     android:text="Home" />
 
                 <com.google.android.material.button.MaterialButton
