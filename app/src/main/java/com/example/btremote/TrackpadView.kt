@@ -15,9 +15,10 @@ import android.view.View
  *  - giữ lâu     -> click phải
  *  - 2 ngón kéo dọc -> cuộn trang
  *
- * Dòng gợi ý cách dùng (bao gồm hướng dẫn click phải) chỉ hiện cho tới khi
- * người dùng chạm vào trackpad lần đầu tiên, sau đó biến mất vĩnh viễn
- * (trạng thái được lưu lại nên mở app lại cũng không hiện nữa).
+ * Dòng gợi ý cách dùng chỉ hiện cho tới khi người dùng thực sự KÉO/LƯỚT ngón tay
+ * để di chuyển con trỏ chuột lần đầu tiên (không tính chạm/tap hay giữ để click
+ * phải), sau đó biến mất vĩnh viễn (trạng thái được lưu lại nên mở app lại cũng
+ * không hiện nữa).
  */
 class TrackpadView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -59,7 +60,7 @@ class TrackpadView @JvmOverloads constructor(
         }
     }
 
-    /** Gọi khi người dùng vừa có thao tác đầu tiên trên trackpad -> ẩn gợi ý vĩnh viễn. */
+    /** Gọi khi người dùng vừa kéo/lướt ngón tay để di chuyển chuột lần đầu -> ẩn gợi ý vĩnh viễn. */
     private fun dismissHintIfNeeded() {
         if (!hintDismissed) {
             hintDismissed = true
@@ -85,7 +86,6 @@ class TrackpadView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
-                dismissHintIfNeeded()
                 pointerCount = 1
                 lastX = event.x
                 lastY = event.y
@@ -118,6 +118,8 @@ class TrackpadView @JvmOverloads constructor(
                         removeCallbacks(longPressRunnable)
                     }
                     if (moved) {
+                        // Đây mới thực sự là thao tác "kéo/lướt để di chuyển chuột" -> ẩn gợi ý.
+                        dismissHintIfNeeded()
                         onMove?.invoke((dx * 1.5f).toInt(), (dy * 1.5f).toInt())
                     }
                     lastX = event.x
