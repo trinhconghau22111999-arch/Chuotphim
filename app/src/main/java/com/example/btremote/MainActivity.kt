@@ -2,7 +2,9 @@ package com.example.btremote
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -42,6 +44,22 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Cần cấp quyền Bluetooth để hoạt động", Toast.LENGTH_LONG).show()
         }
     }
+
+    // Launcher riêng cho việc xin quyền TRƯỚC KHI hỏi bật Bluetooth lúc mở app
+    // (khác với permissionLauncher ở trên, cái đó xin quyền xong sẽ tự start() luôn).
+    private val startupPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants.values.all { it }) {
+            promptEnableBluetoothIfNeeded()
+        }
+        // Nếu người dùng từ chối quyền thì thôi, không ép — họ vẫn có thể bấm nút "1." sau.
+    }
+
+    // Launcher mở hộp thoại hệ thống "Cho phép BT Remote bật Bluetooth?"
+    private val enableBluetoothLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { /* không cần xử lý kết quả — tuỳ người dùng đồng ý hay không */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,6 +146,30 @@ class MainActivity : AppCompatActivity() {
         trackpad.onMove = { dx, dy -> hidManager.sendMouseMove(dx, dy) }
         trackpad.onClick = { rightButton -> hidManager.sendMouseClick(rightButton) }
         trackpad.onScroll = { dy -> hidManager.sendMouseScroll(dy) }
+
+        // Mở app là hỏi luôn: nếu Bluetooth máy đang tắt thì bật lên (xin quyền trước nếu cần).
+        promptEnableBluetoothIfNeeded()
+    }
+
+    /** Nếu Bluetooth đang tắt, bật hộp thoại hệ thống để người dùng bật lên ngay khi mở app. */
+    @SuppressLint("MissingPermission")
+    private fun promptEnableBluetoothIfNeeded() {
+        val adapter = BluetoothAdapter.getDefaultAdapter() ?: return // máy không hỗ trợ Bluetooth
+
+        val hasConnectPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED
+        } else true
+
+        if (!hasConnectPermission) {
+            // Từ Android 12 cần quyền BLUETOOTH_CONNECT mới được đọc/đổi trạng thái Bluetooth.
+            startupPermissionLauncher.launch(requiredPermissions)
+            return
+        }
+
+        if (!adapter.isEnabled) {
+            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        }
     }
 
     private fun ensurePermissionsThenStart() {
