@@ -77,9 +77,8 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnRegister).setOnClickListener { ensurePermissionsThenStart() }
         findViewById<Button>(R.id.btnPickDevice).setOnClickListener { showBondedDevicesDialog() }
-        findViewById<android.widget.CheckBox>(R.id.chkTelex).setOnCheckedChangeListener { _, checked ->
-            hidManager.vietnameseTelexEnabled = checked
-        }
+        // Checkbox Telex đã bị ẩn khỏi giao diện — luôn dùng Telex mặc định (đã true sẵn trong HidManager).
+        // Nếu ký tự nào không map được (không hỗ trợ), KeyMapper sẽ tự bỏ qua ký tự đó (xem typeText()).
 
         findViewById<Button>(R.id.btnOpenKeyboard).setOnClickListener {
             hiddenInput.requestFocus()
@@ -124,14 +123,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.keyBackspace).setOnClickListener { hidManager.sendSpecialKey("BACKSPACE") }
-        findViewById<Button>(R.id.keyEnter).setOnClickListener { hidManager.sendSpecialKey("ENTER") }
-        findViewById<Button>(R.id.keyTab).setOnClickListener { hidManager.sendSpecialKey("TAB") }
-        findViewById<Button>(R.id.keyLeft).setOnClickListener { hidManager.sendSpecialKey("LEFT") }
-        findViewById<Button>(R.id.keyRight).setOnClickListener { hidManager.sendSpecialKey("RIGHT") }
-        findViewById<Button>(R.id.keyUp).setOnClickListener { hidManager.sendSpecialKey("UP") }
-        findViewById<Button>(R.id.keyDown).setOnClickListener { hidManager.sendSpecialKey("DOWN") }
         findViewById<Button>(R.id.keyHome).setOnClickListener { hidManager.sendSpecialKey("HOME") }
-        findViewById<Button>(R.id.keyEsc).setOnClickListener { hidManager.sendSpecialKey("ESC") }
 
         trackpad.onMove = { dx, dy -> hidManager.sendMouseMove(dx, dy) }
         trackpad.onClick = { rightButton -> hidManager.sendMouseClick(rightButton) }

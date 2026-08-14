@@ -58,20 +58,35 @@
                 android:textColor="#888888"
                 android:text="(Nếu chưa pair: vào Cài đặt Bluetooth của máy này, pair với TV/PC trước, rồi quay lại bấm nút 2)" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnOpenKeyboard"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Mở bàn phím để gõ chữ" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <CheckBox
-                android:id="@+id/chkTelex"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:textColor="#CCCCCC"
-                android:text="Tự chuyển sang Telex khi gõ có dấu (cần máy đích đang bật gõ Telex)" />
+                <Button
+                    android:id="@+id/keyHome"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Home" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpenKeyboard"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="8dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:insetLeft="0dp"
+                    android:insetRight="0dp"
+                    android:padding="0dp"
+                    android:text="⌨"
+                    android:textSize="22sp"
+                    android:contentDescription="Mở bàn phím để gõ chữ" />
+
+            </LinearLayout>
 
             <EditText
                 android:id="@+id/hiddenInput"
@@ -85,19 +100,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:columnCount="3">
+                android:columnCount="1">
 
                 <Button android:id="@+id/keyBackspace" style="@style/KeyBtn" android:text="⌫" />
-                <Button android:id="@+id/keyEnter" style="@style/KeyBtn" android:text="Enter" />
-                <Button android:id="@+id/keyTab" style="@style/KeyBtn" android:text="Tab" />
-
-                <Button android:id="@+id/keyLeft" style="@style/KeyBtn" android:text="◀" />
-                <Button android:id="@+id/keyUp" style="@style/KeyBtn" android:text="▲" />
-                <Button android:id="@+id/keyRight" style="@style/KeyBtn" android:text="▶" />
-
-                <Button android:id="@+id/keyHome" style="@style/KeyBtn" android:text="Home" />
-                <Button android:id="@+id/keyDown" style="@style/KeyBtn" android:text="▼" />
-                <Button android:id="@+id/keyEsc" style="@style/KeyBtn" android:text="Esc" />
             </GridLayout>
 
         </LinearLayout>
