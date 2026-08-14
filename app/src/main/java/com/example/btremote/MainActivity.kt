@@ -46,23 +46,35 @@ class MainActivity : AppCompatActivity() {
             arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN)
         }
 
-    // Launcher xin quyền lúc mở app: xin quyền xong thì tự đăng ký HID
-    // (bàn phím + chuột) rồi mới hỏi bật Bluetooth.
+    // Launcher xin quyền lúc mở app: xin quyền xong thì kiểm tra/bật Bluetooth
+    // trước, chỉ đăng ký HID (bàn phím + chuột) SAU KHI Bluetooth đã bật.
     private val startupPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         if (grants.values.all { it }) {
-            hidManager.start()
-            promptEnableBluetoothIfNeeded()
+            ensureBluetoothEnabledThenRegister()
         } else {
+            resetRegisterButton()
             Toast.makeText(this, "Cần cấp quyền Bluetooth để hoạt động", Toast.LENGTH_LONG).show()
         }
     }
 
-    // Launcher mở hộp thoại hệ thống "Cho phép Remote TV Bluetooth bật Bluetooth?"
+    // Launcher mở hộp thoại hệ thống "Cho phép Remote TV Bluetooth bật Bluetooth?".
+    // Chỉ khi người dùng ĐỒNG Ý bật thì mới tiến hành đăng ký HID ngay sau đó.
     private val enableBluetoothLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { /* không cần xử lý kết quả — tuỳ người dùng đồng ý hay không */ }
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            hidManager.start()
+        } else {
+            resetRegisterButton()
+            Toast.makeText(
+                this,
+                "Cần bật Bluetooth trước thì mới đăng ký làm bàn phím + chuột được",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,8 +123,7 @@ class MainActivity : AppCompatActivity() {
             override fun onError(message: String) {
                 runOnUiThread {
                     // Đăng ký thất bại (Bluetooth tắt, thiếu quyền...) -> cho bấm lại nút.
-                    btnRegisterHid.isEnabled = true
-                    btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
+                    resetRegisterButton()
                     Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
                 }
             }
@@ -172,8 +183,8 @@ class MainActivity : AppCompatActivity() {
 
         setupAutoLayout()
 
-        // Mở app là tự đăng ký làm bàn phím + chuột Bluetooth luôn (xin quyền nếu cần),
-        // xong rồi mới hỏi bật Bluetooth nếu máy đang tắt.
+        // Mở app là tự kiểm tra/bật Bluetooth trước (xin quyền nếu cần), CHỈ SAU KHI
+        // Bluetooth đã bật mới tự đăng ký làm bàn phím + chuột Bluetooth.
         autoRegisterAndPromptBluetooth()
     }
 
@@ -210,6 +221,12 @@ class MainActivity : AppCompatActivity() {
         btnRegisterHid.visibility = if (registered) android.view.View.GONE else android.view.View.VISIBLE
     }
 
+    /** Đưa nút "Đăng ký..." về trạng thái bấm được lại, dùng khi luồng bật Bluetooth/xin quyền thất bại. */
+    private fun resetRegisterButton() {
+        btnRegisterHid.isEnabled = true
+        btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
+    }
+
     private fun applyLayoutState(keyboardVisible: Boolean) {
         isKeyboardVisible = keyboardVisible
         mainColumn.removeAllViews()
@@ -234,36 +251,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /** Tự đăng ký HID (bàn phím + chuột) ngay khi mở app, xin quyền trước nếu chưa có. */
+    /** Tự đăng ký HID (bàn phím + chuột) ngay khi mở app: xin quyền trước nếu chưa có,
+     *  rồi ĐẢM BẢO Bluetooth đã bật trước khi đăng ký (xem ensureBluetoothEnabledThenRegister). */
     private fun autoRegisterAndPromptBluetooth() {
         val missing = requiredPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isEmpty()) {
-            hidManager.start()
-            promptEnableBluetoothIfNeeded()
+            ensureBluetoothEnabledThenRegister()
         } else {
             startupPermissionLauncher.launch(missing.toTypedArray())
         }
     }
 
-    /** Nếu Bluetooth đang tắt, bật hộp thoại hệ thống để người dùng bật lên ngay khi mở app. */
+    /**
+     * Luôn kiểm tra/bật Bluetooth TRƯỚC, chỉ đăng ký HID SAU khi Bluetooth đã bật:
+     *  - Bluetooth đã bật sẵn -> đăng ký HID ngay.
+     *  - Bluetooth đang tắt -> hiện hộp thoại hệ thống yêu cầu bật; nếu người dùng
+     *    đồng ý bật (enableBluetoothLauncher trả về RESULT_OK) thì mới đăng ký HID.
+     */
     @SuppressLint("MissingPermission")
-    private fun promptEnableBluetoothIfNeeded() {
-        val adapter = BluetoothAdapter.getDefaultAdapter() ?: return // máy không hỗ trợ Bluetooth
-
-        val hasConnectPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) ==
-                PackageManager.PERMISSION_GRANTED
-        } else true
-
-        if (!hasConnectPermission) {
-            // Từ Android 12 cần quyền BLUETOOTH_CONNECT mới được đọc/đổi trạng thái Bluetooth.
-            startupPermissionLauncher.launch(requiredPermissions)
+    private fun ensureBluetoothEnabledThenRegister() {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        if (adapter == null) {
+            resetRegisterButton()
+            Toast.makeText(this, "Thiết bị này không có Bluetooth", Toast.LENGTH_LONG).show()
             return
         }
-
-        if (!adapter.isEnabled) {
+        if (adapter.isEnabled) {
+            hidManager.start()
+        } else {
             enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
         }
     }
