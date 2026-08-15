@@ -135,6 +135,13 @@
                 android:textSize="16sp"
                 android:contentDescription="Tăng âm lượng" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBack"
+                style="@style/RemoteKeyButton"
+                android:text="Back"
+                android:textSize="16sp"
+                android:contentDescription="Quay lại (phím Escape — hầu hết TV nhận là nút Back)" />
+
         </LinearLayout>
 
         <!-- Hàng 4 phím điều khiển media: |◄ Previous, ►| Next, ◄◄ Rewind, ►► Fast Forward.

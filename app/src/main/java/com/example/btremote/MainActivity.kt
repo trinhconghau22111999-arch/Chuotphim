@@ -123,6 +123,7 @@ class MainActivity : AppCompatActivity() {
         setupDoubleTapToggle(btnKeyboardFullscreen, FullscreenMode.KEYBOARD)
 
         findViewById<Button>(R.id.btnVolumeUp).setOnClickListener { hidManager.sendVolumeUp() }
+        findViewById<Button>(R.id.btnBack).setOnClickListener { hidManager.sendSpecialKey("ESC") }
         findViewById<Button>(R.id.btnVolumeDown).setOnClickListener { hidManager.sendVolumeDown() }
         findViewById<Button>(R.id.btnScreenOff).setOnClickListener {
             hidManager.sendScreenOff()
