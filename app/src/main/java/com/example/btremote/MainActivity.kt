@@ -180,6 +180,13 @@ class MainActivity : AppCompatActivity() {
         // Nếu ký tự nào không map được (không hỗ trợ), KeyMapper sẽ tự bỏ qua ký tự đó (xem typeText()).
 
         findViewById<Button>(R.id.btnOpenKeyboard).setOnClickListener {
+            // QUAN TRỌNG: syncInputBar chỉ được gắn vào layout khi bàn phím ĐANG mở
+            // (xem applyLayoutState) — nhưng lúc bấm nút này thì bàn phím CHƯA mở,
+            // nên syncInput đang không nằm trong layout, requestFocus() sẽ vô tác
+            // dụng nếu không gắn view vào trước. Chủ động gắn trước rồi mới focus.
+            if (syncInputBar.parent == null) {
+                applyLayoutState(keyboardVisible = true)
+            }
             syncInput.requestFocus()
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(syncInput, InputMethodManager.SHOW_IMPLICIT)
@@ -384,6 +391,12 @@ class MainActivity : AppCompatActivity() {
         else
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 
+        // QUAN TRỌNG: phải gắn layout TRƯỚC (để syncInputBar/syncInput thật sự nằm
+        // trong cây view) rồi mới request focus + mở bàn phím ảo — nếu làm ngược
+        // lại, syncInput lúc đó chưa được gắn vào nên requestFocus() vô tác dụng,
+        // bàn phím sẽ không mở được.
+        applyLayoutState(isKeyboardVisible)
+
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         if (fullscreenMode == FullscreenMode.KEYBOARD) {
             syncInput.requestFocus()
@@ -391,8 +404,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             imm.hideSoftInputFromWindow(syncInput.windowToken, 0)
         }
-
-        applyLayoutState(isKeyboardVisible)
     }
 
     /** Đổi màu nút góc trên để báo hiệu chế độ đang BẬT hay tắt. */
