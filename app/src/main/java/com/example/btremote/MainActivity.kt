@@ -33,7 +33,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var btnRegisterHid: MaterialButton
     private lateinit var trackpad: TrackpadView
-    private lateinit var hiddenInput: EditText
+    private lateinit var syncInputBar: LinearLayout
+    private lateinit var syncInput: EditText
+
+    // Bản ghi những gì app ĐÃ gửi thành công lên TV thông qua syncInput — dùng để
+    // so sánh (diff) với nội dung mới mỗi khi syncInput đổi, từ đó chỉ gửi phần
+    // KÝ TỰ THAY ĐỔI (thêm/xoá) thay vì gửi lại từ đầu mỗi lần.
+    private var syncSentText = ""
+    // true trong lúc code tự set text vào syncInput (không phải người dùng gõ/dán) —
+    // dùng để bỏ qua watcher, tránh gửi trùng lặp lên TV.
+    private var isSyncProgrammaticChange = false
 
     // Các thành phần dùng để tự sắp xếp lại layout (chuột / 3 phím / bàn phím ảo)
     private lateinit var mainColumn: LinearLayout
@@ -99,7 +108,8 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         btnRegisterHid = findViewById(R.id.btnRegisterHid)
         trackpad = findViewById(R.id.trackpad)
-        hiddenInput = findViewById(R.id.hiddenInput)
+        syncInputBar = findViewById(R.id.syncInputBar)
+        syncInput = findViewById(R.id.syncInput)
         mainColumn = findViewById(R.id.mainColumn)
         controlsRow = findViewById(R.id.controlsRow)
         volumeControls = findViewById(R.id.volumeControls)
@@ -172,52 +182,40 @@ class MainActivity : AppCompatActivity() {
         // Nếu ký tự nào không map được (không hỗ trợ), KeyMapper sẽ tự bỏ qua ký tự đó (xem typeText()).
 
         findViewById<Button>(R.id.btnOpenKeyboard).setOnClickListener {
-            hiddenInput.requestFocus()
+            syncInput.requestFocus()
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(hiddenInput, InputMethodManager.SHOW_IMPLICIT)
+            imm.showSoftInput(syncInput, InputMethodManager.SHOW_IMPLICIT)
         }
 
-        // Tắt gợi ý/autocorrect/composing để bàn phím ảo (Gboard...) không tự chèn lại
-        // ký tự đang "composing" mỗi khi ta clear() nội dung bên dưới.
-        hiddenInput.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+        // Tắt gợi ý/autocorrect để giảm tối đa việc IME (Gboard...) tự sửa/gộp từ,
+        // giúp nội dung syncInput khớp sát nhất với những gì người dùng thật sự gõ.
+        syncInput.inputType = android.text.InputType.TYPE_CLASS_TEXT or
             android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
 
-        lateinit var textWatcher: android.text.TextWatcher
-        textWatcher = object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                val text = s?.toString() ?: return
-                if (text.isNotEmpty()) {
-                    hidManager.typeText(text)
-                    // QUAN TRỌNG: gỡ listener trước khi clear() rồi gắn lại ngay sau.
-                    // Nếu không, việc sửa Editable ngay trong afterTextChanged sẽ khiến
-                    // IME (đặc biệt Gboard khi đang composing/gợi ý tiếng Việt) chèn lại
-                    // ký tự vừa gõ, gây ra hiện tượng ký tự lặp liên tục không dừng.
-                    hiddenInput.removeTextChangedListener(textWatcher)
-                    s.clear()
-                    hiddenInput.addTextChangedListener(textWatcher)
-                }
-            }
-        }
-        hiddenInput.addTextChangedListener(textWatcher)
+        setupSyncInput()
 
-        // Bắt phím Backspace/Enter thật từ bàn phím ảo (không chỉ ký tự thường)
-        hiddenInput.setOnKeyListener { _, keyCode, event ->
-            if (event.action == android.view.KeyEvent.ACTION_DOWN) {
-                when (keyCode) {
-                    android.view.KeyEvent.KEYCODE_DEL -> { hidManager.sendSpecialKey("BACKSPACE"); true }
-                    android.view.KeyEvent.KEYCODE_ENTER -> { hidManager.sendSpecialKey("ENTER"); true }
-                    else -> false
-                }
-            } else false
+        findViewById<Button>(R.id.btnPasteClipboard).setOnClickListener { pasteClipboardIntoSyncInput() }
+        findViewById<Button>(R.id.btnClearSyncInput).setOnClickListener { resetSyncInput() }
+
+        findViewById<Button>(R.id.keyHome).setOnClickListener {
+            hidManager.sendSpecialKey("HOME")
+            // Bấm Home = chắc chắn rời khỏi ô nhập đang gõ trên TV -> reset đồng bộ.
+            resetSyncInput()
         }
 
-        findViewById<Button>(R.id.keyHome).setOnClickListener { hidManager.sendSpecialKey("HOME") }
-
-        trackpad.onMove = { dx, dy -> hidManager.sendMouseMove(dx, dy) }
-        trackpad.onClick = { rightButton -> hidManager.sendMouseClick(rightButton) }
-        trackpad.onScroll = { dy -> hidManager.sendMouseScroll(dy) }
+        trackpad.onMove = { dx, dy ->
+            hidManager.sendMouseMove(dx, dy)
+            // Di chuột = có thể đang rời khỏi ô nhập trên TV -> reset đồng bộ.
+            resetSyncInput()
+        }
+        trackpad.onClick = { rightButton ->
+            hidManager.sendMouseClick(rightButton)
+            resetSyncInput()
+        }
+        trackpad.onScroll = { dy ->
+            hidManager.sendMouseScroll(dy)
+            resetSyncInput()
+        }
 
         setupAutoLayout()
 
@@ -251,6 +249,89 @@ class MainActivity : AppCompatActivity() {
             }
         }
         rootView.viewTreeObserver.addOnGlobalLayoutListener(listener)
+    }
+
+    /**
+     * Gắn watcher cho syncInput: mỗi khi nội dung đổi (do người dùng gõ trực tiếp
+     * HOẶC dán/paste văn bản có dấu từ điện thoại), so sánh với [syncSentText] —
+     * phần đầu giống nhau (common prefix) giữ nguyên, phần đuôi cũ bị mất thì gửi
+     * BACKSPACE tương ứng, phần mới thêm vào thì gửi lên TV bằng typeText() (tự
+     * chuyển Telex nếu có dấu). Nhờ vậy ô này vừa hiển thị đúng những gì ĐÃ gửi,
+     * vừa hỗ trợ paste nguyên khối văn bản có dấu chỉ trong 1 lần gửi diff.
+     */
+    private fun setupSyncInput() {
+        syncInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                // Do chính code tự set (mirror/reset) -> bỏ qua, tránh gửi lặp lên TV.
+                if (isSyncProgrammaticChange) return
+                val newText = s?.toString() ?: ""
+                if (newText == syncSentText) return
+
+                var commonPrefix = 0
+                val maxCommon = minOf(syncSentText.length, newText.length)
+                while (commonPrefix < maxCommon &&
+                    syncSentText[commonPrefix] == newText[commonPrefix]
+                ) commonPrefix++
+
+                val deleteCount = syncSentText.length - commonPrefix
+                repeat(deleteCount) { hidManager.sendSpecialKey("BACKSPACE") }
+
+                val added = newText.substring(commonPrefix)
+                if (added.isNotEmpty()) hidManager.typeText(added)
+
+                syncSentText = newText
+            }
+        })
+
+        // Enter thật từ bàn phím ảo (một số IME gửi KeyEvent thay vì đổi nội dung text).
+        syncInput.setOnKeyListener { _, keyCode, event ->
+            if (event.action == android.view.KeyEvent.ACTION_DOWN &&
+                keyCode == android.view.KeyEvent.KEYCODE_ENTER
+            ) {
+                hidManager.sendSpecialKey("ENTER")
+                true
+            } else false
+        }
+        // Một số bàn phím ảo gửi nút "Enter/Go/Tìm kiếm" qua editor action thay vì KeyEvent.
+        syncInput.setOnEditorActionListener { _, _, _ ->
+            hidManager.sendSpecialKey("ENTER")
+            true
+        }
+    }
+
+    /**
+     * Xoá trắng syncInput VÀ trạng thái "đã gửi" cục bộ — KHÔNG gửi bất kỳ phím
+     * BACKSPACE nào lên TV. Dùng khi coi như ô nhập trên TV đã đổi/mất focus
+     * (di chuột, bấm chuột, cuộn, bấm Home...): lúc này gửi backspace lên TV là
+     * sai chỗ (xoá nhầm nội dung khác), nên chỉ cần đồng bộ lại từ đầu, coi như
+     * "trang trắng" mới, không giả định biết nội dung ô nhập trên TV nữa.
+     */
+    private fun resetSyncInput() {
+        if (syncSentText.isEmpty() && syncInput.text.isNullOrEmpty()) return
+        isSyncProgrammaticChange = true
+        syncInput.setText("")
+        syncSentText = ""
+        isSyncProgrammaticChange = false
+    }
+
+    /** Đọc văn bản (có thể có dấu) từ clipboard điện thoại, chèn vào syncInput tại
+     *  vị trí con trỏ — watcher ở trên sẽ tự gửi phần mới thêm này lên TV. */
+    private fun pasteClipboardIntoSyncInput() {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = clipboard.primaryClip
+        if (clip == null || clip.itemCount == 0) {
+            Toast.makeText(this, "Clipboard trống, chưa copy văn bản nào", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val pasted = clip.getItemAt(0).coerceToText(this)?.toString().orEmpty()
+        if (pasted.isEmpty()) return
+        syncInput.requestFocus()
+        val start = syncInput.selectionStart.coerceAtLeast(0)
+        val end = syncInput.selectionEnd.coerceAtLeast(0)
+        syncInput.text?.replace(minOf(start, end), maxOf(start, end), pasted)
+        syncInput.setSelection((minOf(start, end) + pasted.length).coerceAtMost(syncInput.text?.length ?: 0))
     }
 
     /** Chưa đăng ký HID -> ẩn dòng trạng thái, hiện nút để bấm đăng ký; đã đăng ký thì ngược lại. */
@@ -307,10 +388,10 @@ class MainActivity : AppCompatActivity() {
 
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         if (fullscreenMode == FullscreenMode.KEYBOARD) {
-            hiddenInput.requestFocus()
-            imm.showSoftInput(hiddenInput, InputMethodManager.SHOW_IMPLICIT)
+            syncInput.requestFocus()
+            imm.showSoftInput(syncInput, InputMethodManager.SHOW_IMPLICIT)
         } else {
-            imm.hideSoftInputFromWindow(hiddenInput.windowToken, 0)
+            imm.hideSoftInputFromWindow(syncInput.windowToken, 0)
         }
 
         applyLayoutState(isKeyboardVisible)
@@ -338,9 +419,11 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(trackpad)
             }
             FullscreenMode.KEYBOARD -> {
-                // Ẩn chuột + 3 phím, chỉ còn khoảng trống phía trên bàn phím ảo hệ thống.
+                // Ẩn chuột + 3 phím, chỉ còn khoảng trống phía trên bàn phím ảo hệ thống
+                // + thanh nhập liệu đồng bộ ngay sát bàn phím (view cuối cùng).
                 keyboardModeHint.layoutParams = fillRemainingSpace
                 mainColumn.addView(keyboardModeHint)
+                mainColumn.addView(syncInputBar)
             }
             FullscreenMode.NONE -> {
                 // Thứ tự CỐ ĐỊNH: thanh trạng thái -> chuột (co giãn) -> 3 phím dưới cùng.
@@ -354,6 +437,9 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(controlsRow)
                 mainColumn.addView(volumeControls)
                 mainColumn.addView(mediaControls)
+                // Thanh nhập liệu đồng bộ CHỈ xuất hiện cùng lúc với bàn phím ảo,
+                // và luôn là view cuối cùng -> tự nằm ngay trên bàn phím.
+                if (keyboardVisible) mainColumn.addView(syncInputBar)
             }
         }
     }
