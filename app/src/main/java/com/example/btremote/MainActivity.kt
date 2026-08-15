@@ -11,6 +11,8 @@ import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.ViewTreeObserver
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -103,8 +105,10 @@ class MainActivity : AppCompatActivity() {
         btnMouseFullscreen = findViewById(R.id.btnMouseFullscreen)
         btnKeyboardFullscreen = findViewById(R.id.btnKeyboardFullscreen)
 
-        btnMouseFullscreen.setOnClickListener { toggleFullscreenMode(FullscreenMode.MOUSE) }
-        btnKeyboardFullscreen.setOnClickListener { toggleFullscreenMode(FullscreenMode.KEYBOARD) }
+        // 2 nút góc trên chỉ bật/tắt khi NHẤN ĐÚP — vì đặt gần vùng trackpad nên nếu
+        // cho bấm 1 chạm sẽ rất dễ trúng nhầm lúc đang lướt ngón tay để di chuột.
+        setupDoubleTapToggle(btnMouseFullscreen, FullscreenMode.MOUSE)
+        setupDoubleTapToggle(btnKeyboardFullscreen, FullscreenMode.KEYBOARD)
 
         findViewById<Button>(R.id.btnVolumeUp).setOnClickListener { hidManager.sendVolumeUp() }
         findViewById<Button>(R.id.btnVolumeDown).setOnClickListener { hidManager.sendVolumeDown() }
@@ -247,6 +251,25 @@ class MainActivity : AppCompatActivity() {
     private fun resetRegisterButton() {
         btnRegisterHid.isEnabled = true
         btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
+    }
+
+    /**
+     * Gắn nhận diện nhấn đúp cho nút góc trên: chỉ khi 2 lần chạm liên tiếp thật sự
+     * (nhanh, gần nhau) mới bật/tắt chế độ toàn màn hình tương ứng — 1 chạm đơn lẻ
+     * (kể cả vô tình quẹt trúng lúc đang kéo trackpad) sẽ bị bỏ qua, không kích hoạt.
+     */
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupDoubleTapToggle(button: MaterialButton, mode: FullscreenMode) {
+        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                toggleFullscreenMode(mode)
+                return true
+            }
+        })
+        button.setOnTouchListener { _, event ->
+            detector.onTouchEvent(event)
+            true
+        }
     }
 
     /**

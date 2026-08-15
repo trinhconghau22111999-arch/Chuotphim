@@ -133,7 +133,7 @@
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:text="⟳🖱"
-        android:contentDescription="Bật/tắt chế độ xoay ngang, phóng to chuột toàn màn hình" />
+        android:contentDescription="Nhấn đúp để bật/tắt chế độ xoay ngang, phóng to chuột toàn màn hình" />
 
     <!-- Nút nổi góc trên phải: bật/tắt chế độ "bàn phím toàn màn hình xoay ngang"
          (không cần chuột). -->
@@ -155,7 +155,7 @@
         android:textColor="#FFFFFF"
         android:textSize="18sp"
         android:text="⟳⌨"
-        android:contentDescription="Bật/tắt chế độ xoay ngang, bàn phím toàn màn hình" />
+        android:contentDescription="Nhấn đúp để bật/tắt chế độ xoay ngang, bàn phím toàn màn hình" />
 
     <!-- Cụm nút Volume nổi góc dưới phải: gửi report "Consumer Control" riêng
          (không đi qua bảng phím) nên hệ điều hành máy đích nhận đúng lệnh
