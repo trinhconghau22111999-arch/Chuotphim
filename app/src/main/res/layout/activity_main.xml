@@ -91,20 +91,25 @@
             android:paddingTop="8dp"
             android:paddingBottom="8dp">
 
-            <!-- textSize 14sp + padding 2dp (thay vì 16sp/4dp mặc định) là đủ để
-                 "Thiết bị"/"Home" không còn bị "ellipsize" cắt thành "Thi..."/
-                 "Ho...". KHÔNG chỉnh layout_weight khác 1 nữa — lần trước từng
-                 giảm weight nút icon xuống 0.85 để "nhường chỗ", nhưng hoá ra
-                 khiến nút icon bị hẹp lại và emoji (🎤) cũng bị ellipsize thành
-                 "..." trên máy này. Giữ weight đều nhau (mặc định = 1 từ style
-                 RemoteKeyButton) để mọi nút cùng bề rộng như cũ, chỉ đổi
-                 textSize/padding của riêng 2 nút chữ là đủ. -->
+            <!-- maxLines=2 + ellipsize=none (thay vì chỉ giảm textSize như lần
+                 trước): CHẮC CHẮN không bao giờ bị cắt chữ nữa dù máy hẹp cỡ
+                 nào, vì chữ tự xuống dòng thay vì bị "..." cắt bớt. Lần trước
+                 chỉ giảm textSize 16sp->14sp nhưng có thể vẫn chưa đủ trên máy
+                 hẹp, nay cho xuống dòng thì không còn phụ thuộc vào việc đo/
+                 đoán bề rộng nữa. Không đổi layout_weight (giữ = 1, đều với 2
+                 nút icon bên cạnh) để không lặp lại lỗi cũ (weight lệch từng
+                 làm icon 🎤 bị ellipsize theo). -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyButton"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
-                android:textSize="14sp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:textSize="13sp"
+                android:maxLines="2"
+                android:ellipsize="none"
+                android:lineSpacingExtra="-2sp"
                 android:text="Thiết bị" />
 
             <com.google.android.material.button.MaterialButton
@@ -112,7 +117,12 @@
                 style="@style/RemoteKeyButton"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
-                android:textSize="14sp"
+                android:paddingTop="2dp"
+                android:paddingBottom="2dp"
+                android:textSize="13sp"
+                android:maxLines="2"
+                android:ellipsize="none"
+                android:lineSpacingExtra="-2sp"
                 android:text="Home" />
 
             <!-- Nút nhập liệu bằng giọng nói: dùng RemoteKeyIconButton (cỡ chữ cố
