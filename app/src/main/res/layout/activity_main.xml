@@ -9,6 +9,7 @@
         vòng lặp ẩn/hiện bàn phím liên tục khi layout tự sắp xếp lại.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -95,7 +96,66 @@
 
         </LinearLayout>
 
+        <!-- Hiện thay cho trackpad/3 phím khi đang ở chế độ "bàn phím toàn màn hình" —
+             lúc đó chỉ còn bàn phím ảo hệ thống là quan trọng, không cần chuột. -->
+        <TextView
+            android:id="@+id/keyboardModeHint"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:padding="24dp"
+            android:background="#1B1B1B"
+            android:textColor="#888888"
+            android:textSize="16sp"
+            android:text="Chế độ bàn phím toàn màn hình — gõ bình thường trên bàn phím ảo bên dưới. Bấm lại nút ⟳⌨ ở góc trên để tắt." />
+
     </LinearLayout>
+
+    <!-- Nút nổi góc trên trái: bật/tắt DUY NHẤT chế độ "chuột toàn màn hình xoay ngang"
+         (không liên quan tới bàn phím). Luôn nổi trên mọi lớp nên bấm tắt được ngay
+         cả khi 3 phím điều hướng + thanh trạng thái đang bị ẩn tạm. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMouseFullscreen"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="8dp"
+        android:minWidth="0dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        app:cornerRadius="22dp"
+        android:backgroundTint="#40000000"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:text="⟳🖱"
+        android:contentDescription="Bật/tắt chế độ xoay ngang, phóng to chuột toàn màn hình" />
+
+    <!-- Nút nổi góc trên phải: bật/tắt chế độ "bàn phím toàn màn hình xoay ngang"
+         (không cần chuột). -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnKeyboardFullscreen"
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="8dp"
+        android:minWidth="0dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        app:cornerRadius="22dp"
+        android:backgroundTint="#40000000"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:text="⟳⌨"
+        android:contentDescription="Bật/tắt chế độ xoay ngang, bàn phím toàn màn hình" />
 
     <EditText
         android:id="@+id/hiddenInput"

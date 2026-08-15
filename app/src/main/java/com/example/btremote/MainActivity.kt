@@ -5,11 +5,14 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.view.ViewTreeObserver
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -19,13 +22,14 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var hidManager: HidManager
     private lateinit var topBar: android.widget.FrameLayout
     private lateinit var statusText: TextView
-    private lateinit var btnRegisterHid: com.google.android.material.button.MaterialButton
+    private lateinit var btnRegisterHid: MaterialButton
     private lateinit var trackpad: TrackpadView
     private lateinit var hiddenInput: EditText
 
@@ -33,7 +37,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainColumn: LinearLayout
     private lateinit var controlsRow: LinearLayout
     private lateinit var divider: android.view.View
+    private lateinit var keyboardModeHint: TextView
     private var isKeyboardVisible = false
+
+    // 2 nút nổi góc trên: bật/tắt chế độ toàn màn hình xoay ngang cho chuột / bàn phím.
+    private lateinit var btnMouseFullscreen: MaterialButton
+    private lateinit var btnKeyboardFullscreen: MaterialButton
+    private enum class FullscreenMode { NONE, MOUSE, KEYBOARD }
+    private var fullscreenMode = FullscreenMode.NONE
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -88,6 +99,12 @@ class MainActivity : AppCompatActivity() {
         mainColumn = findViewById(R.id.mainColumn)
         controlsRow = findViewById(R.id.controlsRow)
         divider = findViewById(R.id.divider)
+        keyboardModeHint = findViewById(R.id.keyboardModeHint)
+        btnMouseFullscreen = findViewById(R.id.btnMouseFullscreen)
+        btnKeyboardFullscreen = findViewById(R.id.btnKeyboardFullscreen)
+
+        btnMouseFullscreen.setOnClickListener { toggleFullscreenMode(FullscreenMode.MOUSE) }
+        btnKeyboardFullscreen.setOnClickListener { toggleFullscreenMode(FullscreenMode.KEYBOARD) }
 
         // Ban đầu: chưa đăng ký HID -> hiện nút, ẩn dòng trạng thái.
         setHidRegisteredUi(registered = false)
@@ -135,8 +152,8 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnOpenKeyboard).setOnClickListener {
             hiddenInput.requestFocus()
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-            imm.showSoftInput(hiddenInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(hiddenInput, InputMethodManager.SHOW_IMPLICIT)
         }
 
         // Tắt gợi ý/autocorrect/composing để bàn phím ảo (Gboard...) không tự chèn lại
@@ -227,27 +244,80 @@ class MainActivity : AppCompatActivity() {
         btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
     }
 
+    /**
+     * Bấm nút góc trên -> bật chế độ tương ứng (xoay ngang, toàn màn hình); bấm lại
+     * chính nút đang bật -> tắt, quay về bình thường. Chỉ 1 chế độ hoạt động tại 1
+     * thời điểm: bấm nút còn lại trong khi đang bật chế độ kia sẽ tự chuyển sang.
+     */
+    private fun toggleFullscreenMode(mode: FullscreenMode) {
+        fullscreenMode = if (fullscreenMode == mode) FullscreenMode.NONE else mode
+        applyFullscreenMode()
+    }
+
+    private fun applyFullscreenMode() {
+        updateToggleButtonVisualState(btnMouseFullscreen, fullscreenMode == FullscreenMode.MOUSE)
+        updateToggleButtonVisualState(btnKeyboardFullscreen, fullscreenMode == FullscreenMode.KEYBOARD)
+
+        // Chế độ chuột hoặc bàn phím toàn màn hình đều xoay ngang; tắt cả 2 thì trả
+        // lại cho hệ thống/khoá xoay của máy tự quyết định như bình thường.
+        requestedOrientation = if (fullscreenMode == FullscreenMode.NONE)
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        else
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        if (fullscreenMode == FullscreenMode.KEYBOARD) {
+            hiddenInput.requestFocus()
+            imm.showSoftInput(hiddenInput, InputMethodManager.SHOW_IMPLICIT)
+        } else {
+            imm.hideSoftInputFromWindow(hiddenInput.windowToken, 0)
+        }
+
+        applyLayoutState(isKeyboardVisible)
+    }
+
+    /** Đổi màu nút góc trên để báo hiệu chế độ đang BẬT hay tắt. */
+    private fun updateToggleButtonVisualState(button: MaterialButton, active: Boolean) {
+        button.backgroundTintList = ColorStateList.valueOf(
+            if (active) 0xFF4FC3F7.toInt() else 0x40000000
+        )
+    }
+
     private fun applyLayoutState(keyboardVisible: Boolean) {
         isKeyboardVisible = keyboardVisible
         mainColumn.removeAllViews()
 
-        val trackpadParams = LinearLayout.LayoutParams(
+        val fillRemainingSpace = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
         )
 
-        mainColumn.addView(topBar)
-        if (keyboardVisible) {
-            // 3 phím lên trên -> rồi tới chuột, sát ngay phần bàn phím ảo bên dưới.
-            mainColumn.addView(controlsRow)
-            mainColumn.addView(divider)
-            trackpad.layoutParams = trackpadParams
-            mainColumn.addView(trackpad)
-        } else {
-            // Chưa bật bàn phím: hạ 3 phím xuống dưới cùng, chuột chiếm tối đa diện tích.
-            trackpad.layoutParams = trackpadParams
-            mainColumn.addView(trackpad)
-            mainColumn.addView(divider)
-            mainColumn.addView(controlsRow)
+        when (fullscreenMode) {
+            FullscreenMode.MOUSE -> {
+                // Chỉ còn trackpad, chiếm toàn bộ màn hình; ẩn tạm thanh trạng thái + 3 phím.
+                trackpad.layoutParams = fillRemainingSpace
+                mainColumn.addView(trackpad)
+            }
+            FullscreenMode.KEYBOARD -> {
+                // Ẩn chuột + 3 phím, chỉ còn khoảng trống phía trên bàn phím ảo hệ thống.
+                keyboardModeHint.layoutParams = fillRemainingSpace
+                mainColumn.addView(keyboardModeHint)
+            }
+            FullscreenMode.NONE -> {
+                mainColumn.addView(topBar)
+                if (keyboardVisible) {
+                    // 3 phím lên trên -> rồi tới chuột, sát ngay phần bàn phím ảo bên dưới.
+                    mainColumn.addView(controlsRow)
+                    mainColumn.addView(divider)
+                    trackpad.layoutParams = fillRemainingSpace
+                    mainColumn.addView(trackpad)
+                } else {
+                    // Chưa bật bàn phím: hạ 3 phím xuống dưới cùng, chuột chiếm tối đa diện tích.
+                    trackpad.layoutParams = fillRemainingSpace
+                    mainColumn.addView(trackpad)
+                    mainColumn.addView(divider)
+                    mainColumn.addView(controlsRow)
+                }
+            }
         }
     }
 
