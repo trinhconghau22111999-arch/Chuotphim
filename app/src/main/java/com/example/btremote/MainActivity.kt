@@ -53,6 +53,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mediaControls: LinearLayout
     private lateinit var divider: android.view.View
     private var isKeyboardVisible = false
+    // Thời điểm gần nhất người dùng CHỦ ĐỘNG mở bàn phím (bấm nút ⌨ hoặc bật chế
+    // độ Bàn phím toàn màn hình) — dùng để listener trong setupAutoLayout() bỏ
+    // qua lần đọc chiều cao SAI ngay sau đó (bàn phím ảo thật sự chưa kịp trượt
+    // lên, xem giải thích chi tiết ở setupAutoLayout()).
+    private var lastManualKeyboardOpenAt = 0L
 
     // 2 nút nổi góc trên: bật/tắt chế độ toàn màn hình xoay ngang cho chuột / bàn phím.
     private lateinit var btnMouseFullscreen: MaterialButton
@@ -214,12 +219,18 @@ class MainActivity : AppCompatActivity() {
             // (xem applyLayoutState) — nhưng lúc bấm nút này thì bàn phím CHƯA mở,
             // nên syncInput đang không nằm trong layout, requestFocus() sẽ vô tác
             // dụng nếu không gắn view vào trước. Chủ động gắn trước rồi mới focus.
+            lastManualKeyboardOpenAt = System.currentTimeMillis()
             if (syncInputBar.parent == null) {
                 applyLayoutState(keyboardVisible = true)
             }
             syncInput.requestFocus()
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(syncInput, InputMethodManager.SHOW_IMPLICIT)
+            // SHOW_FORCED thay vì SHOW_IMPLICIT: với IMPLICIT, hệ thống có thể ÂM
+            // THẦM BỎ QUA yêu cầu mở nếu trước đó người dùng từng tự đóng bàn phím
+            // (Android nhớ trạng thái "đã bị đóng thủ công" và không tự mở lại khi
+            // gặp yêu cầu IMPLICIT) -> đây là 1 trong các nguyên nhân khiến bấm nút
+            // này nhiều lần không lên bàn phím. FORCED luôn mở, bất kể trạng thái đó.
+            imm.showSoftInput(syncInput, InputMethodManager.SHOW_FORCED)
         }
 
         // Tắt gợi ý/autocorrect để giảm tối đa việc IME (Gboard...) tự sửa/gộp từ,
@@ -280,7 +291,21 @@ class MainActivity : AppCompatActivity() {
             if (screenHeight <= 0) return@OnGlobalLayoutListener
             val keypadHeight = screenHeight - visibleFrame.bottom
             val visibleNow = keypadHeight > screenHeight * 0.15
-            if (visibleNow != isKeyboardVisible) {
+            // LỖI ĐÃ SỬA: ngay sau khi người dùng bấm nút mở bàn phím, ta CHỦ ĐỘNG
+            // gắn syncInputBar + set isKeyboardVisible=true TRƯỚC KHI bàn phím ảo
+            // thật sự trượt lên (quá trình đó mất vài khung hình). Nếu không có
+            // "khoảng nghỉ" bên dưới, đúng khung hình đó listener sẽ đọc được
+            // keypadHeight vẫn còn nhỏ (bàn phím ảo CHƯA kịp hiện) -> visibleNow=
+            // false trong khi isKeyboardVisible vừa được set true ngay trước đó ->
+            // tưởng lầm là bàn phím vừa bị đóng -> gọi applyLayoutState(false) THÁO
+            // NGAY syncInputBar vừa gắn -> syncInput mất focus giữa chừng -> hệ
+            // thống tự đóng luôn bàn phím ảo thật vì ô nhập liệu không còn focus.
+            // Đây là nguyên nhân khiến nút "Mở bàn phím" bấm không lên / chớp lên
+            // rồi tắt ngay. Bỏ qua các lần đọc "bàn phím vừa đóng" trong 600ms sau
+            // 1 lần mở tay để bàn phím ảo thật có đủ thời gian trượt lên hẳn.
+            val justOpenedManually = isKeyboardVisible &&
+                System.currentTimeMillis() - lastManualKeyboardOpenAt < 600
+            if (visibleNow != isKeyboardVisible && !(!visibleNow && justOpenedManually)) {
                 applyLayoutState(visibleNow)
             }
         }
@@ -461,12 +486,21 @@ class MainActivity : AppCompatActivity() {
         // trong cây view) rồi mới request focus + mở bàn phím ảo — nếu làm ngược
         // lại, syncInput lúc đó chưa được gắn vào nên requestFocus() vô tác dụng,
         // bàn phím sẽ không mở được.
+        if (fullscreenMode == FullscreenMode.KEYBOARD) {
+            // Ghi nhận mốc thời gian TRƯỚC applyLayoutState() để listener trong
+            // setupAutoLayout() có "khoảng nghỉ" bỏ qua lần đọc chiều cao sai ngay
+            // sau đó (bàn phím ảo thật sự chưa kịp trượt lên) — xem chi tiết ở đó.
+            lastManualKeyboardOpenAt = System.currentTimeMillis()
+        }
         applyLayoutState(isKeyboardVisible)
 
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         if (fullscreenMode == FullscreenMode.KEYBOARD) {
             syncInput.requestFocus()
-            imm.showSoftInput(syncInput, InputMethodManager.SHOW_IMPLICIT)
+            // SHOW_FORCED: xem giải thích ở nút "Mở bàn phím" phía trên — IMPLICIT
+            // có thể bị hệ thống âm thầm bỏ qua nếu người dùng từng tự đóng bàn
+            // phím trước đó.
+            imm.showSoftInput(syncInput, InputMethodManager.SHOW_FORCED)
         } else {
             imm.hideSoftInputFromWindow(syncInput.windowToken, 0)
         }
