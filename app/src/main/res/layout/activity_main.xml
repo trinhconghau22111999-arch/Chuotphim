@@ -112,26 +112,23 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnScreenOff"
                 style="@style/RemoteKeyButton"
-                android:text=""
-                app:icon="@drawable/ic_power"
-                app:iconTint="#FFFFFF"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:iconSize="22dp"
+                android:text="OFF"
+                android:textSize="16sp"
+                android:backgroundTint="#D32F2F"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeDown"
                 style="@style/RemoteKeyButton"
-                android:text="−"
-                android:textSize="22sp"
+                android:text="Vol −"
+                android:textSize="16sp"
                 android:contentDescription="Giảm âm lượng" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeUp"
                 style="@style/RemoteKeyButton"
-                android:text="+"
-                android:textSize="22sp"
+                android:text="Vol +"
+                android:textSize="16sp"
                 android:contentDescription="Tăng âm lượng" />
 
         </LinearLayout>
