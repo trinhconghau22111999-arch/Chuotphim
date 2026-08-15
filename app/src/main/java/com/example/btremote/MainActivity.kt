@@ -50,7 +50,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var volumeControls: LinearLayout
     private lateinit var mediaControls: LinearLayout
     private lateinit var divider: android.view.View
-    private lateinit var keyboardModeHint: TextView
     private var isKeyboardVisible = false
 
     // 2 nút nổi góc trên: bật/tắt chế độ toàn màn hình xoay ngang cho chuột / bàn phím.
@@ -115,7 +114,6 @@ class MainActivity : AppCompatActivity() {
         volumeControls = findViewById(R.id.volumeControls)
         mediaControls = findViewById(R.id.mediaControls)
         divider = findViewById(R.id.divider)
-        keyboardModeHint = findViewById(R.id.keyboardModeHint)
         btnMouseFullscreen = findViewById(R.id.btnMouseFullscreen)
         btnKeyboardFullscreen = findViewById(R.id.btnKeyboardFullscreen)
 
@@ -419,10 +417,11 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(trackpad)
             }
             FullscreenMode.KEYBOARD -> {
-                // Ẩn chuột + 3 phím, chỉ còn khoảng trống phía trên bàn phím ảo hệ thống
-                // + thanh nhập liệu đồng bộ ngay sát bàn phím (view cuối cùng).
-                keyboardModeHint.layoutParams = fillRemainingSpace
-                mainColumn.addView(keyboardModeHint)
+                // Bỏ hẳn khối chữ hướng dẫn to (chỉ tốn chỗ, không có tác dụng) —
+                // cho thẳng syncInputBar chiếm HẾT phần trống phía trên bàn phím ảo,
+                // vừa hiển thị nhiều chữ hơn vừa không còn khoảng trống vô ích.
+                syncInputBar.layoutParams = fillRemainingSpace
+                syncInput.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 mainColumn.addView(syncInputBar)
             }
             FullscreenMode.NONE -> {
@@ -438,7 +437,15 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(volumeControls)
                 mainColumn.addView(mediaControls)
                 // Thanh nhập liệu đồng bộ CHỈ xuất hiện cùng lúc với bàn phím ảo,
-                // và luôn là view cuối cùng -> tự nằm ngay trên bàn phím.
+                // và luôn là view cuối cùng -> tự nằm ngay trên bàn phím. Ở đây trả
+                // về kích cỡ gọn (thanh mỏng 1 dòng) thay vì chiếm hết chỗ như chế
+                // độ KEYBOARD toàn màn hình, vì bên trên vẫn còn trackpad cần dùng.
+                syncInputBar.layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                syncInput.layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
                 if (keyboardVisible) mainColumn.addView(syncInputBar)
             }
         }

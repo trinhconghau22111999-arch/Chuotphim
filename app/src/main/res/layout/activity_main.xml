@@ -206,6 +206,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:minHeight="44dp"
+                android:gravity="top|start"
                 android:background="@android:color/transparent"
                 android:textColor="#FFFFFF"
                 android:textColorHint="#888888"
@@ -250,20 +251,6 @@
                 android:contentDescription="Xoá ô nhập (không xoá chữ đã gửi trên TV)" />
 
         </LinearLayout>
-
-        <!-- Hiện thay cho trackpad/3 phím khi đang ở chế độ "bàn phím toàn màn hình" —
-             lúc đó chỉ còn bàn phím ảo hệ thống là quan trọng, không cần chuột. -->
-        <TextView
-            android:id="@+id/keyboardModeHint"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:padding="24dp"
-            android:background="#1B1B1B"
-            android:textColor="#888888"
-            android:textSize="16sp"
-            android:text="Chế độ bàn phím toàn màn hình — gõ bình thường trên bàn phím ảo bên dưới. Bấm lại nút ⌨ ở góc trên để tắt." />
 
     </LinearLayout>
 
