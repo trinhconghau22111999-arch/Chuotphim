@@ -43,15 +43,17 @@ Hoặc build thẳng và cài vào điện thoại đang cắm USB (đã bật U
 2. Trên TV/PC: vào Cài đặt Bluetooth → Add device / Pair device → tìm tên
    **"BT Remote"** → pair như pair chuột Bluetooth bình thường.
    *(Một số máy sẽ hiện mã PIN xác nhận — đồng ý trên cả 2 bên nếu được hỏi.)*
-3. Quay lại app, bấm **"2. Chọn thiết bị đã pair để kết nối"** → chọn tên
-   TV/PC vừa pair.
+3. Quay lại app, bấm **"Chọn thiết bị"** → chọn tên TV/PC vừa pair.
+   *(Từ lần mở app sau, app tự nhớ và kết nối lại thiết bị này ngay khi
+   đăng ký HID xong — không cần chọn lại, trừ khi muốn đổi sang thiết bị khác.)*
 4. Xong — dùng ngay:
-   - **Nửa trên màn hình**: trackpad — kéo 1 ngón để di chuyển con trỏ,
-     chạm nhẹ = click trái, giữ lâu = click phải, kéo 2 ngón theo chiều dọc
-     = cuộn trang.
-   - **Nửa dưới màn hình**: bấm "Mở bàn phím để gõ chữ" để bật bàn phím ảo
-     gõ văn bản thường; các nút cứng bên dưới (⌫, Enter, mũi tên, Tab,
-     Home, Esc) dùng cho phím không gõ được bằng bàn phím ảo.
+   - **Trackpad**: kéo 1 ngón để di chuyển con trỏ, chạm nhẹ = click trái,
+     giữ lâu = click phải, kéo 2 ngón theo chiều dọc = cuộn trang.
+   - **Hàng nút dưới cùng** (cố định vị trí, không bị bàn phím ảo đẩy lên):
+     - `Chọn thiết bị` / `Home` / `⌨` (mở bàn phím ảo để gõ chữ)
+     - `⏻` tắt màn hình *(chỉ hoạt động với TV)* / `−` `+` chỉnh âm lượng
+     - `⏮` `⏭` `⏪` `⏩` — bài trước / bài tiếp / tua lùi / tua tới, dùng
+       cho trình phát nhạc, video (YouTube, Spotify, VLC...)
 
 ## Gõ tiếng Việt có dấu
 
@@ -59,8 +61,7 @@ Chuẩn HID keyboard chỉ gửi được mã phím vật lý (a-z, 0-9...), kh�
 được thẳng ký tự Unicode có dấu — đây là giới hạn của giao thức, không
 riêng gì app này. Cách app xử lý: khi gõ, văn bản có dấu sẽ **tự động
 chuyển sang chuỗi gõ kiểu Telex** trước khi gửi đi (vd "chào" → gửi đi
-"chaof"), việc này có thể bật/tắt bằng checkbox "Tự chuyển sang Telex"
-trong app.
+"chaof"), tính năng này luôn bật mặc định.
 
 **Điều kiện để nó ra chữ có dấu đúng:** máy đích (TV/PC) phải đang **bật
 sẵn bộ gõ Telex**:
@@ -72,9 +73,9 @@ sẵn bộ gõ Telex**:
   lại tiếng Anh.
 - Nếu máy đã có sẵn Unikey/EVKey ở chế độ Telex thì cũng dùng được ngay,
   không cần đổi gì thêm.
-- Nếu máy đích **không có** bộ gõ Telex nào đang bật, tắt checkbox Telex
-  trong app đi — lúc đó gõ sẽ ra đúng chuỗi Telex thô (không dấu, có thêm
-  ký tự s/f/r/x/j) chứ không tự ráp dấu được.
+- Nếu máy đích **không có** bộ gõ Telex nào đang bật, các ký tự có dấu sẽ
+  ra đúng chuỗi Telex thô (không dấu, có thêm ký tự s/f/r/x/j) chứ không
+  tự ráp dấu được.
 
 ## Giới hạn hiện tại (có thể mở rộng thêm)
 
@@ -82,12 +83,8 @@ sẵn bộ gõ Telex**:
   ký hiệu cơ bản; ký tự lạ khác sẽ bị bỏ qua khi gõ.
 - Việc gõ có dấu phụ thuộc vào bộ gõ Telex **đang bật sẵn ở máy đích**
   (xem mục trên) — app không thể tự bật hộ vì không cài gì lên máy đó.
-- Phím Volume trong `KeyMapper` dùng tạm keycode Consumer Page đơn giản
-  hoá — nếu cần chuẩn xác 100% cho volume/media key, cần thêm 1 report
-  descriptor "Consumer Control" riêng (có thể làm thêm nếu cần).
-- Chưa lưu lại thiết bị đã kết nối lần trước để tự nối lại — mỗi lần mở
-  app cần bấm chọn lại thiết bị (bước 3), có thể thêm sau bằng cách lưu
-  MAC address vào SharedPreferences.
+- Nút tắt màn hình (Power) chỉ hoạt động đúng với TV (Android TV/Google
+  TV/smart TV) — không đảm bảo hoạt động với PC/laptop.
 
 ## Cấu trúc project
 
@@ -102,9 +99,11 @@ bt_remote/
         ├── AndroidManifest.xml
         ├── java/com/example/btremote/
         │   ├── MainActivity.kt       — UI, xin quyền, nối các thành phần
-        │   ├── HidManager.kt         — đăng ký HID, gửi report chuột/phím
-        │   ├── HidDescriptor.kt      — report descriptor chuẩn USB HID
+        │   ├── HidManager.kt         — đăng ký HID, gửi report chuột/phím/media
+        │   ├── HidDescriptor.kt      — report descriptor chuẩn USB HID (bàn phím,
+        │   │                           chuột, Consumer Control cho volume/power/media)
         │   ├── KeyMapper.kt          — bảng chuyển ký tự -> HID keycode
+        │   ├── VietnameseTelex.kt    — chuyển văn bản có dấu sang chuỗi Telex
         │   └── TrackpadView.kt       — custom View bắt cử chỉ chạm
         └── res/
             ├── layout/activity_main.xml
