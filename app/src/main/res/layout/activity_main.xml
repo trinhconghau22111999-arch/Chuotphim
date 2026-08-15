@@ -81,7 +81,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyButton"
-                android:text="Chọn thiết bị" />
+                android:text="Thiết bị" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyHome"
@@ -112,8 +112,12 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnScreenOff"
                 style="@style/RemoteKeyButton"
-                android:text="⏻"
-                android:textSize="22sp"
+                android:text=""
+                app:icon="@drawable/ic_power"
+                app:iconTint="#FFFFFF"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
 
             <com.google.android.material.button.MaterialButton
