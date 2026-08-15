@@ -194,13 +194,13 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRewind"
                 style="@style/RemoteKeyIconButton"
-                android:text="⏪"
+                android:text="◀◀"
                 android:contentDescription="Tua lùi" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFastForward"
                 style="@style/RemoteKeyIconButton"
-                android:text="⏩"
+                android:text="▶▶"
                 android:contentDescription="Tua tới" />
 
         </LinearLayout>
