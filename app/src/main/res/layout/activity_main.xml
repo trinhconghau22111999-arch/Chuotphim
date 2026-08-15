@@ -157,6 +157,52 @@
         android:text="⟳⌨"
         android:contentDescription="Bật/tắt chế độ xoay ngang, bàn phím toàn màn hình" />
 
+    <!-- Cụm nút Volume nổi góc dưới phải: gửi report "Consumer Control" riêng
+         (không đi qua bảng phím) nên hệ điều hành máy đích nhận đúng lệnh
+         tăng/giảm âm lượng thật, không chỉ giả lập phím. -->
+    <LinearLayout
+        android:id="@+id/volumeControls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="8dp"
+        android:orientation="vertical">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVolumeUp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginBottom="6dp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            app:cornerRadius="22dp"
+            android:backgroundTint="#40000000"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="+"
+            android:contentDescription="Tăng âm lượng" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnVolumeDown"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            app:cornerRadius="22dp"
+            android:backgroundTint="#40000000"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="−"
+            android:contentDescription="Giảm âm lượng" />
+
+    </LinearLayout>
+
     <EditText
         android:id="@+id/hiddenInput"
         android:layout_width="1dp"

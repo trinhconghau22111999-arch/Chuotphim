@@ -106,6 +106,9 @@ class MainActivity : AppCompatActivity() {
         btnMouseFullscreen.setOnClickListener { toggleFullscreenMode(FullscreenMode.MOUSE) }
         btnKeyboardFullscreen.setOnClickListener { toggleFullscreenMode(FullscreenMode.KEYBOARD) }
 
+        findViewById<Button>(R.id.btnVolumeUp).setOnClickListener { hidManager.sendVolumeUp() }
+        findViewById<Button>(R.id.btnVolumeDown).setOnClickListener { hidManager.sendVolumeDown() }
+
         // Ban đầu: chưa đăng ký HID -> hiện nút, ẩn dòng trạng thái.
         setHidRegisteredUi(registered = false)
         btnRegisterHid.setOnClickListener {
@@ -120,6 +123,8 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     setHidRegisteredUi(registered = true)
                     statusText.text = "Đã đăng ký HID — hãy chọn thiết bị để kết nối"
+                    // Tự kết nối lại thiết bị đã dùng lần trước (nếu có) — không cần chọn lại.
+                    hidManager.autoReconnectLastDevice()
                 }
             }
 

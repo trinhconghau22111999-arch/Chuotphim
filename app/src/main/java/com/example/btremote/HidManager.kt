@@ -25,6 +25,8 @@ class HidManager(private val context: Context) {
     private var connectedDevice: BluetoothDevice? = null
     var listener: Listener? = null
 
+    private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
+
     private val sdpSettings = BluetoothHidDeviceAppSdpSettings(
         "Remote TV Bluetooth",             // tên hiển thị khi pair
         "Trackpad + Keyboard qua Bluetooth HID",
@@ -59,6 +61,11 @@ class HidManager(private val context: Context) {
         override fun onConnectionStateChanged(device: BluetoothDevice?, state: Int) {
             val connected = state == BluetoothProfile.STATE_CONNECTED
             connectedDevice = if (connected) device else null
+            if (connected && device != null) {
+                // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
+                // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
+                prefs.edit().putString(PREF_LAST_DEVICE, device.address).apply()
+            }
             listener?.onConnectionStateChanged(device, connected)
         }
     }
@@ -96,6 +103,18 @@ class HidManager(private val context: Context) {
         return BluetoothAdapter.getDefaultAdapter()?.bondedDevices ?: emptySet()
     }
 
+    /**
+     * Tự kết nối lại thiết bị đã kết nối thành công gần nhất (nếu vẫn còn trong danh
+     * sách đã pair của máy) — gọi ngay sau khi đăng ký HID xong, để người dùng không
+     * phải vào "Chọn thiết bị" chọn lại mỗi lần mở app. Nếu chưa từng kết nối lần nào,
+     * hoặc thiết bị đó không còn pair nữa, hàm này không làm gì cả (im lặng bỏ qua).
+     */
+    fun autoReconnectLastDevice() {
+        val address = prefs.getString(PREF_LAST_DEVICE, null) ?: return
+        val device = bondedDevices().firstOrNull { it.address == address } ?: return
+        connectTo(device)
+    }
+
     // ---------- Gửi report chuột ----------
 
     private var mouseButtons = 0
@@ -128,6 +147,23 @@ class HidManager(private val context: Context) {
 
     private fun clampByte(v: Int): Byte = v.coerceIn(-127, 127).toByte()
 
+    // ---------- Gửi report Consumer Control (Volume/Mute) ----------
+
+    /** Tăng âm lượng — dùng report descriptor "Consumer Control" riêng (Report ID 3),
+     *  không còn đi qua bảng phím như bản cũ nên hệ điều hành nhận đúng chuẩn. */
+    fun sendVolumeUp() = sendConsumerControl(HidDescriptor.CONSUMER_VOLUME_UP)
+
+    fun sendVolumeDown() = sendConsumerControl(HidDescriptor.CONSUMER_VOLUME_DOWN)
+
+    fun sendMute() = sendConsumerControl(HidDescriptor.CONSUMER_MUTE)
+
+    private fun sendConsumerControl(bitmask: Int) {
+        val device = connectedDevice ?: return
+        // Nhấn xuống rồi nhả ra ngay, giống cách gửi report bàn phím/chuột ở trên.
+        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(bitmask.toByte()))
+        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0))
+    }
+
     // ---------- Gửi report bàn phím ----------
 
     /** true = tự chuyển tiếng Việt có dấu sang Telex trước khi gõ (mặc định bật). */
@@ -159,5 +195,6 @@ class HidManager(private val context: Context) {
 
     companion object {
         private const val TAG = "HidManager"
+        private const val PREF_LAST_DEVICE = "last_connected_device_address"
     }
 }

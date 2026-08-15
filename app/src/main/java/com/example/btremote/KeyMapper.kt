@@ -21,8 +21,6 @@ object KeyMapper {
         "UP" to 0x52,
         "HOME" to 0x4A,
         "END" to 0x4D,
-        "VOLUME_UP" to 0x80,   // Consumer page thực ra khác, đơn giản hoá bỏ qua trong bản này
-        "VOLUME_DOWN" to 0x81,
     )
 
     /** Trả về (keycode, canGõĐược). canGõĐược=false nghĩa là ký tự này chưa hỗ trợ. */
