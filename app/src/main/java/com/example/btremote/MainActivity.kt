@@ -38,6 +38,8 @@ class MainActivity : AppCompatActivity() {
     // Các thành phần dùng để tự sắp xếp lại layout (chuột / 3 phím / bàn phím ảo)
     private lateinit var mainColumn: LinearLayout
     private lateinit var controlsRow: LinearLayout
+    private lateinit var volumeControls: LinearLayout
+    private lateinit var mediaControls: LinearLayout
     private lateinit var divider: android.view.View
     private lateinit var keyboardModeHint: TextView
     private var isKeyboardVisible = false
@@ -100,6 +102,8 @@ class MainActivity : AppCompatActivity() {
         hiddenInput = findViewById(R.id.hiddenInput)
         mainColumn = findViewById(R.id.mainColumn)
         controlsRow = findViewById(R.id.controlsRow)
+        volumeControls = findViewById(R.id.volumeControls)
+        mediaControls = findViewById(R.id.mediaControls)
         divider = findViewById(R.id.divider)
         keyboardModeHint = findViewById(R.id.keyboardModeHint)
         btnMouseFullscreen = findViewById(R.id.btnMouseFullscreen)
@@ -112,6 +116,14 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnVolumeUp).setOnClickListener { hidManager.sendVolumeUp() }
         findViewById<Button>(R.id.btnVolumeDown).setOnClickListener { hidManager.sendVolumeDown() }
+        findViewById<Button>(R.id.btnScreenOff).setOnClickListener {
+            hidManager.sendScreenOff()
+            Toast.makeText(this, "Đã gửi lệnh tắt màn hình (chỉ hoạt động với TV)", Toast.LENGTH_SHORT).show()
+        }
+        findViewById<Button>(R.id.btnPreviousTrack).setOnClickListener { hidManager.sendPreviousTrack() }
+        findViewById<Button>(R.id.btnNextTrack).setOnClickListener { hidManager.sendNextTrack() }
+        findViewById<Button>(R.id.btnRewind).setOnClickListener { hidManager.sendRewind() }
+        findViewById<Button>(R.id.btnFastForward).setOnClickListener { hidManager.sendFastForward() }
 
         // Ban đầu: chưa đăng ký HID -> hiện nút, ẩn dòng trạng thái.
         setHidRegisteredUi(registered = false)
@@ -126,7 +138,7 @@ class MainActivity : AppCompatActivity() {
             override fun onRegistered() {
                 runOnUiThread {
                     setHidRegisteredUi(registered = true)
-                    statusText.text = "Đã đăng ký HID — hãy chọn thiết bị để kết nối"
+                    statusText.text = "Chưa kết nối thiết bị nào — hãy chọn thiết bị để kết nối"
                     // Tự kết nối lại thiết bị đã dùng lần trước (nếu có) — không cần chọn lại.
                     hidManager.autoReconnectLastDevice()
                 }
@@ -140,9 +152,9 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     setHidRegisteredUi(registered = true)
                     statusText.text = if (connected)
-                        "Đã kết nối: ${safeName(device)}"
+                        "Đang kết nối tới: ${safeName(device)}"
                     else
-                        "Đã đăng ký HID — chưa kết nối thiết bị nào"
+                        "Chưa kết nối thiết bị nào"
                 }
             }
 
@@ -331,20 +343,17 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(keyboardModeHint)
             }
             FullscreenMode.NONE -> {
+                // Thứ tự CỐ ĐỊNH: thanh trạng thái -> chuột (co giãn) -> 3 phím dưới cùng.
+                // 3 phím không còn tự nhảy lên trên khi bàn phím ảo hệ thống mở nữa —
+                // nếu bàn phím ảo che khuất chúng thì cứ để bị che, người dùng đóng
+                // bàn phím ảo lại là thấy ngay, không cần layout tự sắp xếp lại.
                 mainColumn.addView(topBar)
-                if (keyboardVisible) {
-                    // 3 phím lên trên -> rồi tới chuột, sát ngay phần bàn phím ảo bên dưới.
-                    mainColumn.addView(controlsRow)
-                    mainColumn.addView(divider)
-                    trackpad.layoutParams = fillRemainingSpace
-                    mainColumn.addView(trackpad)
-                } else {
-                    // Chưa bật bàn phím: hạ 3 phím xuống dưới cùng, chuột chiếm tối đa diện tích.
-                    trackpad.layoutParams = fillRemainingSpace
-                    mainColumn.addView(trackpad)
-                    mainColumn.addView(divider)
-                    mainColumn.addView(controlsRow)
-                }
+                trackpad.layoutParams = fillRemainingSpace
+                mainColumn.addView(trackpad)
+                mainColumn.addView(divider)
+                mainColumn.addView(controlsRow)
+                mainColumn.addView(volumeControls)
+                mainColumn.addView(mediaControls)
             }
         }
     }

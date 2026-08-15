@@ -96,6 +96,83 @@
 
         </LinearLayout>
 
+        <!-- Hàng nút Volume: đặt cố định ngay dưới 3 phím điều khiển, cùng style
+             RemoteKeyButton để đồng bộ kích cỡ/bo góc với hàng phía trên. -->
+        <LinearLayout
+            android:id="@+id/volumeControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#1B1B1B"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScreenOff"
+                style="@style/RemoteKeyButton"
+                android:text="⏻"
+                android:textSize="22sp"
+                android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVolumeDown"
+                style="@style/RemoteKeyButton"
+                android:text="−"
+                android:textSize="22sp"
+                android:contentDescription="Giảm âm lượng" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVolumeUp"
+                style="@style/RemoteKeyButton"
+                android:text="+"
+                android:textSize="22sp"
+                android:contentDescription="Tăng âm lượng" />
+
+        </LinearLayout>
+
+        <!-- Hàng 4 phím điều khiển media: |◄ Previous, ►| Next, ◄◄ Rewind, ►► Fast Forward.
+             Đặt cố định ngay dưới hàng Volume, cùng style RemoteKeyButton. -->
+        <LinearLayout
+            android:id="@+id/mediaControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="#1B1B1B"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="8dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPreviousTrack"
+                style="@style/RemoteKeyButton"
+                android:text="⏮"
+                android:textSize="20sp"
+                android:contentDescription="Bài trước" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNextTrack"
+                style="@style/RemoteKeyButton"
+                android:text="⏭"
+                android:textSize="20sp"
+                android:contentDescription="Bài tiếp theo" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRewind"
+                style="@style/RemoteKeyButton"
+                android:text="⏪"
+                android:textSize="20sp"
+                android:contentDescription="Tua lùi" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFastForward"
+                style="@style/RemoteKeyButton"
+                android:text="⏩"
+                android:textSize="20sp"
+                android:contentDescription="Tua tới" />
+
+        </LinearLayout>
+
         <!-- Hiện thay cho trackpad/3 phím khi đang ở chế độ "bàn phím toàn màn hình" —
              lúc đó chỉ còn bàn phím ảo hệ thống là quan trọng, không cần chuột. -->
         <TextView
@@ -156,52 +233,6 @@
         android:textSize="18sp"
         android:text="⟳⌨"
         android:contentDescription="Nhấn đúp để bật/tắt chế độ xoay ngang, bàn phím toàn màn hình" />
-
-    <!-- Cụm nút Volume nổi góc dưới phải: gửi report "Consumer Control" riêng
-         (không đi qua bảng phím) nên hệ điều hành máy đích nhận đúng lệnh
-         tăng/giảm âm lượng thật, không chỉ giả lập phím. -->
-    <LinearLayout
-        android:id="@+id/volumeControls"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="8dp"
-        android:orientation="vertical">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnVolumeUp"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:layout_marginBottom="6dp"
-            android:minWidth="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:insetLeft="0dp"
-            android:insetRight="0dp"
-            app:cornerRadius="22dp"
-            android:backgroundTint="#40000000"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:text="+"
-            android:contentDescription="Tăng âm lượng" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnVolumeDown"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:minWidth="0dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:insetLeft="0dp"
-            android:insetRight="0dp"
-            app:cornerRadius="22dp"
-            android:backgroundTint="#40000000"
-            android:textColor="#FFFFFF"
-            android:textSize="20sp"
-            android:text="−"
-            android:contentDescription="Giảm âm lượng" />
-
-    </LinearLayout>
 
     <EditText
         android:id="@+id/hiddenInput"

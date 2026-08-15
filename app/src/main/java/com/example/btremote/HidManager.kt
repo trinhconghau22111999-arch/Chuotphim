@@ -157,6 +157,17 @@ class HidManager(private val context: Context) {
 
     fun sendMute() = sendConsumerControl(HidDescriptor.CONSUMER_MUTE)
 
+    /** Nút nguồn (Power) — trên đa số TV Bluetooth (Android TV/Google TV/smart TV)
+     *  usage này chính là tắt/mở màn hình TV. Không đảm bảo hoạt động với PC. */
+    fun sendScreenOff() = sendConsumerControl(HidDescriptor.CONSUMER_POWER)
+
+    // 4 phím điều khiển media chuẩn — hoạt động với hầu hết trình phát nhạc/video
+    // trên TV, PC, điện thoại (Windows Media Player, YouTube, Spotify, VLC...).
+    fun sendPreviousTrack() = sendConsumerControl(HidDescriptor.CONSUMER_PREV_TRACK)
+    fun sendNextTrack() = sendConsumerControl(HidDescriptor.CONSUMER_NEXT_TRACK)
+    fun sendRewind() = sendConsumerControl(HidDescriptor.CONSUMER_REWIND)
+    fun sendFastForward() = sendConsumerControl(HidDescriptor.CONSUMER_FAST_FORWARD)
+
     private fun sendConsumerControl(bitmask: Int) {
         val device = connectedDevice ?: return
         // Nhấn xuống rồi nhả ra ngay, giống cách gửi report bàn phím/chuột ở trên.
