@@ -30,6 +30,11 @@ object HidDescriptor {
     const val CONSUMER_NEXT_TRACK: Int = 0x20
     const val CONSUMER_REWIND: Int = 0x40
     const val CONSUMER_FAST_FORWARD: Int = 0x80
+    // Play/Pause (Usage 0xCD) — bit thứ 9, đã hết chỗ ở byte đầu (8 bit dùng hết
+    // cho 8 phím trên) nên usage này rơi sang bit0 của BYTE THỨ 2 trong report.
+    // sendConsumerControl() ở HidManager tự tách bitmask 16-bit này thành đúng
+    // 2 byte khi gửi report, xem giải thích chi tiết ở đó.
+    const val CONSUMER_PLAY_PAUSE: Int = 0x100
 
     val DESCRIPTOR: ByteArray = byteArrayOf(
         // ---- Keyboard (Report ID 1) ----
@@ -88,11 +93,14 @@ object HidDescriptor {
         0xC0.toByte(),          //   End Collection
         0xC0.toByte(),          // End Collection
 
-        // ---- Consumer Control (Report ID 3) — Volume Up/Down + Mute ----
+        // ---- Consumer Control (Report ID 3) — Volume Up/Down + Mute + Media ----
         // Dùng usage page riêng (0x0C - Consumer) thay vì nhét tạm vào bảng phím
         // (0x07 - Keyboard) như trước: trước đây "Usage Maximum" của bàn phím chỉ
         // khai báo tới 0x65 nên hệ điều hành sẽ BỎ QUA mọi keycode ngoài khoảng đó,
         // khiến phím Volume gửi đi vô tác dụng dù report có gửi thành công.
+        // Report dài 2 byte (16 bit): 9 bit đầu là 9 nút thật (đủ chỗ thêm
+        // Play/Pause so với bản cũ chỉ có 8 bit = 8 nút), 7 bit cuối là đệm cho
+        // tròn 2 byte.
         0x05, 0x0C,             // Usage Page (Consumer)
         0x09, 0x01,             // Usage (Consumer Control)
         0xA1.toByte(), 0x01,    // Collection (Application)
@@ -100,7 +108,7 @@ object HidDescriptor {
         0x15, 0x00,             //   Logical Minimum (0)
         0x25, 0x01,             //   Logical Maximum (1)
         0x75, 0x01,             //   Report Size (1)
-        0x95.toByte(), 0x08,    //   Report Count (8) -> vừa đủ 1 byte, không cần đệm
+        0x95.toByte(), 0x09,    //   Report Count (9) -> 9 nút thật
         0x09, 0xE9.toByte(),    //   Usage (Volume Increment)
         0x09, 0xEA.toByte(),    //   Usage (Volume Decrement)
         0x09, 0xE2.toByte(),    //   Usage (Mute)
@@ -109,7 +117,11 @@ object HidDescriptor {
         0x09, 0xB5.toByte(),    //   Usage (Scan Next Track)
         0x09, 0xB4.toByte(),    //   Usage (Rewind)
         0x09, 0xB3.toByte(),    //   Usage (Fast Forward)
-        0x81.toByte(), 0x02,    //   Input (Data,Var,Abs) -> 8 bit thật, đủ 1 byte
+        0x09, 0xCD.toByte(),    //   Usage (Play/Pause)
+        0x81.toByte(), 0x02,    //   Input (Data,Var,Abs) -> 9 bit thật
+        0x95.toByte(), 0x01,    //   Report Count (1)
+        0x75, 0x07,             //   Report Size (7)
+        0x81.toByte(), 0x01,    //   Input (Constant) -> 7 bit đệm, đủ tròn 2 byte
         0xC0.toByte()           // End Collection
     )
 }

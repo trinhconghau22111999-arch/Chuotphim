@@ -92,6 +92,16 @@
                 style="@style/RemoteKeyButton"
                 android:text="Home" />
 
+            <!-- Nút nhập liệu bằng giọng nói: cùng style RemoteKeyButton nên hàng
+                 này tự co về 4 nút bằng nhau, khớp với các hàng Volume/Media bên
+                 dưới (cũng 4 nút) -> các hàng icon cân đối, đồng đều với nhau. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVoiceInput"
+                style="@style/RemoteKeyButton"
+                android:text="🎤"
+                android:textSize="22sp"
+                android:contentDescription="Nhập liệu bằng giọng nói" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
                 style="@style/RemoteKeyButton"
@@ -144,8 +154,9 @@
 
         </LinearLayout>
 
-        <!-- Hàng 4 phím điều khiển media: |◄ Previous, ►| Next, ◄◄ Rewind, ►► Fast Forward.
-             Đặt cố định ngay dưới hàng Volume, cùng style RemoteKeyButton. -->
+        <!-- Hàng 5 phím điều khiển media: |◄ Previous, ⏯ Play/Pause, ►| Next,
+             ◄◄ Rewind, ►► Fast Forward. Đặt cố định ngay dưới hàng Volume,
+             cùng style RemoteKeyButton. -->
         <LinearLayout
             android:id="@+id/mediaControls"
             android:layout_width="match_parent"
@@ -162,6 +173,13 @@
                 android:text="⏮"
                 android:textSize="20sp"
                 android:contentDescription="Bài trước" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPlayPause"
+                style="@style/RemoteKeyButton"
+                android:text="⏯"
+                android:textSize="20sp"
+                android:contentDescription="Play/Pause" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNextTrack"

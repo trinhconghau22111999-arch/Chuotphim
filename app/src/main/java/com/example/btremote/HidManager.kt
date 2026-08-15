@@ -167,12 +167,20 @@ class HidManager(private val context: Context) {
     fun sendNextTrack() = sendConsumerControl(HidDescriptor.CONSUMER_NEXT_TRACK)
     fun sendRewind() = sendConsumerControl(HidDescriptor.CONSUMER_REWIND)
     fun sendFastForward() = sendConsumerControl(HidDescriptor.CONSUMER_FAST_FORWARD)
+    fun sendPlayPause() = sendConsumerControl(HidDescriptor.CONSUMER_PLAY_PAUSE)
 
+    /** Report Consumer Control giờ dài 2 byte (16 bit, xem HidDescriptor) nên bitmask
+     *  cũng tách làm 2: byte0 = 8 bit thấp (các phím cũ), byte1 = bit cao nhất còn lại
+     *  (hiện chỉ có Play/Pause ở bit thứ 9) — các hằng số CONSUMER_* vẫn giữ nguyên
+     *  giá trị cũ (0x01..0x80) nên không phá vỡ gì, chỉ CONSUMER_PLAY_PAUSE = 0x100
+     *  là rơi sang byte1. */
     private fun sendConsumerControl(bitmask: Int) {
         val device = connectedDevice ?: return
+        val byte0 = (bitmask and 0xFF).toByte()
+        val byte1 = ((bitmask shr 8) and 0xFF).toByte()
         // Nhấn xuống rồi nhả ra ngay, giống cách gửi report bàn phím/chuột ở trên.
-        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(bitmask.toByte()))
-        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0))
+        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(byte0, byte1))
+        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0, 0))
     }
 
     // ---------- Gửi report bàn phím ----------

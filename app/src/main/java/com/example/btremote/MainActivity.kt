@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -11,6 +12,7 @@ import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ViewTreeObserver
@@ -82,6 +84,32 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Launcher xin quyền RECORD_AUDIO cho nút micro: xin xong thì mở luôn hộp
+    // thoại nhận diện giọng nói nếu được cấp quyền.
+    private val recordAudioPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            launchVoiceRecognizer()
+        } else {
+            Toast.makeText(this, "Cần cấp quyền Micro để nhập liệu bằng giọng nói", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Launcher mở hộp thoại nhận diện giọng nói của hệ thống -> kết quả nhận
+    // được (văn bản đã nhận diện) sẽ được chèn vào syncInput và gửi lên TV
+    // giống hệt như khi dán (paste) văn bản.
+    private val voiceInputLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+            if (!spoken.isNullOrEmpty()) insertTextIntoSyncInput(spoken)
+        }
+    }
+
     // Launcher mở hộp thoại hệ thống "Cho phép Remote TV Bluetooth bật Bluetooth?".
     // Chỉ khi người dùng ĐỒNG Ý bật thì mới tiến hành đăng ký HID ngay sau đó.
     private val enableBluetoothLauncher = registerForActivityResult(
@@ -130,6 +158,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Đã gửi lệnh tắt màn hình (chỉ hoạt động với TV)", Toast.LENGTH_SHORT).show()
         }
         findViewById<Button>(R.id.btnPreviousTrack).setOnClickListener { hidManager.sendPreviousTrack() }
+        findViewById<Button>(R.id.btnPlayPause).setOnClickListener { hidManager.sendPlayPause() }
         findViewById<Button>(R.id.btnNextTrack).setOnClickListener { hidManager.sendNextTrack() }
         findViewById<Button>(R.id.btnRewind).setOnClickListener { hidManager.sendRewind() }
         findViewById<Button>(R.id.btnFastForward).setOnClickListener { hidManager.sendFastForward() }
@@ -202,6 +231,7 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.btnPasteClipboard).setOnClickListener { pasteClipboardIntoSyncInput() }
         findViewById<Button>(R.id.btnClearSyncInput).setOnClickListener { resetSyncInput() }
+        findViewById<Button>(R.id.btnVoiceInput).setOnClickListener { startVoiceInput() }
 
         findViewById<Button>(R.id.keyHome).setOnClickListener {
             hidManager.sendSpecialKey("HOME")
@@ -333,11 +363,46 @@ class MainActivity : AppCompatActivity() {
         }
         val pasted = clip.getItemAt(0).coerceToText(this)?.toString().orEmpty()
         if (pasted.isEmpty()) return
+        insertTextIntoSyncInput(pasted)
+    }
+
+    /** Chèn 1 đoạn văn bản (từ clipboard hoặc từ giọng nói đã nhận diện) vào
+     *  syncInput tại vị trí con trỏ — watcher của syncInput sẽ tự lo gửi phần
+     *  mới thêm này lên TV (tự chuyển Telex nếu có dấu, xem setupSyncInput()). */
+    private fun insertTextIntoSyncInput(text: String) {
+        if (syncInputBar.parent == null) applyLayoutState(keyboardVisible = true)
         syncInput.requestFocus()
         val start = syncInput.selectionStart.coerceAtLeast(0)
         val end = syncInput.selectionEnd.coerceAtLeast(0)
-        syncInput.text?.replace(minOf(start, end), maxOf(start, end), pasted)
-        syncInput.setSelection((minOf(start, end) + pasted.length).coerceAtMost(syncInput.text?.length ?: 0))
+        syncInput.text?.replace(minOf(start, end), maxOf(start, end), text)
+        syncInput.setSelection((minOf(start, end) + text.length).coerceAtMost(syncInput.text?.length ?: 0))
+    }
+
+    /** Bấm nút micro: xin quyền RECORD_AUDIO nếu chưa có, có rồi thì mở luôn hộp
+     *  thoại nhận diện giọng nói của hệ thống. */
+    private fun startVoiceInput() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            launchVoiceRecognizer()
+        } else {
+            recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    /** Mở hộp thoại nhận diện giọng nói mặc định của máy (ưu tiên tiếng Việt).
+     *  Kết quả trả về được xử lý ở voiceInputLauncher phía trên. */
+    private fun launchVoiceRecognizer() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói để nhập văn bản...")
+        }
+        try {
+            voiceInputLauncher.launch(intent)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "Thiết bị này không hỗ trợ nhận diện giọng nói", Toast.LENGTH_LONG).show()
+        }
     }
 
     /** Chưa đăng ký HID -> ẩn dòng trạng thái, hiện nút để bấm đăng ký; đã đăng ký thì ngược lại. */
