@@ -8,19 +8,11 @@
       - syncInput (bên trong syncInputBar): ô nhập liệu THẬT dùng để hứng bàn
         phím ảo hệ thống — chỉ được add vào mainColumn khi bàn phím đang mở,
         luôn nằm CUỐI mainColumn nên hiện ngay phía trên bàn phím ảo.
-
-    fitsSystemWindows="true": để hệ thống tự cộng padding-top đúng bằng chiều
-    cao status bar/notch THẬT của từng máy. Một số máy có status bar/tai thỏ
-    cao hơn mức 8dp margin cố định của 2 nút tròn nổi (btnMouseFullscreen /
-    btnKeyboardFullscreen) ở góc trên, khiến đồng hồ hệ thống bị nút đè lên.
-    fitsSystemWindows để Android tự tính đúng khoảng chừa cho từng máy thay vì
-    mình đoán 1 con số cố định không đúng cho mọi thiết bị.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fitsSystemWindows="true">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/mainColumn"
