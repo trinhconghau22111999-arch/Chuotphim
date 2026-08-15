@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
@@ -12,7 +11,11 @@ import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ViewTreeObserver
@@ -59,6 +62,26 @@ class MainActivity : AppCompatActivity() {
     // lên, xem giải thích chi tiết ở setupAutoLayout()).
     private var lastManualKeyboardOpenAt = 0L
 
+    // ---- Nhập liệu bằng giọng nói (nút micro) ----
+    // Dùng thẳng SpeechRecognizer thay vì mở hộp thoại nhận diện giọng nói có sẵn
+    // của hệ thống (ACTION_RECOGNIZE_SPEECH): cách cũ giao hết quyền kiểm soát
+    // cho app nhận diện của máy (Google/OEM khác) — trên 1 số máy, hộp thoại đó
+    // cứ nghe MÃI không tự dừng, không bao giờ trả kết quả về (đúng hiện tượng
+    // "ghi hoài mà không viết ra chữ nào"). Dùng SpeechRecognizer trực tiếp cho
+    // phép: (1) hiện chữ ra syncInput NGAY khi đang nói (kết quả tạm/partial),
+    // (2) TỰ đếm 2 giây im lặng để chủ động dừng nghe + gửi ENTER, không phụ
+    // thuộc vào việc máy có tự dừng đúng lúc hay không.
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var isVoiceListening = false
+    // Vị trí bắt đầu đoạn "đang nghe" trong syncInput — mỗi lần có kết quả tạm
+    // mới, ta THAY THẾ từ vị trí này tới hết chuỗi bằng câu nhận diện mới nhất
+    // (vì partial result là toàn bộ câu tính từ lúc bắt đầu nói, không phải chỉ
+    // phần thêm), rồi để watcher có sẵn của syncInput tự lo gửi diff lên TV.
+    private var voiceInputStartPos = 0
+    private val silenceHandler = Handler(Looper.getMainLooper())
+    private val silenceRunnable = Runnable { onVoiceSilenceTimeout() }
+    private val VOICE_SILENCE_TIMEOUT_MS = 2000L
+
     // 2 nút nổi góc trên: bật/tắt chế độ toàn màn hình xoay ngang cho chuột / bàn phím.
     private lateinit var btnMouseFullscreen: MaterialButton
     private lateinit var btnKeyboardFullscreen: MaterialButton
@@ -89,29 +112,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Launcher xin quyền RECORD_AUDIO cho nút micro: xin xong thì mở luôn hộp
-    // thoại nhận diện giọng nói nếu được cấp quyền.
+    // Launcher xin quyền RECORD_AUDIO cho nút micro: xin xong thì bắt đầu nghe luôn
+    // nếu được cấp quyền.
     private val recordAudioPermissionLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            launchVoiceRecognizer()
+            startListeningContinuous()
         } else {
             Toast.makeText(this, "Cần cấp quyền Micro để nhập liệu bằng giọng nói", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    // Launcher mở hộp thoại nhận diện giọng nói của hệ thống -> kết quả nhận
-    // được (văn bản đã nhận diện) sẽ được chèn vào syncInput và gửi lên TV
-    // giống hệt như khi dán (paste) văn bản.
-    private val voiceInputLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val spoken = result.data
-                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                ?.firstOrNull()
-            if (!spoken.isNullOrEmpty()) insertTextIntoSyncInput(spoken)
         }
     }
 
@@ -403,31 +412,152 @@ class MainActivity : AppCompatActivity() {
         syncInput.setSelection((minOf(start, end) + text.length).coerceAtMost(syncInput.text?.length ?: 0))
     }
 
-    /** Bấm nút micro: xin quyền RECORD_AUDIO nếu chưa có, có rồi thì mở luôn hộp
-     *  thoại nhận diện giọng nói của hệ thống. */
+    /** Bấm nút micro:
+     *  - Nếu đang KHÔNG nghe: xin quyền RECORD_AUDIO nếu chưa có, có rồi thì bắt đầu nghe.
+     *  - Nếu đang nghe: bấm lại để DỪNG NGHE SỚM ngay lập tức (coi như đã nói xong),
+     *    không cần đợi đủ 2 giây im lặng — hữu ích nếu người dùng biết mình nói xong rồi. */
     private fun startVoiceInput() {
+        if (isVoiceListening) {
+            stopVoiceListening(finalizeWithEnter = true)
+            return
+        }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            launchVoiceRecognizer()
+            startListeningContinuous()
         } else {
             recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
-    /** Mở hộp thoại nhận diện giọng nói mặc định của máy (ưu tiên tiếng Việt).
-     *  Kết quả trả về được xử lý ở voiceInputLauncher phía trên. */
-    private fun launchVoiceRecognizer() {
+    /** Bắt đầu 1 phiên nghe bằng SpeechRecognizer (không phải hộp thoại hệ thống):
+     *  kết quả TẠM (partial) sẽ được đổ thẳng vào syncInput NGAY khi đang nói —
+     *  nhờ đó thấy chữ xuất hiện + gửi lên TV theo thời gian thực, không phải đợi
+     *  "ghi xong" mới có chữ. Mỗi lần có kết quả tạm mới -> reset lại đồng hồ đếm
+     *  2 giây; hết 2 giây mà KHÔNG có thêm kết quả mới (tức người dùng đã ngừng
+     *  nói) -> tự dừng nghe + gửi phím ENTER lên TV (xem onVoiceSilenceTimeout()). */
+    private fun startListeningContinuous() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Máy này không hỗ trợ nhận diện giọng nói", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (syncInputBar.parent == null) applyLayoutState(keyboardVisible = true)
+        syncInput.requestFocus()
+        voiceInputStartPos = syncInput.text?.length ?: 0
+
+        speechRecognizer?.destroy()
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+            setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {}
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {}
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() {}
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+
+                override fun onPartialResults(partialResults: Bundle?) {
+                    val text = partialResults
+                        ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        ?.firstOrNull()
+                    if (!text.isNullOrEmpty()) {
+                        applyVoicePreview(text)
+                        resetSilenceTimer()
+                    }
+                }
+
+                override fun onResults(results: Bundle?) {
+                    // Máy tự quyết định "nói xong" (hiếm khi xảy ra trước cả 2 giây của
+                    // ta, nhưng có thể có trên 1 số máy) -> áp kết quả CUỐI rồi dừng
+                    // hẳn + gửi ENTER ngay, không cần đợi thêm.
+                    val text = results
+                        ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                        ?.firstOrNull()
+                    if (!text.isNullOrEmpty()) applyVoicePreview(text)
+                    stopVoiceListening(finalizeWithEnter = true)
+                }
+
+                override fun onError(error: Int) {
+                    // ERROR_NO_MATCH/ERROR_SPEECH_TIMEOUT: không nói gì cả -> dừng êm,
+                    // không cần Toast làm phiền. Các lỗi khác thì báo cho biết.
+                    if (error != SpeechRecognizer.ERROR_NO_MATCH &&
+                        error != SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                    ) {
+                        Toast.makeText(
+                            this@MainActivity, "Lỗi nhận diện giọng nói (mã $error)", Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    stopVoiceListening(finalizeWithEnter = false)
+                }
+            })
+        }
+
         val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
-            putExtra(RecognizerIntent.EXTRA_PROMPT, "Nói để nhập văn bản...")
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, packageName)
+            // Kéo dài các mốc thời gian tự-dừng CỦA MÁY ra khá lâu (4 giây) để đồng
+            // hồ 2 giây CỦA TA luôn là bên quyết định dừng trước — tránh máy tự cắt
+            // ngang giữa chừng câu nói sớm hơn ý người dùng.
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000)
         }
-        try {
-            voiceInputLauncher.launch(intent)
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(this, "Thiết bị này không hỗ trợ nhận diện giọng nói", Toast.LENGTH_LONG).show()
+        speechRecognizer?.startListening(intent)
+        isVoiceListening = true
+        updateVoiceButtonVisualState(true)
+        resetSilenceTimer()
+    }
+
+    /** Thay đoạn "đang nghe" (từ voiceInputStartPos tới hết) bằng câu nhận diện
+     *  mới nhất — watcher có sẵn của syncInput (xem setupSyncInput()) sẽ TỰ so
+     *  sánh với những gì đã gửi và chỉ gửi phần khác biệt (backspace phần cũ bị
+     *  sửa + gõ phần mới) lên TV, y hệt cơ chế paste/gõ tay bình thường. */
+    private fun applyVoicePreview(text: String) {
+        val editable = syncInput.text ?: return
+        val end = editable.length
+        val start = voiceInputStartPos.coerceAtMost(end)
+        editable.replace(start, end, text)
+        syncInput.setSelection(syncInput.text?.length ?: 0)
+    }
+
+    /** Huỷ đếm ngược cũ (nếu có) rồi đặt lại đồng hồ 2 giây mới — gọi mỗi khi có
+     *  kết quả tạm mới (tức người dùng vẫn đang nói). */
+    private fun resetSilenceTimer() {
+        silenceHandler.removeCallbacks(silenceRunnable)
+        silenceHandler.postDelayed(silenceRunnable, VOICE_SILENCE_TIMEOUT_MS)
+    }
+
+    /** Hết 2 giây mà không có kết quả tạm nào mới -> coi như người dùng đã NGỪNG
+     *  NÓI -> dừng nghe + gửi phím ENTER lên TV (đúng yêu cầu: "dừng nói 2s thì
+     *  nó enter"). */
+    private fun onVoiceSilenceTimeout() {
+        if (!isVoiceListening) return
+        stopVoiceListening(finalizeWithEnter = true)
+    }
+
+    /** Dừng hẳn phiên nghe hiện tại: huỷ timer, huỷ SpeechRecognizer, cập nhật lại
+     *  giao diện nút micro. [finalizeWithEnter] = true -> gửi thêm phím ENTER lên
+     *  TV (dùng khi dừng do im lặng 2s HOẶC người dùng chủ động bấm dừng sớm);
+     *  = false -> chỉ dừng, không gửi gì thêm (dùng khi lỗi/không nghe được gì). */
+    private fun stopVoiceListening(finalizeWithEnter: Boolean) {
+        silenceHandler.removeCallbacks(silenceRunnable)
+        isVoiceListening = false
+        updateVoiceButtonVisualState(false)
+        speechRecognizer?.apply {
+            stopListening()
+            destroy()
         }
+        speechRecognizer = null
+        if (finalizeWithEnter) hidManager.sendSpecialKey("ENTER")
+    }
+
+    /** Đổi màu nút micro để báo hiệu đang nghe hay không — cùng cách đổi màu với
+     *  2 nút toàn màn hình góc trên (xem updateToggleButtonVisualState()). */
+    private fun updateVoiceButtonVisualState(listening: Boolean) {
+        findViewById<MaterialButton>(R.id.btnVoiceInput).backgroundTintList = ColorStateList.valueOf(
+            if (listening) 0xFFE53935.toInt() else 0xFF6750A4.toInt()
+        )
     }
 
     /** Chưa đăng ký HID -> ẩn dòng trạng thái, hiện nút để bấm đăng ký; đã đăng ký thì ngược lại. */
@@ -621,6 +751,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        silenceHandler.removeCallbacks(silenceRunnable)
+        speechRecognizer?.destroy()
         hidManager.unregister()
         super.onDestroy()
     }

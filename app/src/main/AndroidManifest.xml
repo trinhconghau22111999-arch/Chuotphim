@@ -11,6 +11,17 @@
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
+    <!-- Android 11 (API 30) trở lên giới hạn "package visibility": nếu KHÔNG khai
+         báo <queries> này, có thể SpeechRecognizer.isRecognitionAvailable() trả về
+         false hoặc startListening() không hoạt động trên 1 số máy dù đã có quyền
+         RECORD_AUDIO, vì hệ thống không cho app "nhìn thấy" dịch vụ nhận diện
+         giọng nói đang cài trên máy. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:label="@string/app_name"
