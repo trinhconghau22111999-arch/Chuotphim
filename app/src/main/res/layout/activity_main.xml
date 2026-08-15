@@ -92,27 +92,28 @@
                 style="@style/RemoteKeyButton"
                 android:text="Home" />
 
-            <!-- Nút nhập liệu bằng giọng nói: cùng style RemoteKeyButton nên hàng
-                 này tự co về 4 nút bằng nhau, khớp với các hàng Volume/Media bên
-                 dưới (cũng 4 nút) -> các hàng icon cân đối, đồng đều với nhau. -->
+            <!-- Nút nhập liệu bằng giọng nói: dùng RemoteKeyIconButton (cỡ chữ cố
+                 định, không auto-size) để icon luôn đồng nhất với các nút icon
+                 ở hàng khác, bất kể hàng nào có bao nhiêu nút. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="🎤"
-                android:textSize="22sp"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="⌨"
-                android:textSize="22sp"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
 
         <!-- Hàng nút Volume: đặt cố định ngay dưới 3 phím điều khiển, cùng style
-             RemoteKeyButton để đồng bộ kích cỡ/bo góc với hàng phía trên. -->
+             RemoteKeyButton để đồng bộ kích cỡ/bo góc với hàng phía trên.
+             paddingTop=8dp giống controlsRow -> khối 3 hàng icon (controlsRow/
+             volumeControls/mediaControls) có cùng chiều cao tổng thể, cân đối,
+             không hàng nào bị lệch cao/thấp hơn hàng khác. -->
         <LinearLayout
             android:id="@+id/volumeControls"
             android:layout_width="match_parent"
@@ -121,6 +122,7 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
+            android:paddingTop="8dp"
             android:paddingBottom="8dp">
 
             <com.google.android.material.button.MaterialButton
@@ -156,7 +158,10 @@
 
         <!-- Hàng 5 phím điều khiển media: |◄ Previous, ⏯ Play/Pause, ►| Next,
              ◄◄ Rewind, ►► Fast Forward. Đặt cố định ngay dưới hàng Volume,
-             cùng style RemoteKeyButton. -->
+             dùng RemoteKeyIconButton (cỡ chữ cố định) thay vì RemoteKeyButton để
+             icon không bị auto-size thu nhỏ hơn do hàng này có 5 nút (hẹp hơn 2
+             hàng trên chỉ có 4 nút) — đảm bảo icon cùng cỡ với hàng controlsRow.
+             paddingTop=8dp đồng bộ với 2 hàng trên. -->
         <LinearLayout
             android:id="@+id/mediaControls"
             android:layout_width="match_parent"
@@ -165,41 +170,37 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
+            android:paddingTop="8dp"
             android:paddingBottom="8dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPreviousTrack"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="⏮"
-                android:textSize="20sp"
                 android:contentDescription="Bài trước" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPlayPause"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="⏯"
-                android:textSize="20sp"
                 android:contentDescription="Play/Pause" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNextTrack"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="⏭"
-                android:textSize="20sp"
                 android:contentDescription="Bài tiếp theo" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRewind"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="⏪"
-                android:textSize="20sp"
                 android:contentDescription="Tua lùi" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFastForward"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyIconButton"
                 android:text="⏩"
-                android:textSize="20sp"
                 android:contentDescription="Tua tới" />
 
         </LinearLayout>

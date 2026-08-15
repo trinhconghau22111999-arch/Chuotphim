@@ -7,10 +7,14 @@
         <item name="android:layout_margin">4dp</item>
     </style>
 
-    <!-- Style dùng chung cho các phím điều khiển (Thiết bị / Home / Mở bàn phím /
-         Volume / Power / Media...) để cả hàng luôn cùng kích cỡ, cùng chiều cao,
-         cùng bo góc, canh lề đều nhau — và chữ TỰ THU NHỎ để vừa khít 1 dòng thay
-         vì bị wrap xuống 2 dòng (wrap từng làm hàng nút bị lệch/không thẳng hàng). -->
+    <!-- Style dùng chung cho các phím điều khiển (Thiết bị / Home / Volume /
+         Power / ...) để cả hàng luôn cùng kích cỡ, cùng chiều cao, cùng bo góc,
+         canh lề đều nhau — và chữ TỰ THU NHỎ để vừa khít 1 dòng thay vì bị wrap
+         xuống 2 dòng (wrap từng làm hàng nút bị lệch/không thẳng hàng). CHỈ dùng
+         cho nút có CHỮ (nhãn dài ngắn khác nhau nên cần auto-size) — nút chỉ có
+         icon dùng RemoteKeyIconButton bên dưới, KHÔNG kế thừa từ style này, để
+         tránh auto-size làm icon to nhỏ khác nhau giữa các hàng có số nút khác
+         nhau (hàng càng nhiều nút, nút càng hẹp, auto-size càng thu icon nhỏ lại). -->
     <style name="RemoteKeyButton" parent="Widget.Material3.Button">
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">56dp</item>
@@ -31,5 +35,17 @@
         <item name="android:autoSizeMinTextSize">10sp</item>
         <item name="android:autoSizeMaxTextSize">22sp</item>
         <item name="android:autoSizeStepGranularity">1sp</item>
+    </style>
+
+    <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⌨ 🎤 ⏮ ⏯ ⏭ ⏪ ⏩...): kế thừa mọi
+         thuộc tính kích cỡ/bo góc từ RemoteKeyButton (cùng layout_height=56dp
+         nên chiều cao luôn khớp các nút chữ trong cùng hàng/hàng khác) nhưng
+         TẮT auto-size và fix cứng 1 cỡ chữ duy nhất — nhờ vậy icon luôn hiện
+         ĐÚNG 1 KÍCH THƯỚC GIỐNG HỆT NHAU dù nằm ở hàng 4 nút (controlsRow) hay
+         hàng 5 nút hẹp hơn (mediaControls), không còn bị auto-size thu nhỏ khác
+         nhau tuỳ số nút mỗi hàng -> hết cảnh icon hàng này to hàng kia bé. -->
+    <style name="RemoteKeyIconButton" parent="RemoteKeyButton">
+        <item name="android:autoSizeTextType">none</item>
+        <item name="android:textSize">20sp</item>
     </style>
 </resources>
