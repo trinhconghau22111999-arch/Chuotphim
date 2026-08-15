@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon "dán" (clipboard) dạng vector — cùng lý do/cách làm với ic_mouse.xml,
+     ic_keyboard.xml: nút chứa icon này cũng bo tròn hoàn hảo (cornerRadius=20dp
+     trên nút 40dp), nên emoji "📋" bị clip mất, hiện trống. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp"
+    android:height="18dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.6"
+        android:pathData="M7,4h10v16H7z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M9,2h6v3H9z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M9,9h6v1.4H9z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M9,12h6v1.4H9z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M9,15h4v1.4H9z" />
+</vector>
