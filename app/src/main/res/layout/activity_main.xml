@@ -313,7 +313,10 @@
 
     <!-- Nút nổi góc trên trái: bật/tắt DUY NHẤT chế độ "chuột toàn màn hình xoay ngang"
          (không liên quan tới bàn phím). Luôn nổi trên mọi lớp nên bấm tắt được ngay
-         cả khi 3 phím điều hướng + thanh trạng thái đang bị ẩn tạm. -->
+         cả khi 3 phím điều hướng + thanh trạng thái đang bị ẩn tạm.
+         Text = "M" (chữ thường, KHÔNG PHẢI emoji) thay vì "🖱" — máy test không có
+         font hiển thị emoji con chuột nên trước đó nút hiện trống/tối thui, không
+         thấy icon gì cả. Chữ cái thường thì chắc chắn font nào cũng có sẵn. -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnMouseFullscreen"
         android:layout_width="44dp"
@@ -335,11 +338,11 @@
         android:backgroundTint="#40000000"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
-        android:text="🖱"
+        android:text="M"
         android:contentDescription="Nhấn đúp để bật/tắt chế độ xoay ngang, phóng to chuột toàn màn hình" />
 
     <!-- Nút nổi góc trên phải: bật/tắt chế độ "bàn phím toàn màn hình xoay ngang"
-         (không cần chuột). -->
+         (không cần chuột). Text = "K" thay vì "⌨" cùng lý do như trên. -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnKeyboardFullscreen"
         android:layout_width="44dp"
@@ -361,7 +364,7 @@
         android:backgroundTint="#40000000"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
-        android:text="⌨"
+        android:text="K"
         android:contentDescription="Nhấn đúp để bật/tắt chế độ xoay ngang, bàn phím toàn màn hình" />
 
 </FrameLayout>
