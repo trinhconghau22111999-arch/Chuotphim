@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon con chuột dạng vector, tự vẽ bằng path — cùng cách làm với ic_power.xml
+     (không dùng ký tự emoji "🖱" hay chữ thường "M" nữa). Lý do: nút tròn chứa
+     icon này bo góc 22dp = đúng nửa kích thước nút 44dp -> tạo thành hình tròn
+     hoàn hảo, và MaterialButton tự clip nội dung theo đúng viền outline đó. Ký
+     tự chữ/emoji có bounding-box hình vuông nên phần góc dễ bị cắt mất ra khỏi
+     vòng tròn, khiến nút hiện trống dù đã đổi nhiều loại ký tự khác nhau. Icon
+     vector thì mình chủ động vẽ nhỏ hơn (20dp) và nằm gọn hẳn bên trong vòng
+     tròn nên không bao giờ bị cắt nữa, bất kể máy nào. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,2C9.24,2 7,4.24 7,7v10c0,2.76 2.24,5 5,5s5,-2.24 5,-5V7c0,-2.76 -2.24,-5 -5,-5z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#212121"
+        android:strokeWidth="1"
+        android:pathData="M12,4v4" />
+</vector>
