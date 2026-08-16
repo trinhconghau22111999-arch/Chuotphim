@@ -42,3 +42,15 @@ jobs:
         with:
           name: app-release-unsigned-apk
           path: app/build/outputs/apk/release/*.apk
+
+      - name: Create GitHub Release with APKs (chi khi chay thu cong)
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build #${{ github.run_number }}
+          files: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
