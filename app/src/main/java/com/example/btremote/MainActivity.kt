@@ -473,9 +473,15 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
-                syncInputBar.layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                )
+                // syncInputBar là con trực tiếp của FrameLayout gốc (xem activity_main.xml),
+                // KHÔNG phải con của mainColumn -> PHẢI dùng FrameLayout.LayoutParams, không
+                // phải LinearLayout.LayoutParams. Gán nhầm loại LayoutParams gây
+                // ClassCastException ngay khi hệ thống đo layout (crash mỗi khi mở lại
+                // thanh gõ đồng bộ: bấm mic / mở bàn phím dưới / bật bàn phím toàn màn hình
+                // trên, vì cả 3 đường đều gọi applyLayoutState() với keyboardVisible=true).
+                syncInputBar.layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
+                ).apply { gravity = android.view.Gravity.BOTTOM }
                 syncInputField.layoutParams =
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 syncInputBar.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
