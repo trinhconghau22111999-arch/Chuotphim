@@ -113,7 +113,7 @@
                 android:paddingBottom="0dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
-                android:textSize="26dp"
+                android:textSize="12dp"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
