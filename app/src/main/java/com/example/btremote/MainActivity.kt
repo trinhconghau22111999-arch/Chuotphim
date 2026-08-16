@@ -100,8 +100,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        CrashHandler.install(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        showLastCrashIfAny()
 
         bindViews()
         hidManager = HidManager(this).also { it.listener = buildHidListener() }
@@ -130,6 +133,22 @@ class MainActivity : AppCompatActivity() {
         voiceInput.destroy()
         hidManager.unregister()
         super.onDestroy()
+    }
+
+    /** Hiện ngay lỗi của lần văng app gần nhất (nếu có) — chỉ hiện 1 lần rồi thôi. */
+    private fun showLastCrashIfAny() {
+        val trace = CrashHandler.consumeLastCrash(this) ?: return
+        AlertDialog.Builder(this)
+            .setTitle("App vừa văng ở lần mở trước")
+            .setMessage(trace)
+            .setPositiveButton("Đóng", null)
+            .setNeutralButton("Copy") { _, _ ->
+                (getSystemService(CLIPBOARD_SERVICE) as ClipboardManager)
+                    .setPrimaryClip(android.content.ClipData.newPlainText("crash_log", trace))
+                toast("Đã copy log lỗi vào clipboard")
+            }
+            .setCancelable(true)
+            .show()
     }
 
     private fun bindViews() {
@@ -271,7 +290,14 @@ class MainActivity : AppCompatActivity() {
             return
         }
         lastManualKeyboardOpenAt = System.currentTimeMillis()
-        if (syncInputBar.parent == null) applyLayoutState(keyboardVisible = true)
+        // BUG CŨ: kiểm tra "syncInputBar.parent == null" để quyết định có cần dựng
+        // lại layout hay không — nhưng syncInputBar nằm trực tiếp trong FrameLayout
+        // gốc (xem activity_main.xml), KHÔNG phải con của mainColumn, nên parent
+        // của nó không bao giờ null. Điều kiện luôn sai -> applyLayoutState() không
+        // bao giờ chạy -> ô nhập vẫn ở trạng thái GONE -> requestFocus() thất bại
+        // âm thầm -> bàn phím không mở, màn hình như đứng hình (giống app bị văng).
+        // Sửa: luôn dựng lại layout ở đây, không cần điều kiện.
+        applyLayoutState(keyboardVisible = true)
         syncInputField.requestFocus()
         // SHOW_FORCED thay vì SHOW_IMPLICIT: tránh bị hệ thống âm thầm bỏ qua nếu
         // người dùng từng tự đóng bàn phím trước đó.

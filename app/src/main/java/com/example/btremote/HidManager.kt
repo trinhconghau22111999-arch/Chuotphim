@@ -81,26 +81,47 @@ class HidManager(private val context: Context) {
             listener?.onError("Vui lòng bật Bluetooth trước")
             return
         }
-        val ok = adapter.getProfileProxy(context, serviceListener, BluetoothProfile.HID_DEVICE)
+        val ok = try {
+            adapter.getProfileProxy(context, serviceListener, BluetoothProfile.HID_DEVICE)
+        } catch (e: SecurityException) {
+            listener?.onError("Thiếu quyền Bluetooth: ${e.message}")
+            return
+        }
         if (!ok) listener?.onError("Máy này không hỗ trợ chế độ HID Device")
     }
 
     private fun registerApp() {
         val executor = Executor { command -> command.run() }
-        hidDevice?.registerApp(sdpSettings, null, qos, executor, hidCallback)
+        try {
+            hidDevice?.registerApp(sdpSettings, null, qos, executor, hidCallback)
+        } catch (e: Exception) {
+            listener?.onError("Không đăng ký được HID: ${e.message}")
+        }
     }
 
     fun unregister() {
-        hidDevice?.unregisterApp()
+        try {
+            hidDevice?.unregisterApp()
+        } catch (e: Exception) {
+            Log.w(TAG, "unregisterApp lỗi (bỏ qua vì đang thoát app)", e)
+        }
     }
 
     /** Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong danh sách bonded devices. */
     fun connectTo(device: BluetoothDevice) {
-        hidDevice?.connect(device)
+        try {
+            hidDevice?.connect(device)
+        } catch (e: Exception) {
+            listener?.onError("Không kết nối được tới thiết bị: ${e.message}")
+        }
     }
 
     fun bondedDevices(): Set<BluetoothDevice> {
-        return BluetoothAdapter.getDefaultAdapter()?.bondedDevices ?: emptySet()
+        return try {
+            BluetoothAdapter.getDefaultAdapter()?.bondedDevices ?: emptySet()
+        } catch (e: SecurityException) {
+            emptySet()
+        }
     }
 
     /**
@@ -142,7 +163,7 @@ class HidManager(private val context: Context) {
             clampByte(dy),
             clampByte(wheel)
         )
-        hidDevice?.sendReport(device, HidDescriptor.ID_MOUSE.toInt(), report)
+        safeSendReport(device, HidDescriptor.ID_MOUSE.toInt(), report)
     }
 
     private fun clampByte(v: Int): Byte = v.coerceIn(-127, 127).toByte()
@@ -179,8 +200,8 @@ class HidManager(private val context: Context) {
         val byte0 = (bitmask and 0xFF).toByte()
         val byte1 = ((bitmask shr 8) and 0xFF).toByte()
         // Nhấn xuống rồi nhả ra ngay, giống cách gửi report bàn phím/chuột ở trên.
-        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(byte0, byte1))
-        hidDevice?.sendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0, 0))
+        safeSendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(byte0, byte1))
+        safeSendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0, 0))
     }
 
     // ---------- Gửi report bàn phím ----------
@@ -208,8 +229,18 @@ class HidManager(private val context: Context) {
         // report: [modifier, reserved, key1..key6]
         val down = byteArrayOf(modifier.toByte(), 0, keycode.toByte(), 0, 0, 0, 0, 0)
         val up = byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0)
-        hidDevice?.sendReport(device, HidDescriptor.ID_KEYBOARD.toInt(), down)
-        hidDevice?.sendReport(device, HidDescriptor.ID_KEYBOARD.toInt(), up)
+        safeSendReport(device, HidDescriptor.ID_KEYBOARD.toInt(), down)
+        safeSendReport(device, HidDescriptor.ID_KEYBOARD.toInt(), up)
+    }
+
+    /** Gửi report an toàn: thiết bị có thể vừa mất kết nối/mất quyền giữa lúc gõ liên
+     *  tục (vd đang gõ nguyên câu qua sendDiff) — không để 1 report lỗi làm văng app. */
+    private fun safeSendReport(device: BluetoothDevice, id: Int, report: ByteArray) {
+        try {
+            hidDevice?.sendReport(device, id, report)
+        } catch (e: Exception) {
+            Log.w(TAG, "sendReport lỗi (bỏ qua): ${e.message}")
+        }
     }
 
     companion object {
