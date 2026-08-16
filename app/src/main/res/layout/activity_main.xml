@@ -94,7 +94,7 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:paddingTop="3dp"
+            android:paddingTop="1dp"
             android:paddingBottom="3dp">
 
             <!-- Nút Thiết bị + Home: viết lại từ đầu, đơn giản, không còn các
