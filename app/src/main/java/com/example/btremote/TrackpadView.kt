@@ -41,6 +41,17 @@ class TrackpadView @JvmOverloads constructor(
         isAntiAlias = true
         textAlign = Paint.Align.CENTER
     }
+    // 4 viền góc kiểu khung ngắm (như ảnh người dùng vẽ tay) — kích thước và độ dày
+    // luôn tính theo tỉ lệ % kích thước trackpad hiện tại (xem cornerLen/cornerMargin
+    // trong onDraw), nên tự co dãn đúng theo độ lớn của trackpad, không bị cố định cứng.
+    private val cornerPaint = Paint().apply {
+        color = Color.parseColor("#9E9E9E")
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+        isAntiAlias = true
+    }
+    private val cornerPath = android.graphics.Path()
 
     private var lastX = 0f
     private var lastY = 0f
@@ -71,6 +82,7 @@ class TrackpadView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        drawCornerBrackets(canvas)
         if (!hintDismissed) {
             canvas.drawText(
                 "Trackpad — kéo để di chuyển, chạm = click trái,",
@@ -81,6 +93,48 @@ class TrackpadView @JvmOverloads constructor(
                 width / 2f, height / 2f + 30, textPaint
             )
         }
+    }
+
+    /** 4 viền góc kiểu khung ngắm ở 4 góc trackpad. Mọi kích thước (độ dài cạnh góc,
+     *  khoảng cách lề, độ dày nét) đều tính theo % chiều nhỏ nhất của view -> co dãn
+     *  đúng theo độ lớn trackpad thực tế trên từng máy/mỗi lần xoay màn hình. */
+    private fun drawCornerBrackets(canvas: Canvas) {
+        val shortSide = minOf(width, height).toFloat()
+        if (shortSide <= 0f) return
+        val cornerLen = shortSide * 0.10f
+        val margin = shortSide * 0.05f
+        cornerPaint.strokeWidth = (shortSide * 0.012f).coerceAtLeast(3f)
+
+        val w = width.toFloat()
+        val h = height.toFloat()
+
+        // Trên-trái
+        cornerPath.reset()
+        cornerPath.moveTo(margin, margin + cornerLen)
+        cornerPath.lineTo(margin, margin)
+        cornerPath.lineTo(margin + cornerLen, margin)
+        canvas.drawPath(cornerPath, cornerPaint)
+
+        // Trên-phải
+        cornerPath.reset()
+        cornerPath.moveTo(w - margin - cornerLen, margin)
+        cornerPath.lineTo(w - margin, margin)
+        cornerPath.lineTo(w - margin, margin + cornerLen)
+        canvas.drawPath(cornerPath, cornerPaint)
+
+        // Dưới-trái
+        cornerPath.reset()
+        cornerPath.moveTo(margin, h - margin - cornerLen)
+        cornerPath.lineTo(margin, h - margin)
+        cornerPath.lineTo(margin + cornerLen, h - margin)
+        canvas.drawPath(cornerPath, cornerPaint)
+
+        // Dưới-phải
+        cornerPath.reset()
+        cornerPath.moveTo(w - margin - cornerLen, h - margin)
+        cornerPath.lineTo(w - margin, h - margin)
+        cornerPath.lineTo(w - margin, h - margin - cornerLen)
+        canvas.drawPath(cornerPath, cornerPaint)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
