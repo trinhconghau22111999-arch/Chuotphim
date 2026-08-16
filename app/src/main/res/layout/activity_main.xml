@@ -86,7 +86,8 @@
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="30dp"
-                android:backgroundTint="@color/key_neon_green"
+                android:backgroundTint="@color/key_teal"
+                app:iconTint="@color/icon_on_teal"
                 android:contentDescription="Chọn thiết bị" />
 
             <com.google.android.material.button.MaterialButton
@@ -111,7 +112,8 @@
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="20dp"
-                android:backgroundTint="@color/key_neon_green"
+                android:backgroundTint="@color/key_teal"
+                app:iconTint="@color/icon_on_teal"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
