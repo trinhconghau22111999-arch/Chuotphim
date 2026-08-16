@@ -78,8 +78,14 @@
             android:layout_height="1dp"
             android:background="#444444" />
 
-        <!-- 3 phím điều khiển: cùng 1 style RemoteKeyButton => cùng kích cỡ,
-             cùng chiều cao, canh lề đều nhau. -->
+        <!-- 4 phím điều khiển (Thiết bị/Home/mic/bàn phím): dùng RemoteKeyButtonTall/
+             RemoteKeyIconButtonTall (68dp, RIÊNG cho hàng này) thay vì 56dp như
+             mọi hàng khác — "Thiết bị" xuống 2 dòng cần thêm chỗ để MaterialButton
+             canh giữa cho thoải mái, nếu vẫn 56dp thì dù 4 nút cùng 1 chiều cao
+             THẬT, nút 2 dòng vẫn bị đẩy lệch nội dung lên/xuống bên trong chính
+             nó, tạo cảm giác "nút thấp nút cao". Cả 4 nút trong hàng này cùng
+             dùng chiều cao 68dp nên vẫn thẳng hàng, cân đối với nhau; các hàng
+             khác (volumeControls/mediaControls) không bị ảnh hưởng, vẫn 56dp. -->
         <LinearLayout
             android:id="@+id/controlsRow"
             android:layout_width="match_parent"
@@ -91,17 +97,13 @@
             android:paddingTop="8dp"
             android:paddingBottom="8dp">
 
-            <!-- maxLines=2 + ellipsize=none (thay vì chỉ giảm textSize như lần
-                 trước): CHẮC CHẮN không bao giờ bị cắt chữ nữa dù máy hẹp cỡ
-                 nào, vì chữ tự xuống dòng thay vì bị "..." cắt bớt. Lần trước
-                 chỉ giảm textSize 16sp->14sp nhưng có thể vẫn chưa đủ trên máy
-                 hẹp, nay cho xuống dòng thì không còn phụ thuộc vào việc đo/
-                 đoán bề rộng nữa. Không đổi layout_weight (giữ = 1, đều với 2
-                 nút icon bên cạnh) để không lặp lại lỗi cũ (weight lệch từng
-                 làm icon 🎤 bị ellipsize theo). -->
+            <!-- maxLines=2 + ellipsize=none: chữ tự xuống dòng thay vì bị "..."
+                 cắt bớt, không phụ thuộc đo/đoán bề rộng màn hình. Không đổi
+                 layout_weight (giữ = 1, đều với 2 nút icon bên cạnh) để không lặp
+                 lại lỗi cũ (weight lệch từng làm icon 🎤 bị ellipsize theo). -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyButtonTall"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
                 android:paddingTop="2dp"
@@ -114,7 +116,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyHome"
-                style="@style/RemoteKeyButton"
+                style="@style/RemoteKeyButtonTall"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
                 android:paddingTop="2dp"
@@ -125,18 +127,19 @@
                 android:lineSpacingExtra="-2sp"
                 android:text="Home" />
 
-            <!-- Nút nhập liệu bằng giọng nói: dùng RemoteKeyIconButton (cỡ chữ cố
-                 định, không auto-size) để icon luôn đồng nhất với các nút icon
-                 ở hàng khác, bất kể hàng nào có bao nhiêu nút. -->
+            <!-- Nút nhập liệu bằng giọng nói: dùng RemoteKeyIconButtonTall (cùng
+                 chiều cao 68dp với Thiết bị/Home trong hàng này) để cả 4 nút
+                 trong controlsRow luôn thẳng hàng, cùng cao — dù nút icon chỉ có
+                 1 dòng, chiều cao vẫn phải khớp 2 nút chữ 2 dòng bên cạnh. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
-                style="@style/RemoteKeyIconButton"
+                style="@style/RemoteKeyIconButtonTall"
                 android:text="🎤"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
-                style="@style/RemoteKeyIconButton"
+                style="@style/RemoteKeyIconButtonTall"
                 android:text="⌨"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 

@@ -47,4 +47,24 @@
     <style name="RemoteKeyIconButton" parent="RemoteKeyButton">
         <item name="android:textSize">20sp</item>
     </style>
+
+    <!-- Riêng cho hàng controlsRow (Thiết bị / Home / mic / bàn phím): "Thiết bị"
+         là nút DUY NHẤT trong cả app cần xuống 2 dòng (maxLines=2), trong khi 3
+         nút còn lại cùng hàng chỉ có 1 dòng — nếu cả hàng vẫn dùng chung
+         layout_height=56dp như mọi hàng khác thì 56dp KHÔNG đủ chỗ để
+         MaterialButton canh giữa 2 dòng cho thoải mái, khiến nút bị đẩy lệch
+         lên/xuống ngay bên trong bản thân nó, tạo cảm giác "nút thấp nút cao"
+         dù 4 nút vẫn cùng 1 chiều cao thật.
+         Cách sửa ĐÚNG: tăng riêng chiều cao cho CẢ HÀNG NÀY (68dp, đủ chỗ cho 2
+         dòng canh giữa thoải mái) thay vì đổi chung layout_height=56dp của
+         RemoteKeyButton — nhờ vậy KHÔNG đụng tới chiều cao của volumeControls/
+         mediaControls, các hàng đó vẫn giữ nguyên 56dp, đồng bộ trong từng hàng
+         như cũ. -->
+    <style name="RemoteKeyButtonTall" parent="RemoteKeyButton">
+        <item name="android:layout_height">68dp</item>
+    </style>
+
+    <style name="RemoteKeyIconButtonTall" parent="RemoteKeyIconButton">
+        <item name="android:layout_height">68dp</item>
+    </style>
 </resources>
