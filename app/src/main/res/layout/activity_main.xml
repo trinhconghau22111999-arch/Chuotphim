@@ -163,8 +163,7 @@
             android:orientation="horizontal"
             android:background="#1B1B1B"
             android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:layout_marginTop="-4dp">
+            android:paddingEnd="4dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnScreenOff"
@@ -219,8 +218,7 @@
             android:orientation="horizontal"
             android:background="#1B1B1B"
             android:paddingStart="4dp"
-            android:paddingEnd="4dp"
-            android:layout_marginTop="-4dp">
+            android:paddingEnd="4dp">
 
             <!-- Đã thử "◀◀"/"▶▶" (2 ký tự) rồi ⏪/⏩ (1 ký tự emoji) nhưng cả 2
                  đều bị ellipsize cắt thành "..." trên máy test — font/emoji
