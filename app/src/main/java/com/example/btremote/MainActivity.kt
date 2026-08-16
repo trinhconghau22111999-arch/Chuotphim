@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
 
         bindViews()
         hidManager = HidManager(this).also { it.listener = buildHidListener() }
-        voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceStopped)
+        voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceSessionCommitted, ::onVoiceStopped)
         syncInput = SyncInputController(syncInputField, hidManager)
 
         setupTrackpad()
@@ -377,6 +377,16 @@ class MainActivity : AppCompatActivity() {
 
     // Kết quả tạm là toàn bộ câu tính từ lúc bắt đầu nói -> luôn thay từ voiceStartPos tới hết.
     private fun onVoicePartialText(text: String) = syncInput.replaceFrom(voiceStartPos, text)
+
+    // Câu vừa nói đã CHỐT xong (onResults) và app sắp tự mở phiên nghe mới cho câu
+    // tiếp theo. Dời voiceStartPos tới cuối văn bản hiện tại (kèm 1 khoảng trắng
+    // ngăn cách) để câu sau được NỐI THÊM vào, không còn ĐÈ LÊN câu vừa chốt nữa.
+    private fun onVoiceSessionCommitted() {
+        if (syncInput.cursorPosition() > voiceStartPos) {
+            syncInput.insertText(" ")
+        }
+        voiceStartPos = syncInput.cursorPosition()
+    }
 
     private fun onVoiceStopped(sentEnter: Boolean) {
         updateVoiceButtonVisualState(listening = false)

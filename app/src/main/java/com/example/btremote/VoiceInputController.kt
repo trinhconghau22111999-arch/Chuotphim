@@ -41,6 +41,7 @@ import android.speech.SpeechRecognizer
 class VoiceInputController(
     private val context: Context,
     private val onPartialText: (String) -> Unit,
+    private val onSessionCommitted: () -> Unit,
     private val onStopped: (sentEnter: Boolean) -> Unit
 ) {
     private var recognizer: SpeechRecognizer? = null
@@ -76,6 +77,12 @@ class VoiceInputController(
         override fun onResults(bundle: Bundle?) {
             if (!isListening) return
             firstResult(bundle)?.let(onPartialText)
+            // Cau nay da CHOT xong (phien nghe hien tai da ket thuc, sap mo phien
+            // moi de nghe cau tiep theo). Bao cho noi dung (MainActivity) biet de
+            // doi diem bat dau chen chu toi cuoi van ban hien tai -> cau sau NOI
+            // THEM chu khong con DE LEN cau vua roi nua (bug "reset lai, doi chu
+            // luc nay thay vi dien them").
+            onSessionCommitted()
             resetSilenceTimer()
             handler.removeCallbacks(listenAgainRunnable)
             handler.postDelayed(listenAgainRunnable, 300)
