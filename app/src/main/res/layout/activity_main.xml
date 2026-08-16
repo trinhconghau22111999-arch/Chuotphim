@@ -165,21 +165,21 @@
                 android:id="@+id/btnScreenOff"
                 style="@style/RemoteKeyButton"
                 android:text="OFF"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeDown"
                 style="@style/RemoteKeyButton"
                 android:text="Vol −"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Giảm âm lượng" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeUp"
                 style="@style/RemoteKeyButton"
                 android:text="Vol +"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Tăng âm lượng" />
 
             <!-- Mic: chuyển từ hàng controlsRow xuống đây, thay chỗ Back cũ.
