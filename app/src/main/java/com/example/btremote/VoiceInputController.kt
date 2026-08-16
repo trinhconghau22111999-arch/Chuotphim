@@ -10,10 +10,8 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 
 /**
- * Nghe liên tục qua SpeechRecognizer (không dùng hộp thoại hệ thống) và tự dừng
- * sau [SILENCE_TIMEOUT_MS] không có kết quả tạm mới — coi như người dùng đã nói xong.
- * Khi gặp lỗi không nghiêm trọng (NO_MATCH, SPEECH_TIMEOUT...) tự restart để nghe tiếp,
- * thay vì dừng hẳn như trước (nguyên nhân nút mic tắt sau ~2s chưa nói gì).
+ * Nghe liên tục — tự restart sau mỗi phiên (onResults hoặc lỗi nhẹ).
+ * Chỉ dừng hẳn sau [SILENCE_TIMEOUT_MS] im lặng hoặc khi user bấm tắt.
  */
 class VoiceInputController(
     private val context: Context,
@@ -35,9 +33,15 @@ class VoiceInputController(
         startRecognizer()
     }
 
+    private fun destroyRecognizer() {
+        try { recognizer?.stopListening() } catch (_: Exception) {}
+        try { recognizer?.destroy() } catch (_: Exception) {}
+        recognizer = null
+    }
+
     private fun startRecognizer() {
         if (!isListening) return
-        recognizer?.destroy()
+        destroyRecognizer()
         recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) {}
@@ -54,46 +58,47 @@ class VoiceInputController(
                 }
 
                 override fun onResults(bundle: Bundle?) {
+                    if (!isListening) return
                     firstResult(bundle)?.let(onPartialText)
-                    // Có kết quả cuối → restart để tiếp tục nghe
+                    // Destroy trước rồi mới schedule restart
+                    destroyRecognizer()
                     resetSilenceTimer()
-                    handler.post { startRecognizer() }
+                    handler.removeCallbacks(restartRunnable)
+                    handler.postDelayed(restartRunnable, 300)
                 }
 
                 override fun onError(error: Int) {
-                    // Lỗi nghiêm trọng (thiết bị, mạng, quyền) → dừng hẳn
+                    if (!isListening) return
                     val fatal = error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ||
-                            error == SpeechRecognizer.ERROR_CLIENT ||
-                            error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY
-                    if (fatal || !isListening) {
+                            error == SpeechRecognizer.ERROR_CLIENT
+                    if (fatal) {
                         stop(sentEnter = false)
-                    } else {
-                        // Lỗi nhẹ (NO_MATCH, SPEECH_TIMEOUT, SERVER, NETWORK...) → restart sau 200ms
-                        handler.removeCallbacks(restartRunnable)
-                        handler.postDelayed(restartRunnable, 200)
+                        return
                     }
+                    // ERROR_RECOGNIZER_BUSY: đợi lâu hơn
+                    val delay = if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) 800L else 300L
+                    destroyRecognizer()
+                    handler.removeCallbacks(restartRunnable)
+                    handler.postDelayed(restartRunnable, delay)
                 }
             })
             startListening(buildIntent())
         }
     }
 
-    /** Dừng phiên nghe hiện tại. [sentEnter] báo cho listener có nên gửi Enter hay không. */
     fun stop(sentEnter: Boolean) {
         if (!isListening) return
         handler.removeCallbacks(silenceRunnable)
         handler.removeCallbacks(restartRunnable)
         isListening = false
-        recognizer?.apply { stopListening(); destroy() }
-        recognizer = null
+        destroyRecognizer()
         onStopped(sentEnter)
     }
 
     fun destroy() {
         handler.removeCallbacks(silenceRunnable)
         handler.removeCallbacks(restartRunnable)
-        recognizer?.destroy()
-        recognizer = null
+        destroyRecognizer()
     }
 
     private fun resetSilenceTimer() {
@@ -102,19 +107,20 @@ class VoiceInputController(
     }
 
     private fun firstResult(bundle: Bundle?): String? =
-        bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.takeIf { it.isNotEmpty() }
+        bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+            ?.firstOrNull()?.takeIf { it.isNotEmpty() }
 
     private fun buildIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000L)
     }
 
     companion object {
-        private const val SILENCE_TIMEOUT_MS = 2000L
+        private const val SILENCE_TIMEOUT_MS = 2500L
     }
 }
