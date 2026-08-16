@@ -71,7 +71,7 @@
         <LinearLayout
             android:id="@+id/rowNav"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="68dp"
             android:orientation="horizontal"
             android:background="@color/bg_row"
             android:paddingHorizontal="4dp">
@@ -85,7 +85,7 @@
                 app:icon="@drawable/ic_phone_tv_switch"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
-                app:iconSize="30dp"
+                app:iconSize="24dp"
                 android:backgroundTint="@color/key_teal"
                 app:iconTint="@color/icon_on_teal"
                 android:contentDescription="Chọn thiết bị" />
