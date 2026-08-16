@@ -51,6 +51,14 @@
              chuẩn xác trên toàn bộ chiều cao 39dp, không còn lệch. -->
         <item name="android:paddingTop">0dp</item>
         <item name="android:paddingBottom">0dp</item>
+        <!-- includeFontPadding=false: TextView/Button mặc định chừa thêm khoảng
+             đệm trên/dưới chữ (ascent/descent của font, KHÔNG PHẢI kích thước
+             glyph thật) — khoảng đệm này không đối xứng và thay đổi tuỳ textSize,
+             nên 2 nút cùng gravity=center nhưng khác cỡ chữ (Home/Back 14dp vs
+             OFF/Vol−/Vol+ 12dp) vẫn hiện chữ lệch tâm khác nhau dù đã zero hết
+             padding/margin ở trên. Tắt hẳn để chữ canh giữa đúng theo glyph thật,
+             không còn phụ thuộc cỡ chữ. -->
+        <item name="android:includeFontPadding">false</item>
         <!-- BẮT BUỘC: Widget.Material3.Button mặc định có minHeight ~48dp
              (chuẩn touch-target accessibility). Nếu không tắt, Material3 vẫn
              cố vẽ nền nút theo khung 48dp ảo rồi mới bị ép cắt xuống đúng
