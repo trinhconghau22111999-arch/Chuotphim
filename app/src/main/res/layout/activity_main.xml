@@ -78,7 +78,7 @@
             android:layout_height="1dp"
             android:background="#444444" />
 
-        <!-- 4 phím điều khiển (Thiết bị/Home/mic/bàn phím): dùng RemoteKeyButtonTall/
+        <!-- 4 phím điều khiển (Thiết bị/Home/Back/bàn phím): dùng RemoteKeyButtonTall/
              RemoteKeyIconButtonTall (68dp, RIÊNG cho hàng này) thay vì 56dp như
              mọi hàng khác — "Thiết bị" xuống 2 dòng cần thêm chỗ để MaterialButton
              canh giữa cho thoải mái, nếu vẫn 56dp thì dù 4 nút cùng 1 chiều cao
@@ -119,15 +119,17 @@
                 android:textSize="9sp"
                 android:text="Home" />
 
-            <!-- Nút mic + bàn phím: viết lại từ đầu, đơn giản, đồng bộ cách làm
-                 với Thiết bị/Home ở trên — không còn dựa vào comment/hack cũ. -->
+            <!-- Back: chuyển từ hàng volumeControls lên đây, đứng cùng nhóm điều
+                 hướng với Thiết bị/Home thay vì nằm lẫn trong nhóm Volume. -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnVoiceInput"
-                style="@style/RemoteKeyIconButtonTall"
-                android:gravity="center"
-                android:text="🎤"
-                android:contentDescription="Nhập liệu bằng giọng nói" />
+                android:id="@+id/btnBack"
+                style="@style/RemoteKeyButtonTall"
+                android:text="Back"
+                android:textSize="16sp"
+                android:contentDescription="Quay lại (phím Escape — hầu hết TV nhận là nút Back)" />
 
+            <!-- Nút bàn phím: viết lại từ đầu, đơn giản, đồng bộ cách làm
+                 với Thiết bị/Home ở trên — không còn dựa vào comment/hack cũ. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
                 style="@style/RemoteKeyIconButtonTall"
@@ -175,12 +177,13 @@
                 android:textSize="16sp"
                 android:contentDescription="Tăng âm lượng" />
 
+            <!-- Mic: chuyển từ hàng controlsRow xuống đây, thay chỗ Back cũ. -->
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnBack"
-                style="@style/RemoteKeyButton"
-                android:text="Back"
-                android:textSize="16sp"
-                android:contentDescription="Quay lại (phím Escape — hầu hết TV nhận là nút Back)" />
+                android:id="@+id/btnVoiceInput"
+                style="@style/RemoteKeyIconButton"
+                android:gravity="center"
+                android:text="🎤"
+                android:contentDescription="Nhập liệu bằng giọng nói" />
 
         </LinearLayout>
 
