@@ -81,7 +81,6 @@
                 style="@style/RemoteKeyIconTall"
                 android:layout_height="56dp"
                 android:layout_gravity="bottom"
-                android:paddingBottom="2dp"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
