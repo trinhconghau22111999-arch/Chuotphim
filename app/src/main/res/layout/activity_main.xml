@@ -79,24 +79,27 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyIconTall"
+                android:layout_height="56dp"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnHome"
                 style="@style/RemoteKeyTall"
+                android:layout_height="56dp"
                 android:text="Home" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBack"
                 style="@style/RemoteKeyTall"
+                android:layout_height="56dp"
                 android:text="Back"
                 android:contentDescription="Quay lại (gửi phím Esc)" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
                 style="@style/RemoteKeyIconOnlyTall"
-                android:layout_height="76dp"
+                android:layout_height="56dp"
                 android:text=""
                 app:icon="@drawable/ic_keyboard"
                 app:iconGravity="textStart"
@@ -136,7 +139,6 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
                 style="@style/RemoteKeyIconOnly"
-                android:layout_height="64dp"
                 android:text=""
                 app:icon="@drawable/ic_mic"
                 app:iconGravity="textStart"
