@@ -40,6 +40,17 @@
         <item name="android:insetRight">0dp</item>
         <item name="android:paddingStart">4dp</item>
         <item name="android:paddingEnd">4dp</item>
+        <!-- BẮT BUỘC: Widget.Material3.Button mặc định có minHeight ~48dp
+             (chuẩn touch-target accessibility). Nếu không tắt, Material3 vẫn
+             cố vẽ nền nút theo khung 48dp ảo rồi mới bị ép cắt xuống đúng
+             layout_height=39dp thật -> phần bo góc DƯỚI của nút bị hụt/cắt
+             cụt so với góc TRÊN (đã xác nhận bằng đo pixel: góc trên bo đủ,
+             góc dưới bo dở dang rồi bị cắt). Trước đây chỉ btnPickDevice (⇄)
+             được tự set minHeight/minWidth=0dp riêng ở layout nên không bị,
+             mọi nút khác (Home/Back/⌨/OFF/Vol−/Vol+/mic/media...) đều bị.
+             Set ở đây (style gốc) để áp dụng cho TẤT CẢ nút cùng lúc. -->
+        <item name="android:minHeight">0dp</item>
+        <item name="android:minWidth">0dp</item>
         <item name="cornerRadius">13dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:maxLines">1</item>
