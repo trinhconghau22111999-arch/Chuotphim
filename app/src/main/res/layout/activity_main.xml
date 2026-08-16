@@ -116,7 +116,7 @@
                 android:paddingBottom="0dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
-                android:textSize="26sp"
+                android:textSize="26dp"
                 app:strokeColor="#F44336"
                 app:strokeWidth="2dp"
                 android:text="⇄"
@@ -128,7 +128,7 @@
                 android:gravity="center"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:textSize="14sp"
+                android:textSize="14dp"
                 android:text="Home" />
 
             <!-- Back: chuyển từ hàng volumeControls lên đây, đứng cùng nhóm điều
@@ -137,7 +137,7 @@
                 android:id="@+id/btnBack"
                 style="@style/RemoteKeyButtonTall"
                 android:text="Back"
-                android:textSize="14sp"
+                android:textSize="14dp"
                 android:contentDescription="Quay lại (phím Escape — hầu hết TV nhận là nút Back)" />
 
             <!-- Nút bàn phím: viết lại từ đầu, đơn giản, đồng bộ cách làm
@@ -173,7 +173,7 @@
                 android:id="@+id/btnScreenOff"
                 style="@style/RemoteKeyButton"
                 android:text="OFF"
-                android:textSize="14sp"
+                android:textSize="14dp"
                 android:backgroundTint="#D32F2F"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
 
@@ -181,14 +181,14 @@
                 android:id="@+id/btnVolumeDown"
                 style="@style/RemoteKeyButton"
                 android:text="Vol −"
-                android:textSize="14sp"
+                android:textSize="14dp"
                 android:contentDescription="Giảm âm lượng" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeUp"
                 style="@style/RemoteKeyButton"
                 android:text="Vol +"
-                android:textSize="14sp"
+                android:textSize="14dp"
                 android:contentDescription="Tăng âm lượng" />
 
             <!-- Mic: chuyển từ hàng controlsRow xuống đây, thay chỗ Back cũ.
