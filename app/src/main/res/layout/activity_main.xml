@@ -137,6 +137,8 @@
                 style="@style/RemoteKeyIconButtonTall"
                 android:gravity="center"
                 android:text="⌨"
+                app:strokeColor="#4CAF50"
+                app:strokeWidth="2dp"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
