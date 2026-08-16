@@ -467,10 +467,10 @@ class MainActivity : AppCompatActivity() {
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             FullscreenMode.NONE -> {
-                mainColumn.addView(topBar)
                 trackpad.layoutParams = fillRemaining
                 mainColumn.addView(trackpad)
                 mainColumn.addView(divider)
+                mainColumn.addView(topBar)
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
