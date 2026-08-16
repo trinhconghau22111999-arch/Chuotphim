@@ -1,21 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icon bàn phím dạng vector — cùng lý do và cách làm với ic_mouse.xml: thay
-     hẳn ký tự "⌨"/chữ "K" (từng bị nút tròn clip mất, hiện trống) bằng icon vẽ
-     sẵn nhỏ gọn (20dp) nằm trọn trong vòng tròn 44dp, không bao giờ bị cắt. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="20dp"
-    android:height="20dp"
+    android:width="24dp"
+    android:height="14dp"
     android:viewportWidth="24"
-    android:viewportHeight="24"
+    android:viewportHeight="14"
     android:tint="#FFFFFF">
+    <!-- Khung ngoài dài ngang -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.6"
-        android:pathData="M3,7h18v10H3z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M5,9h2v2H5z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M9,9h2v2H9z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M13,9h2v2h-2z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M17,9h2v2h-2z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M5,13h14v1.6H5z" />
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M1,2 Q1,1 2,1 L22,1 Q23,1 23,2 L23,12 Q23,13 22,13 L2,13 Q1,13 1,12 Z" />
+    <!-- Hàng phím trên: 5 phím nhỏ -->
+    <path android:fillColor="#FFFFFF" android:pathData="M3,3h2.5v2H3z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M6.5,3h2.5v2H6.5z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M10,3h4v2h-4z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M15,3h2.5v2H15z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M18.5,3h2.5v2h-2.5z" />
+    <!-- Hàng phím giữa: 4 phím -->
+    <path android:fillColor="#FFFFFF" android:pathData="M3,6.5h3v2H3z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M7,6.5h4v2H7z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M12,6.5h4v2h-4z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M17,6.5h4v2h-4z" />
+    <!-- Hàng dưới: space bar dài -->
+    <path android:fillColor="#FFFFFF" android:pathData="M5,10h14v1.5H5z" />
 </vector>

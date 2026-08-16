@@ -141,7 +141,12 @@
                 android:id="@+id/btnOpenKeyboard"
                 style="@style/RemoteKeyIconButtonTall"
                 android:gravity="center"
-                android:text="⌨"
+                android:text=""
+                app:icon="@drawable/ic_keyboard"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                android:textSize="12dp"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
