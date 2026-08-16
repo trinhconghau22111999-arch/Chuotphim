@@ -80,6 +80,7 @@
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyIconTall"
                 android:layout_height="56dp"
+                android:layout_gravity="bottom"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
