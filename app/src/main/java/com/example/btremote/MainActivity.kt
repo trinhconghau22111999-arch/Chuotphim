@@ -442,10 +442,6 @@ class MainActivity : AppCompatActivity() {
         mainColumn.removeAllViews()
 
         val fillRemaining = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
-        val fixedTrackpadHeight = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            (150 * resources.displayMetrics.density).toInt()
-        )
 
         when (fullscreenMode) {
             FullscreenMode.MOUSE -> {
@@ -459,7 +455,7 @@ class MainActivity : AppCompatActivity() {
             }
             FullscreenMode.NONE -> {
                 mainColumn.addView(topBar)
-                trackpad.layoutParams = fixedTrackpadHeight
+                trackpad.layoutParams = fillRemaining
                 mainColumn.addView(trackpad)
                 mainColumn.addView(divider)
                 mainColumn.addView(rowNav)
