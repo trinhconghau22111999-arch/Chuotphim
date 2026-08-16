@@ -52,8 +52,16 @@ class VoiceInputController(
         private set
 
     private val recognitionListener = object : RecognitionListener {
-        override fun onReadyForSpeech(params: Bundle?) {}
-        override fun onBeginningOfSpeech() {}
+        override fun onReadyForSpeech(params: Bundle?) {
+            // Recognizer đã thật sự sẵn sàng nghe -> reset lại đồng hồ đếm im
+            // lặng từ đây, không tính thời gian khởi động trước đó vào hạn chót.
+            resetSilenceTimer()
+        }
+        override fun onBeginningOfSpeech() {
+            // Đã bắt đầu nghe thấy có người nói -> chắc chắn không phải im lặng,
+            // reset để tránh tắt oan khi bộ nhận diện xử lý hơi lâu.
+            resetSilenceTimer()
+        }
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
         override fun onEndOfSpeech() {}
@@ -192,6 +200,12 @@ class VoiceInputController(
     }
 
     companion object {
-        private const val SILENCE_TIMEOUT_MS = 2500L
+        // 2500ms la qua ngan: bo nhan dien giong noi (dac biet tieng Viet) thuong
+        // can vai giay de khoi dong va nhan ra chu dau tien. Truoc day chi 2.5s
+        // khong co chu nao la tu dong TAT HAN mic -> dung trieu chung "bam len
+        // may giay no tat, khong thu duoc chu nao". Tang len 8s va chi tinh la
+        // "im lang that su" (khong con reset) sau khi da onReadyForSpeech/
+        // onBeginningOfSpeech/onPartialResults roi ma van khong co gi them.
+        private const val SILENCE_TIMEOUT_MS = 8000L
     }
 }
