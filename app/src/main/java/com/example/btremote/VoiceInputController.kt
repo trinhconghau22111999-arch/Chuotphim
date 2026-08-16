@@ -10,8 +10,16 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 
 /**
- * Nghe liên tục — tự restart sau mỗi phiên (onResults hoặc lỗi nhẹ).
- * Chỉ dừng hẳn sau [SILENCE_TIMEOUT_MS] im lặng hoặc khi user bấm tắt.
+ * Nghe MỘT câu rồi TỰ TẮT — không còn tự mở lại nghe câu tiếp theo nữa.
+ * Có 2 mốc tự tắt:
+ *  - Chưa nói gì trong [PRE_SPEECH_TIMEOUT_MS]: tắt, không gửi Enter (coi như
+ *    bấm nhầm/không nói gì).
+ *  - ĐÃ bắt đầu nói, sau đó NGỪNG NÓI liên tục [POST_SPEECH_SILENCE_MS]: tắt
+ *    ngay, gửi Enter, chốt câu vừa nhận diện được.
+ * Việc tự tắt sau khi ngừng nói được TỰ CANH ở phía app (không chỉ dựa vào
+ * onResults của hệ thống), vì nhiều máy/ROM bỏ qua tham số
+ * EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS trong intent, dẫn tới
+ * onResults có thể không bao giờ tới hoặc tới rất trễ.
  *
  * LƯU Ý QUAN TRỌNG (fix lỗi "lúc xài được lúc không"):
  * Bản trước đây destroy() rồi createSpeechRecognizer() MỚI lại sau MỖI câu nói
@@ -41,28 +49,33 @@ import android.speech.SpeechRecognizer
 class VoiceInputController(
     private val context: Context,
     private val onPartialText: (String) -> Unit,
-    private val onSessionCommitted: () -> Unit,
     private val onStopped: (sentEnter: Boolean) -> Unit
 ) {
     private var recognizer: SpeechRecognizer? = null
     private val handler = Handler(Looper.getMainLooper())
-    private val silenceRunnable = Runnable { stop(sentEnter = true) }
-    private val listenAgainRunnable = Runnable { listenAgain() }
+
+    // Chưa nói gì -> tắt, không chốt gì cả.
+    private val preSpeechTimeoutRunnable = Runnable { stop(sentEnter = false) }
+    // Đã nói rồi, giờ im lặng đủ lâu -> tắt, chốt câu vừa nói.
+    private val postSpeechSilenceRunnable = Runnable { stop(sentEnter = true) }
+    // Chỉ dùng để RETRY lại đúng phiên đang nghe khi gặp lỗi tạm thời lúc khởi
+    // động (KHÔNG còn dùng để mở phiên nghe MỚI cho câu tiếp theo nữa).
+    private val retryListenRunnable = Runnable { listenAgain() }
 
     var isListening = false
         private set
 
     private val recognitionListener = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) {
-            // Recognizer đã thật sự sẵn sàng nghe -> reset lại đồng hồ đếm im
-            // lặng từ đây, không tính thời gian khởi động trước đó vào hạn chót.
-            resetSilenceTimer()
+            resetPreSpeechTimer()
         }
+
         override fun onBeginningOfSpeech() {
-            // Đã bắt đầu nghe thấy có người nói -> chắc chắn không phải im lặng,
-            // reset để tránh tắt oan khi bộ nhận diện xử lý hơi lâu.
-            resetSilenceTimer()
+            // Đã bắt đầu nói -> chuyển sang canh mốc "ngừng nói bao lâu thì tắt".
+            handler.removeCallbacks(preSpeechTimeoutRunnable)
+            resetPostSpeechTimer()
         }
+
         override fun onRmsChanged(rmsdB: Float) {}
         override fun onBufferReceived(buffer: ByteArray?) {}
         override fun onEndOfSpeech() {}
@@ -71,51 +84,46 @@ class VoiceInputController(
         override fun onPartialResults(bundle: Bundle?) {
             val text = firstResult(bundle) ?: return
             onPartialText(text)
-            resetSilenceTimer()
+            // Vẫn đang có tiếng nói mới -> dời mốc "ngừng nói 2s" ra xa thêm.
+            resetPostSpeechTimer()
         }
 
         override fun onResults(bundle: Bundle?) {
             if (!isListening) return
             firstResult(bundle)?.let(onPartialText)
-            // Cau nay da CHOT xong (phien nghe hien tai da ket thuc, sap mo phien
-            // moi de nghe cau tiep theo). Bao cho noi dung (MainActivity) biet de
-            // doi diem bat dau chen chu toi cuoi van ban hien tai -> cau sau NOI
-            // THEM chu khong con DE LEN cau vua roi nua (bug "reset lai, doi chu
-            // luc nay thay vi dien them").
-            onSessionCommitted()
-            resetSilenceTimer()
-            handler.removeCallbacks(listenAgainRunnable)
-            handler.postDelayed(listenAgainRunnable, 300)
+            // Hệ thống tự báo đã nhận diện xong câu -> tắt luôn, KHÔNG còn mở
+            // lại nghe câu tiếp theo như bản "nghe liên tục" cũ nữa.
+            stop(sentEnter = true)
         }
 
         override fun onError(error: Int) {
             if (!isListening) return
-            // CHỈ coi là lỗi chết (tắt hẳn mic) khi thật sự không thể tiếp tục:
-            // thiếu quyền micro. ERROR_CLIENT KHÔNG còn bị coi là lỗi chết nữa —
-            // đây thực ra là lỗi TẠM THỜI rất hay gặp khi startListening() được
-            // gọi ngay sau cancel() mà RecognitionService của máy chưa kịp dọn
-            // xong phiên cũ (đặc biệt các máy đời thấp / ROM tuỳ biến). Trước
-            // đây cứ gặp ERROR_CLIENT là tắt mic luôn, không thử lại -> đúng
-            // triệu chứng "lúc dùng được lúc không" vì lỗi này xảy ra ngẫu
-            // nhiên tuỳ thời điểm, không phải lỗi vĩnh viễn.
             if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 stop(sentEnter = false)
                 return
             }
-            // ERROR_RECOGNIZER_BUSY / ERROR_CLIENT: đợi lâu hơn cho hệ thống kịp dọn phiên cũ.
-            val delay = when (error) {
-                SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT -> 800L
-                else -> 300L
+            // ERROR_RECOGNIZER_BUSY / ERROR_CLIENT: lỗi TẠM THỜI hay gặp khi
+            // recognizer chưa kịp dọn xong phiên cũ (đặc biệt máy đời thấp/ROM
+            // tuỳ biến) -> thử khởi động lại ĐÚNG phiên đang nghe này (không
+            // phải mở phiên mới cho câu khác), không tắt hẳn mic.
+            val retryable = error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
+                    error == SpeechRecognizer.ERROR_CLIENT
+            if (retryable) {
+                handler.removeCallbacks(retryListenRunnable)
+                handler.postDelayed(retryListenRunnable, 800)
+                return
             }
-            handler.removeCallbacks(listenAgainRunnable)
-            handler.postDelayed(listenAgainRunnable, delay)
+            // Các lỗi còn lại (ERROR_NO_MATCH, ERROR_SPEECH_TIMEOUT...) nghĩa là
+            // recognizer coi như đã xong việc -> tắt mic, chốt lại những gì đã
+            // nhận diện được (nếu có).
+            stop(sentEnter = true)
         }
     }
 
     fun start() {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) return
         isListening = true
-        resetSilenceTimer()
+        resetPreSpeechTimer()
         if (recognizer == null) {
             recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
                 setRecognitionListener(recognitionListener)
@@ -124,7 +132,7 @@ class VoiceInputController(
         listenAgain()
     }
 
-    /** Nghe lại câu tiếp theo TRÊN CÙNG 1 instance recognizer đang có, không tạo mới. */
+    /** (Re)bắt đầu nghe TRÊN CÙNG 1 instance recognizer đang có, không tạo mới. */
     private fun listenAgain() {
         if (!isListening) return
         val current = recognizer
@@ -133,18 +141,10 @@ class VoiceInputController(
             return
         }
         try {
-            // KHÔNG gọi cancel() ngay sát trước startListening() nữa. Gọi 2 lệnh
-            // này liên tiếp trong cùng 1 lượt xử lý khiến RecognitionService của
-            // hệ thống (đặc biệt máy đời thấp / ROM tuỳ biến) chưa kịp dọn xong
-            // phiên cũ đã nhận lệnh mới -> hay trả về ERROR_CLIENT ngẫu nhiên,
-            // đúng là nguồn gốc triệu chứng "lúc dùng được lúc không". Phiên
-            // trước khi tới đây đã kết thúc rồi (listenAgain chỉ được gọi sau
-            // onResults/onError hoặc lúc start() lần đầu), nên không cần cancel().
+            // KHÔNG gọi cancel() ngay sát trước startListening() — xem lưu ý
+            // "lúc xài được lúc không" ở đầu file.
             current.startListening(buildIntent())
         } catch (e: Exception) {
-            // Instance hiện tại bị lỗi không dùng lại được -> đành tạo lại,
-            // nhưng đây chỉ là phương án dự phòng, không còn là đường chạy
-            // bình thường của mỗi câu nói như bản cũ nữa.
             recreateAndListen()
         }
     }
@@ -158,8 +158,8 @@ class VoiceInputController(
         try {
             recognizer?.startListening(buildIntent())
         } catch (e: Exception) {
-            handler.removeCallbacks(listenAgainRunnable)
-            handler.postDelayed(listenAgainRunnable, 500)
+            handler.removeCallbacks(retryListenRunnable)
+            handler.postDelayed(retryListenRunnable, 500)
         }
     }
 
@@ -171,25 +171,31 @@ class VoiceInputController(
 
     fun stop(sentEnter: Boolean) {
         if (!isListening) return
-        handler.removeCallbacks(silenceRunnable)
-        handler.removeCallbacks(listenAgainRunnable)
+        handler.removeCallbacks(preSpeechTimeoutRunnable)
+        handler.removeCallbacks(postSpeechSilenceRunnable)
+        handler.removeCallbacks(retryListenRunnable)
         isListening = false
         // KHÔNG destroy() ở đây nữa — xem "LƯU Ý QUAN TRỌNG #2" ở đầu file.
-        // Chỉ dừng nghe, giữ nguyên instance để lần bấm bật tiếp theo dùng lại.
         try { recognizer?.cancel() } catch (_: Exception) {}
         onStopped(sentEnter)
     }
 
     fun destroy() {
-        handler.removeCallbacks(silenceRunnable)
-        handler.removeCallbacks(listenAgainRunnable)
+        handler.removeCallbacks(preSpeechTimeoutRunnable)
+        handler.removeCallbacks(postSpeechSilenceRunnable)
+        handler.removeCallbacks(retryListenRunnable)
         isListening = false
         destroyRecognizer()
     }
 
-    private fun resetSilenceTimer() {
-        handler.removeCallbacks(silenceRunnable)
-        handler.postDelayed(silenceRunnable, SILENCE_TIMEOUT_MS)
+    private fun resetPreSpeechTimer() {
+        handler.removeCallbacks(preSpeechTimeoutRunnable)
+        handler.postDelayed(preSpeechTimeoutRunnable, PRE_SPEECH_TIMEOUT_MS)
+    }
+
+    private fun resetPostSpeechTimer() {
+        handler.removeCallbacks(postSpeechSilenceRunnable)
+        handler.postDelayed(postSpeechSilenceRunnable, POST_SPEECH_SILENCE_MS)
     }
 
     private fun firstResult(bundle: Bundle?): String? =
@@ -201,34 +207,25 @@ class VoiceInputController(
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-        // Uu tien dung bo nhan dien OFFLINE (neu may da tai goi ngon ngu tieng
-        // Viet offline trong Settings > He thong > Ngon ngu > Go bo phim ao >
-        // Nhap lieu bang giong noi) -> khoi dong nhanh hon nhieu vi khong phai
-        // cho ket noi server, dong thoi nhan dien cung nhanh hon do khong co do
-        // tre mang. Day chi la GOI Y: neu may khong co goi offline, he thong tu
-        // dong dung online nhu binh thuong, khong lo hong tinh nang.
+        // Uu tien dung bo nhan dien OFFLINE neu may co ho tro -> khoi dong
+        // nhanh hon, khong phai cho ket noi server. Chi la GOI Y, khong lo
+        // hong tinh nang neu may khong co goi offline.
         putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-        // Giam thoi gian cho im lang truoc khi coi la "noi xong" tu 4000ms
-        // xuong 1500ms -> phan hoi nhanh hon ro ret sau khi nguoi dung ngung
-        // noi, van du de khong cat ngang cau dang noi do du (nguoi noi tu
-        // nhien thuong khong ngung qua 1.5s giua cau).
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
-        // QUAN TRONG: truoc la 15000L (15 GIAY) -> moi lan noi, du chi 1 tu
-        // ngan, van bi GIU MIC MO BAT BUOC toi thieu 15 giay moi duoc tra ket
-        // qua ve. Day la nguyen nhan chinh khien "nhan dien chu" cam giac rat
-        // cham. Giam xuong 300ms (gan nhu khong gioi han toi thieu) de cau ngan
-        // duoc tra ve ngay khi nguoi dung ngung noi, khong con phai cho oan.
+        // Bao he thong cung tu ket thuc sau ~2s im lang, dong bo voi
+        // POST_SPEECH_SILENCE_MS phia app ben duoi (phong khi may nao do
+        // THUC SU tuan theo tham so nay thi cang phan hoi nhanh, con may nao
+        // bo qua thi da co dong ho rieng cua app lo).
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, POST_SPEECH_SILENCE_MS)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, POST_SPEECH_SILENCE_MS)
+        // Khong ep buoc do dai toi thieu -> cau ngan duoc tra ve ngay, khong
+        // phai cho oan (xem lich su sua loi "nhan dien cham" truoc day).
         putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 300L)
     }
 
     companion object {
-        // 2500ms la qua ngan: bo nhan dien giong noi (dac biet tieng Viet) thuong
-        // can vai giay de khoi dong va nhan ra chu dau tien. Truoc day chi 2.5s
-        // khong co chu nao la tu dong TAT HAN mic -> dung trieu chung "bam len
-        // may giay no tat, khong thu duoc chu nao". Tang len 8s va chi tinh la
-        // "im lang that su" (khong con reset) sau khi da onReadyForSpeech/
-        // onBeginningOfSpeech/onPartialResults roi ma van khong co gi them.
-        private const val SILENCE_TIMEOUT_MS = 8000L
+        // Mo mic ma chua noi gi trong 8s -> tu tat, khong chot gi ca.
+        private const val PRE_SPEECH_TIMEOUT_MS = 8000L
+        // Da noi roi, ngung noi lien tuc 2s -> tu tat, chot cau vua nhan dien.
+        private const val POST_SPEECH_SILENCE_MS = 2000L
     }
 }
