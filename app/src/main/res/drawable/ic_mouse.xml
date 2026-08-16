@@ -6,19 +6,40 @@
      tự chữ/emoji có bounding-box hình vuông nên phần góc dễ bị cắt mất ra khỏi
      vòng tròn, khiến nút hiện trống dù đã đổi nhiều loại ký tự khác nhau. Icon
      vector thì mình chủ động vẽ nhỏ hơn (20dp) và nằm gọn hẳn bên trong vòng
-     tròn nên không bao giờ bị cắt nữa, bất kể máy nào. -->
+     tròn nên không bao giờ bị cắt nữa, bất kể máy nào.
+     Icon vẽ lại (v2): thân chuột dạng viền (outline) hình viên nang đứng thay
+     vì khối đặc, có thêm đường chia nút trái/phải ở phần đỉnh và bánh xe cuộn
+     nhỏ ở giữa để trông giống con chuột thật, không còn giống viên thuốc. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="20dp"
     android:height="20dp"
     android:viewportWidth="24"
     android:viewportHeight="24"
     android:tint="#FFFFFF">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M12,2C9.24,2 7,4.24 7,7v10c0,2.76 2.24,5 5,5s5,-2.24 5,-5V7c0,-2.76 -2.24,-5 -5,-5z" />
+    <!-- Viền thân chuột: hình viên nang đứng (bo tròn đỉnh và đáy) -->
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#212121"
-        android:strokeWidth="1"
-        android:pathData="M12,4v4" />
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M7,8 A5,5 0 0,1 17,8 L17,16 A5,5 0 0,1 7,16 Z" />
+    <!-- Đường chia nút trái/phải: một đoạn phía trên bánh xe cuộn -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.3"
+        android:strokeLineCap="round"
+        android:pathData="M12,4 L12,6.3" />
+    <!-- Đường chia nút trái/phải: đoạn phía dưới bánh xe cuộn -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.3"
+        android:strokeLineCap="round"
+        android:pathData="M12,9.7 L12,12" />
+    <!-- Bánh xe cuộn: hình viên nang nhỏ nằm giữa hai đoạn chia nút -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M11.1,7 A0.9,1.5 0 0,1 12.9,7 L12.9,9 A0.9,1.5 0 0,1 11.1,9 Z" />
 </vector>
