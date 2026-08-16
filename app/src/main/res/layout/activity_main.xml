@@ -187,8 +187,9 @@
 
         </LinearLayout>
 
-        <!-- Hàng 5 phím điều khiển media: |◄ Previous, ⏯ Play/Pause, ►| Next,
-             ◄◄ Rewind, ►► Fast Forward. Đặt cố định ngay dưới hàng Volume,
+        <!-- Hàng 5 phím điều khiển media, sắp đối xứng quanh nút Play theo đúng
+             convention remote: «« Rewind, ⏮ Previous, ⏯ Play/Pause, ⏭ Next,
+             »» Fast Forward. Đặt cố định ngay dưới hàng Volume,
              dùng RemoteKeyIconButton (cỡ chữ cố định) thay vì RemoteKeyButton để
              icon không bị auto-size thu nhỏ hơn do hàng này có 5 nút (hẹp hơn 2
              hàng trên chỉ có 4 nút) — đảm bảo icon cùng cỡ với hàng controlsRow.
@@ -203,6 +204,20 @@
             android:paddingEnd="4dp"
             android:paddingTop="4dp"
             android:paddingBottom="4dp">
+
+            <!-- Đã thử "◀◀"/"▶▶" (2 ký tự) rồi ⏪/⏩ (1 ký tự emoji) nhưng cả 2
+                 đều bị ellipsize cắt thành "..." trên máy test — font/emoji
+                 renderer của máy này vẽ các ký tự đó rộng hơn bình thường nên
+                 vẫn tràn. Đổi hẳn sang « » (dấu ngoặc kép Pháp, KHÔNG PHẢI
+                 emoji — là ký tự văn bản thường U+00AB/U+00BB, luôn có sẵn
+                 trong MỌI font hệ thống vì thuộc bảng Latin-1) — quy ước lâu
+                 đời trong đầu đĩa/máy nghe nhạc cho tua lùi/tua tới, chắc chắn
+                 không bao giờ bị lỗi font hay bị cắt vì rất hẹp. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRewind"
+                style="@style/RemoteKeyIconButton"
+                android:text="«"
+                android:contentDescription="Tua lùi" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPreviousTrack"
@@ -221,20 +236,6 @@
                 style="@style/RemoteKeyIconButton"
                 android:text="⏭"
                 android:contentDescription="Bài tiếp theo" />
-
-            <!-- Đã thử "◀◀"/"▶▶" (2 ký tự) rồi ⏪/⏩ (1 ký tự emoji) nhưng cả 2
-                 đều bị ellipsize cắt thành "..." trên máy test — font/emoji
-                 renderer của máy này vẽ các ký tự đó rộng hơn bình thường nên
-                 vẫn tràn. Đổi hẳn sang « » (dấu ngoặc kép Pháp, KHÔNG PHẢI
-                 emoji — là ký tự văn bản thường U+00AB/U+00BB, luôn có sẵn
-                 trong MỌI font hệ thống vì thuộc bảng Latin-1) — quy ước lâu
-                 đời trong đầu đĩa/máy nghe nhạc cho tua lùi/tua tới, chắc chắn
-                 không bao giờ bị lỗi font hay bị cắt vì rất hẹp. -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRewind"
-                style="@style/RemoteKeyIconButton"
-                android:text="«"
-                android:contentDescription="Tua lùi" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFastForward"
