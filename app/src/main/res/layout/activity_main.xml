@@ -99,7 +99,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
                 style="@style/RemoteKeyIconOnlyTall"
-                android:layout_height="56dp"
+                android:layout_height="72dp"
                 android:text=""
                 app:icon="@drawable/ic_keyboard"
                 app:iconGravity="textStart"
@@ -139,6 +139,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
                 style="@style/RemoteKeyIconOnly"
+                android:layout_height="64dp"
                 android:text=""
                 app:icon="@drawable/ic_mic"
                 app:iconGravity="textStart"
