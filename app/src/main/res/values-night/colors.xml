@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bảng màu CHẾ ĐỘ TỐI (hệ thống đặt Dark) — giữ nguyên màu nền đen như trước
+     giờ khi app còn 1 theme duy nhất. Android tự chọn file này thay cho
+     values/colors.xml khi hệ thống đang ở chế độ tối, vì theme khai báo trong
+     AndroidManifest là Theme.Material3.DayNight (đã tự theo hệ thống sẵn,
+     không cần code Kotlin can thiệp thêm). -->
+<resources>
+    <color name="ic_launcher_background">#1565C0</color>
+
+    <color name="bg_root">#000000</color>
+    <color name="bg_top_bar">#212121</color>
+    <color name="bg_row">#1B1B1B</color>
+    <color name="bg_divider">#444444</color>
+    <color name="bg_sync_bar">#2A2A2A</color>
+    <color name="key_default">#616161</color>
+    <color name="key_danger">#F44336</color>
+    <color name="key_active">#4FC3F7</color>
+    <color name="key_neon_green">#39FF14</color>
+    <color name="text_primary">#FFFFFF</color>
+    <!-- Chữ trên các mặt nền (thanh trạng thái, ô gõ đồng bộ) — khác với
+         text_primary (chữ trên nút, luôn trắng vì nút luôn nền xám tối). -->
+    <color name="text_on_surface">#FFFFFF</color>
+    <color name="text_hint">#888888</color>
+</resources>

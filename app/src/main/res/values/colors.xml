@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Bảng màu CHẾ ĐỘ SÁNG (mặc định / hệ thống đặt Light). Bản tối tương ứng
+     nằm ở values-night/colors.xml. Theme khai báo trong AndroidManifest là
+     Theme.Material3.DayNight nên Android tự chọn đúng file theo cài đặt
+     sáng/tối của hệ thống, không cần code Kotlin can thiệp thêm. -->
 <resources>
     <!-- Nền icon app: xanh dương đậm để nổi bật hình remote TV màu tối ở giữa -->
     <color name="ic_launcher_background">#1565C0</color>
 
-    <color name="bg_root">#000000</color>
-    <color name="bg_top_bar">#212121</color>
-    <color name="bg_row">#1B1B1B</color>
-    <color name="bg_divider">#444444</color>
-    <color name="bg_sync_bar">#2A2A2A</color>
+    <color name="bg_root">#FFFFFF</color>
+    <color name="bg_top_bar">#F0F0F0</color>
+    <color name="bg_row">#E8E8E8</color>
+    <color name="bg_divider">#CCCCCC</color>
+    <color name="bg_sync_bar">#ECECEC</color>
+    <!-- Nút vẫn nền xám vừa (không đổi theo theme) để chữ/icon trắng trên nút
+         luôn đủ tương phản dù nền màn hình đang sáng hay tối. -->
     <color name="key_default">#616161</color>
     <color name="key_danger">#F44336</color>
     <color name="key_active">#4FC3F7</color>
     <color name="key_neon_green">#39FF14</color>
+    <!-- Chữ trên nút: luôn trắng vì nút luôn nền xám tối (key_default), không đổi theo theme. -->
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_hint">#888888</color>
+    <!-- Chữ trên các mặt nền sáng (thanh trạng thái, ô gõ đồng bộ) -->
+    <color name="text_on_surface">#212121</color>
+    <color name="text_hint">#757575</color>
 </resources>
+

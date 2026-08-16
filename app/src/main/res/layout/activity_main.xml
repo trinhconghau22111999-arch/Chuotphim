@@ -34,7 +34,7 @@
                 android:paddingBottom="8dp"
                 android:paddingStart="56dp"
                 android:paddingEnd="56dp"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/text_on_surface"
                 android:text="Chưa kết nối thiết bị nào — hãy chọn thiết bị để kết nối"
                 android:visibility="gone" />
 
@@ -229,7 +229,7 @@
             android:minHeight="44dp"
             android:gravity="top|start"
             android:background="@android:color/transparent"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/text_on_surface"
             android:textColorHint="@color/text_hint"
             android:textSize="16sp"
             android:hint="Đang gõ trên TV — có thể dán văn bản có dấu vào đây"
