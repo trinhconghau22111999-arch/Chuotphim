@@ -141,9 +141,13 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
-                style="@style/RemoteKey"
+                style="@style/RemoteKeyIconOnly"
                 android:layout_height="match_parent"
-                android:text="Mic"
+                android:text=""
+                app:icon="@drawable/ic_mic"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="16dp"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
         </LinearLayout>
