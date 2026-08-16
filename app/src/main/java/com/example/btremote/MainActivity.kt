@@ -332,7 +332,10 @@ class MainActivity : AppCompatActivity() {
             toast("Clipboard trống, chưa copy văn bản nào")
             return
         }
-        if (syncInputBar.parent == null) applyLayoutState(keyboardVisible = true)
+        // syncInputBar không phải con của mainColumn nên parent không bao giờ null
+        // (xem giải thích chi tiết ở toggleVirtualKeyboard) -> luôn dựng lại layout,
+        // không dùng điều kiện chết đó.
+        applyLayoutState(keyboardVisible = true)
         syncInputField.requestFocus()
         syncInput.insertText(text)
     }
@@ -358,7 +361,9 @@ class MainActivity : AppCompatActivity() {
             toast("Máy này không hỗ trợ nhận diện giọng nói")
             return
         }
-        if (syncInputBar.parent == null) applyLayoutState(keyboardVisible = true)
+        // Cùng lý do như pasteClipboard()/toggleVirtualKeyboard(): điều kiện parent==null
+        // luôn sai nên luôn gọi thẳng, không kiểm tra.
+        applyLayoutState(keyboardVisible = true)
         syncInputField.requestFocus()
         voiceStartPos = syncInput.cursorPosition()
         voiceInput.start()
@@ -432,7 +437,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateToggleButtonVisualState(button: MaterialButton, active: Boolean) {
-        button.backgroundTintList = ColorStateList.valueOf(if (active) 0xFF4FC3F7.toInt() else 0x40000000)
+        button.backgroundTintList = ColorStateList.valueOf(
+            if (active) ContextCompat.getColor(this, R.color.key_active) else 0x40000000
+        )
     }
 
     // ---------- Dựng lại layout theo chế độ hiện tại ----------
@@ -447,6 +454,11 @@ class MainActivity : AppCompatActivity() {
             FullscreenMode.MOUSE -> {
                 trackpad.layoutParams = fillRemaining
                 mainColumn.addView(trackpad)
+                // Ẩn thanh gõ đồng bộ: nó không phải con của mainColumn nên không tự
+                // biến mất khi removeAllViews() ở trên -> nếu đang bật từ chế độ
+                // KEYBOARD trước đó (đang VISIBLE) mà không ẩn tay ở đây, nó sẽ đè
+                // lên trackpad toàn màn hình.
+                syncInputBar.visibility = View.GONE
             }
             FullscreenMode.KEYBOARD -> {
                 syncInputBar.visibility = View.VISIBLE

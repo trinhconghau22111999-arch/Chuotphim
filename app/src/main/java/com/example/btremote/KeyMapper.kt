@@ -8,19 +8,13 @@ object KeyMapper {
 
     const val MOD_SHIFT: Int = 0x02
 
-    // Phím đặc biệt dùng cho các nút cứng (Enter, Backspace, mũi tên...)
+    // Phím đặc biệt dùng cho các nút cứng — chỉ khai báo đúng 4 phím đang thực sự
+    // được gọi tới (ENTER/BACKSPACE qua SyncInputController, HOME/ESC qua nút Home/Back).
     val SPECIAL: Map<String, Int> = mapOf(
         "ENTER" to 0x28,
         "BACKSPACE" to 0x2A,
-        "TAB" to 0x2B,
-        "SPACE" to 0x2C,
         "ESC" to 0x29,
-        "RIGHT" to 0x4F,
-        "LEFT" to 0x50,
-        "DOWN" to 0x51,
-        "UP" to 0x52,
         "HOME" to 0x4A,
-        "END" to 0x4D,
     )
 
     /** Trả về (keycode, canGõĐược). canGõĐược=false nghĩa là ký tự này chưa hỗ trợ. */

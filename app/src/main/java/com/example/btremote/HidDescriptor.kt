@@ -17,7 +17,9 @@ object HidDescriptor {
     //   bit4=Previous Track, bit5=Next Track, bit6=Rewind, bit7=Fast Forward
     const val CONSUMER_VOLUME_UP: Int = 0x01
     const val CONSUMER_VOLUME_DOWN: Int = 0x02
-    const val CONSUMER_MUTE: Int = 0x04
+    // bit2 (0x04) = Mute: vẫn khai báo trong DESCRIPTOR bên dưới (Usage Mute) vì
+    // report đã cố định 9 bit theo đúng thứ tự phần cứng, nhưng chưa có nút bấm nào
+    // gọi tới nên không khai báo hằng số CONSUMER_MUTE (tránh code chết).
     // Usage "Power" (0x0C/0x30) — trên đa số Android TV/Google TV/smart TV, đây
     // chính là nút nguồn trên remote Bluetooth thật, dùng để tắt màn hình TV.
     // KHÔNG áp dụng cho PC/laptop (Windows/macOS không map usage này thành tắt

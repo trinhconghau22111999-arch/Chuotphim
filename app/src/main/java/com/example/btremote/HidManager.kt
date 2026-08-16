@@ -168,15 +168,13 @@ class HidManager(private val context: Context) {
 
     private fun clampByte(v: Int): Byte = v.coerceIn(-127, 127).toByte()
 
-    // ---------- Gửi report Consumer Control (Volume/Mute) ----------
+    // ---------- Gửi report Consumer Control (Volume/Media) ----------
 
     /** Tăng âm lượng — dùng report descriptor "Consumer Control" riêng (Report ID 3),
      *  không còn đi qua bảng phím như bản cũ nên hệ điều hành nhận đúng chuẩn. */
     fun sendVolumeUp() = sendConsumerControl(HidDescriptor.CONSUMER_VOLUME_UP)
 
     fun sendVolumeDown() = sendConsumerControl(HidDescriptor.CONSUMER_VOLUME_DOWN)
-
-    fun sendMute() = sendConsumerControl(HidDescriptor.CONSUMER_MUTE)
 
     /** Nút nguồn (Power) — trên đa số TV Bluetooth (Android TV/Google TV/smart TV)
      *  usage này chính là tắt/mở màn hình TV. Không đảm bảo hoạt động với PC. */
