@@ -224,6 +224,22 @@ class MainActivity : AppCompatActivity() {
         // Nếu ký tự nào không map được (không hỗ trợ), KeyMapper sẽ tự bỏ qua ký tự đó (xem typeText()).
 
         findViewById<Button>(R.id.btnOpenKeyboard).setOnClickListener {
+            if (isKeyboardVisible) {
+                // Đang mở -> bấm lại để ĐÓNG: chỉ ẩn bàn phím ảo hệ thống, KHÔNG
+                // tự gọi applyLayoutState(false) ngay tại đây — để listener trong
+                // setupAutoLayout() tự phát hiện bàn phím thật đã hạ xuống rồi mới
+                // gọi applyLayoutState(false) đúng lúc. Nếu tự set false ngay ở
+                // đây trong khi bàn phím thật còn đang trượt xuống (vài khung
+                // hình), listener sẽ đọc thấy visibleNow vẫn true != isKeyboard-
+                // Visible vừa set false -> hiểu lầm là "vừa MỞ lại" -> gọi
+                // applyLayoutState(true) đè lên, làm nút bấm không đóng được /
+                // nhấp nháy mở lại. Cùng cách xử lý với khi tắt chế độ bàn phím
+                // toàn màn hình ở applyFullscreenMode().
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(syncInput.windowToken, 0)
+                return@setOnClickListener
+            }
+
             // QUAN TRỌNG: syncInputBar chỉ được gắn vào layout khi bàn phím ĐANG mở
             // (xem applyLayoutState) — nhưng lúc bấm nút này thì bàn phím CHƯA mở,
             // nên syncInput đang không nằm trong layout, requestFocus() sẽ vô tác
