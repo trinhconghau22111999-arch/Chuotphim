@@ -176,7 +176,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildHidListener() = object : HidManager.Listener {
         override fun onRegistered() = runOnUiThread {
             setHidRegisteredUi(registered = true)
-            statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị để kết nối."
+            statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
             hidManager.autoReconnectLastDevice()
         }
 
@@ -185,7 +185,7 @@ class MainActivity : AppCompatActivity() {
         override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
             statusText.text = if (connected) "Đang kết nối tới: ${safeName(device)}"
-                else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị để kết nối."
+                else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
         }
 
         override fun onError(message: String) = runOnUiThread {

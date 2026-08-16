@@ -36,7 +36,7 @@
                 android:paddingStart="56dp"
                 android:paddingEnd="56dp"
                 android:textColor="@color/text_on_surface"
-                android:text="Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị để kết nối."
+                android:text="Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
                 android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
