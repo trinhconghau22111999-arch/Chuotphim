@@ -119,19 +119,19 @@
                 android:textSize="9sp"
                 android:text="Home" />
 
-            <!-- Nút nhập liệu bằng giọng nói: dùng RemoteKeyIconButtonTall (cùng
-                 chiều cao 68dp với Thiết bị/Home trong hàng này) để cả 4 nút
-                 trong controlsRow luôn thẳng hàng, cùng cao — dù nút icon chỉ có
-                 1 dòng, chiều cao vẫn phải khớp 2 nút chữ 2 dòng bên cạnh. -->
+            <!-- Nút mic + bàn phím: viết lại từ đầu, đơn giản, đồng bộ cách làm
+                 với Thiết bị/Home ở trên — không còn dựa vào comment/hack cũ. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
                 style="@style/RemoteKeyIconButtonTall"
+                android:gravity="center"
                 android:text="🎤"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
                 style="@style/RemoteKeyIconButtonTall"
+                android:gravity="center"
                 android:text="⌨"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
