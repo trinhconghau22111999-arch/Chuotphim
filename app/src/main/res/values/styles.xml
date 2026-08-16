@@ -9,10 +9,10 @@
 
     <!-- Style dùng chung cho các phím điều khiển (Volume / Power / Media...) để
          cả hàng luôn cùng kích cỡ, cùng chiều cao, cùng bo góc, canh lề đều
-         nhau. Chiều cao 48dp đồng bộ với controlsRow (Thiết bị/Home/mic/bàn
-         phím) ở style RemoteKeyButtonTall bên dưới — toàn bộ các hàng phím
-         trong app giờ cùng 1 chiều cao 48dp, không hàng nào cao/thấp hơn hàng
-         nào.
+         nhau. Chiều cao 43dp (= 90% của 48dp gốc) đồng bộ với controlsRow
+         (Thiết bị/Home/Back/bàn phím) ở style RemoteKeyButtonTall bên dưới —
+         toàn bộ các hàng phím trong app giờ cùng 1 chiều cao 43dp, không
+         hàng nào cao/thấp hơn hàng nào.
          LƯU Ý: TRƯỚC ĐÂY dùng android:autoSizeTextType="uniform" để chữ tự thu
          nhỏ vừa 1 dòng — nhưng thuộc tính này khi kết hợp với MaterialButton có
          1 lỗi hiển thị đã biết: nền nút bị co lại từ CẠNH TRÊN vài px so với
@@ -23,7 +23,7 @@
          thu nhỏ (an toàn hơn, không còn gây lệch chiều cao nút). -->
     <style name="RemoteKeyButton" parent="Widget.Material3.Button">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_height">43dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:layout_marginStart">4dp</item>
         <item name="android:layout_marginEnd">4dp</item>
@@ -58,25 +58,25 @@
     </style>
 
     <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⏮ ⏯ ⏭ « »...): kế thừa mọi
-         thuộc tính kích cỡ/bo góc từ RemoteKeyButton (cùng layout_height=48dp
+         thuộc tính kích cỡ/bo góc từ RemoteKeyButton (cùng layout_height=43dp
          nên chiều cao luôn khớp các nút chữ trong cùng hàng/hàng khác) nhưng
          dùng cỡ chữ 20sp lớn hơn cho phù hợp icon. -->
     <style name="RemoteKeyIconButton" parent="RemoteKeyButton">
         <item name="android:textSize">20sp</item>
     </style>
 
-    <!-- controlsRow (Thiết bị / Home / mic / bàn phím) dùng riêng 2 style Tall
+    <!-- controlsRow (Thiết bị / Home / Back / bàn phím) dùng riêng 2 style Tall
          này — về mặt chiều cao hiện đã bằng RemoteKeyButton/RemoteKeyIconButton
-         (đều 48dp) nên không còn khác biệt về kích cỡ; giữ tên style Tall
+         (đều 43dp) nên không còn khác biệt về kích cỡ; giữ tên style Tall
          riêng để không phải sửa lại các android:id tham chiếu trong layout,
          và để dễ tách riêng chỉnh sau này nếu cần mà không ảnh hưởng hàng
          khác. -->
     <style name="RemoteKeyButtonTall" parent="RemoteKeyButton">
-        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_height">43dp</item>
     </style>
 
     <style name="RemoteKeyIconButtonTall" parent="RemoteKeyIconButton">
-        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_height">43dp</item>
         <item name="android:textSize">14sp</item>
     </style>
 </resources>
