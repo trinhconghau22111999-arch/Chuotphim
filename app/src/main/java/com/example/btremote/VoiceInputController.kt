@@ -194,9 +194,25 @@ class VoiceInputController(
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.packageName)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 4000L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 15000L)
+        // Uu tien dung bo nhan dien OFFLINE (neu may da tai goi ngon ngu tieng
+        // Viet offline trong Settings > He thong > Ngon ngu > Go bo phim ao >
+        // Nhap lieu bang giong noi) -> khoi dong nhanh hon nhieu vi khong phai
+        // cho ket noi server, dong thoi nhan dien cung nhanh hon do khong co do
+        // tre mang. Day chi la GOI Y: neu may khong co goi offline, he thong tu
+        // dong dung online nhu binh thuong, khong lo hong tinh nang.
+        putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+        // Giam thoi gian cho im lang truoc khi coi la "noi xong" tu 4000ms
+        // xuong 1500ms -> phan hoi nhanh hon ro ret sau khi nguoi dung ngung
+        // noi, van du de khong cat ngang cau dang noi do du (nguoi noi tu
+        // nhien thuong khong ngung qua 1.5s giua cau).
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+        // QUAN TRONG: truoc la 15000L (15 GIAY) -> moi lan noi, du chi 1 tu
+        // ngan, van bi GIU MIC MO BAT BUOC toi thieu 15 giay moi duoc tra ket
+        // qua ve. Day la nguyen nhan chinh khien "nhan dien chu" cam giac rat
+        // cham. Giam xuong 300ms (gan nhu khong gioi han toi thieu) de cau ngan
+        // duoc tra ve ngay khi nguoi dung ngung noi, khong con phai cho oan.
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 300L)
     }
 
     companion object {
