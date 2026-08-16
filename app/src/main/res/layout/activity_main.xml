@@ -118,7 +118,7 @@
                 android:gravity="center"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:textSize="9sp"
+                android:textSize="16sp"
                 android:text="Home" />
 
             <!-- Back: chuyển từ hàng volumeControls lên đây, đứng cùng nhóm điều
