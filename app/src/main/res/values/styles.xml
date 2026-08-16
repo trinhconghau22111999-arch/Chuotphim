@@ -7,23 +7,23 @@
         <item name="android:layout_margin">4dp</item>
     </style>
 
-    <!-- Style dùng chung cho các phím điều khiển (Thiết bị / Home / Volume /
-         Power / ...) để cả hàng luôn cùng kích cỡ, cùng chiều cao, cùng bo góc,
-         canh lề đều nhau.
+    <!-- Style dùng chung cho các phím điều khiển (Volume / Power / Media...) để
+         cả hàng luôn cùng kích cỡ, cùng chiều cao, cùng bo góc, canh lề đều
+         nhau. Chiều cao 48dp đồng bộ với controlsRow (Thiết bị/Home/mic/bàn
+         phím) ở style RemoteKeyButtonTall bên dưới — toàn bộ các hàng phím
+         trong app giờ cùng 1 chiều cao 48dp, không hàng nào cao/thấp hơn hàng
+         nào.
          LƯU Ý: TRƯỚC ĐÂY dùng android:autoSizeTextType="uniform" để chữ tự thu
          nhỏ vừa 1 dòng — nhưng thuộc tính này khi kết hợp với MaterialButton có
          1 lỗi hiển thị đã biết: nền nút bị co lại từ CẠNH TRÊN vài px so với
-         nút thường (không autosize), khiến hàng nút có autosize (Thiết bị/Home/
-         OFF/Vol.../Back) trông THẤP hơn hẳn hàng nút icon (RemoteKeyIconButton,
-         không autosize) dù cả 2 cùng khai báo layout_height=56dp hệt nhau — đây
-         chính là lỗi "2 nút bên trái thấp hơn 2 nút bên phải". Đã bỏ hẳn
-         autoSizeText, thay bằng 1 cỡ chữ CỐ ĐỊNH (16sp, đủ nhỏ để vừa các nhãn
-         dài nhất như "Thiết bị" trên hầu hết máy) + giữ maxLines=1/ellipsize để
-         nếu máy nào quá hẹp thì chữ tự cắt bớt "..." thay vì tự thu nhỏ (an
-         toàn hơn, không còn gây lệch chiều cao nút). -->
+         nút thường (không autosize), khiến hàng nút có autosize trông THẤP hơn
+         hẳn hàng nút icon dù cùng khai báo layout_height hệt nhau. Đã bỏ hẳn
+         autoSizeText, thay bằng 1 cỡ chữ CỐ ĐỊNH (16sp) + giữ maxLines=1/
+         ellipsize để nếu máy nào quá hẹp thì chữ tự cắt bớt "..." thay vì tự
+         thu nhỏ (an toàn hơn, không còn gây lệch chiều cao nút). -->
     <style name="RemoteKeyButton" parent="Widget.Material3.Button">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_height">48dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:layout_marginStart">4dp</item>
         <item name="android:layout_marginEnd">4dp</item>
@@ -40,26 +40,20 @@
         <item name="android:textSize">16sp</item>
     </style>
 
-    <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⌨ 🎤 ⏮ ⏯ ⏭ ◀◀ ▶▶...): kế thừa mọi
-         thuộc tính kích cỡ/bo góc từ RemoteKeyButton (cùng layout_height=56dp
+    <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⏮ ⏯ ⏭ « »...): kế thừa mọi
+         thuộc tính kích cỡ/bo góc từ RemoteKeyButton (cùng layout_height=48dp
          nên chiều cao luôn khớp các nút chữ trong cùng hàng/hàng khác) nhưng
          dùng cỡ chữ 20sp lớn hơn cho phù hợp icon. -->
     <style name="RemoteKeyIconButton" parent="RemoteKeyButton">
         <item name="android:textSize">20sp</item>
     </style>
 
-    <!-- Riêng cho hàng controlsRow (Thiết bị / Home / mic / bàn phím): "Thiết bị"
-         là nút DUY NHẤT trong cả app cần xuống 2 dòng (maxLines=2), trong khi 3
-         nút còn lại cùng hàng chỉ có 1 dòng — nếu cả hàng vẫn dùng chung
-         layout_height=56dp như mọi hàng khác thì 56dp KHÔNG đủ chỗ để
-         MaterialButton canh giữa 2 dòng cho thoải mái, khiến nút bị đẩy lệch
-         lên/xuống ngay bên trong bản thân nó, tạo cảm giác "nút thấp nút cao"
-         dù 4 nút vẫn cùng 1 chiều cao thật.
-         Cách sửa ĐÚNG: tăng riêng chiều cao cho CẢ HÀNG NÀY (68dp, đủ chỗ cho 2
-         dòng canh giữa thoải mái) thay vì đổi chung layout_height=56dp của
-         RemoteKeyButton — nhờ vậy KHÔNG đụng tới chiều cao của volumeControls/
-         mediaControls, các hàng đó vẫn giữ nguyên 56dp, đồng bộ trong từng hàng
-         như cũ. -->
+    <!-- controlsRow (Thiết bị / Home / mic / bàn phím) dùng riêng 2 style Tall
+         này — về mặt chiều cao hiện đã bằng RemoteKeyButton/RemoteKeyIconButton
+         (đều 48dp) nên không còn khác biệt về kích cỡ; giữ tên style Tall
+         riêng để không phải sửa lại các android:id tham chiếu trong layout,
+         và để dễ tách riêng chỉnh sau này nếu cần mà không ảnh hưởng hàng
+         khác. -->
     <style name="RemoteKeyButtonTall" parent="RemoteKeyButton">
         <item name="android:layout_height">48dp</item>
     </style>
