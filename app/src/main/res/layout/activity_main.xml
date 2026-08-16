@@ -9,6 +9,7 @@
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -35,7 +36,7 @@
                 android:paddingStart="56dp"
                 android:paddingEnd="56dp"
                 android:textColor="@color/text_on_surface"
-                android:text="Chưa kết nối thiết bị nào — hãy chọn thiết bị để kết nối"
+                android:text="Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị để kết nối."
                 android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
@@ -71,7 +72,7 @@
         <LinearLayout
             android:id="@+id/rowNav"
             android:layout_width="match_parent"
-            android:layout_height="68dp"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:background="@color/bg_row"
             android:paddingHorizontal="4dp">
@@ -157,6 +158,7 @@
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="16dp"
+                app:iconTint="@color/text_primary"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
         </LinearLayout>
@@ -296,6 +298,7 @@
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="20dp"
+        app:iconTint="@color/text_primary"
         android:backgroundTint="#40000000"
         android:text=""
         android:contentDescription="Nhấn đúp để bật/tắt chuột toàn màn hình" />
@@ -317,6 +320,7 @@
         app:iconGravity="textStart"
         app:iconPadding="0dp"
         app:iconSize="20dp"
+        app:iconTint="@color/text_primary"
         android:backgroundTint="#40000000"
         android:text=""
         android:contentDescription="Nhấn đúp để bật/tắt bàn phím toàn màn hình" />

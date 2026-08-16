@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var voiceInput: VoiceInputController
     private lateinit var syncInput: SyncInputController
 
+    private lateinit var rootContainer: FrameLayout
     private lateinit var mainColumn: LinearLayout
     private lateinit var topBar: FrameLayout
     private lateinit var statusText: TextView
@@ -152,6 +153,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindViews() {
+        rootContainer = findViewById(R.id.rootContainer)
         mainColumn = findViewById(R.id.mainColumn)
         topBar = findViewById(R.id.topBar)
         statusText = findViewById(R.id.statusText)
@@ -174,7 +176,7 @@ class MainActivity : AppCompatActivity() {
     private fun buildHidListener() = object : HidManager.Listener {
         override fun onRegistered() = runOnUiThread {
             setHidRegisteredUi(registered = true)
-            statusText.text = "Chưa kết nối thiết bị nào — hãy chọn thiết bị để kết nối"
+            statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị để kết nối."
             hidManager.autoReconnectLastDevice()
         }
 
@@ -182,7 +184,8 @@ class MainActivity : AppCompatActivity() {
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
-            statusText.text = if (connected) "Đang kết nối tới: ${safeName(device)}" else "Chưa kết nối thiết bị nào"
+            statusText.text = if (connected) "Đang kết nối tới: ${safeName(device)}"
+                else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị để kết nối."
         }
 
         override fun onError(message: String) = runOnUiThread {
@@ -449,43 +452,76 @@ class MainActivity : AppCompatActivity() {
         isKeyboardVisible = keyboardVisible
         mainColumn.removeAllViews()
 
+        // LUÔN gỡ syncInputBar khỏi cha hiện tại trước (dù đang ở mainColumn hay
+        // rootContainer) rồi mới gắn lại đúng chỗ bên dưới theo từng chế độ. Nếu
+        // không gỡ tay, addView() ở 1 view đã có cha sẵn sẽ ném
+        // IllegalStateException ("The specified child already has a parent").
+        (syncInputBar.parent as? android.view.ViewGroup)?.removeView(syncInputBar)
+
         val fillRemaining = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
 
         when (fullscreenMode) {
             FullscreenMode.MOUSE -> {
                 trackpad.layoutParams = fillRemaining
                 mainColumn.addView(trackpad)
-                // Ẩn thanh gõ đồng bộ: nó không phải con của mainColumn nên không tự
-                // biến mất khi removeAllViews() ở trên -> nếu đang bật từ chế độ
-                // KEYBOARD trước đó (đang VISIBLE) mà không ẩn tay ở đây, nó sẽ đè
-                // lên trackpad toàn màn hình.
+                // syncInputBar đã bị gỡ khỏi cha ở trên -> không gắn lại đâu cả,
+                // coi như ẩn hẳn trong lúc chuột toàn màn hình.
                 syncInputBar.visibility = View.GONE
             }
             FullscreenMode.KEYBOARD -> {
+                // Chế độ bàn phím toàn màn hình: syncInputBar là view DUY NHẤT hiện ra,
+                // không nằm trong mainColumn (đang rỗng) -> vẫn cần gắn thẳng vào
+                // rootContainer với FrameLayout.LayoutParams, ghim đáy màn hình.
+                rootContainer.addView(
+                    syncInputBar,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { gravity = android.view.Gravity.BOTTOM }
+                )
                 syncInputBar.visibility = View.VISIBLE
                 syncInputField.layoutParams =
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             FullscreenMode.NONE -> {
                 trackpad.layoutParams = fillRemaining
+                // topBar PHẢI thêm TRƯỚC trackpad/divider: mainColumn.addView() luôn
+                // thêm vào CUỐI danh sách con, nên nếu thêm trackpad/divider trước sẽ
+                // đẩy topBar xuống lọt giữa trackpad và hàng nút thay vì nằm trên
+                // cùng như thiết kế ban đầu (đã xác nhận qua toàn bộ ảnh chụp trước
+                // giờ: thanh thông báo luôn ở mép trên cùng màn hình).
+                mainColumn.addView(topBar)
                 mainColumn.addView(trackpad)
                 mainColumn.addView(divider)
-                mainColumn.addView(topBar)
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
-                // syncInputBar là con trực tiếp của FrameLayout gốc (xem activity_main.xml),
-                // KHÔNG phải con của mainColumn -> PHẢI dùng FrameLayout.LayoutParams, không
-                // phải LinearLayout.LayoutParams. Gán nhầm loại LayoutParams gây
-                // ClassCastException ngay khi hệ thống đo layout (crash mỗi khi mở lại
-                // thanh gõ đồng bộ: bấm mic / mở bàn phím dưới / bật bàn phím toàn màn hình
-                // trên, vì cả 3 đường đều gọi applyLayoutState() với keyboardVisible=true).
-                syncInputBar.layoutParams = FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
-                ).apply { gravity = android.view.Gravity.BOTTOM }
-                syncInputField.layoutParams =
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                syncInputBar.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
+                if (keyboardVisible) {
+                    // QUAN TRỌNG: trước đây syncInputBar được ghim vào rootContainer
+                    // (FrameLayout.LayoutParams, gravity=bottom) TÁCH RỜI khỏi
+                    // mainColumn. Vì windowSoftInputMode="adjustResize" thu nhỏ CẢ
+                    // rootContainer LẪN mainColumn xuống đúng vùng hiển thị còn lại
+                    // phía trên bàn phím, cả 2 cùng co lại NGANG NHAU -> đáy
+                    // mainColumn (rowMedia) và đáy rootContainer (syncInputBar,
+                    // gravity=bottom) trùng đúng 1 vị trí -> syncInputBar (khai báo
+                    // sau mainColumn trong XML nên vẽ đè lên trên) CHE MẤT rowMedia/
+                    // rowVolume thay vì nằm gọn phía dưới chúng.
+                    // Sửa: gắn syncInputBar làm con TRỰC TIẾP của mainColumn, ngay
+                    // sau rowMedia, dùng LinearLayout.LayoutParams bình thường. Nhờ
+                    // vậy nó xếp NGAY SAU rowMedia trong dòng chảy dọc, 3 hàng phím
+                    // (rowNav/rowVolume/rowMedia) luôn nằm phía trên nó và phía trên
+                    // bàn phím ảo, không còn bị đè/che nữa.
+                    mainColumn.addView(
+                        syncInputBar,
+                        LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                        )
+                    )
+                    syncInputField.layoutParams =
+                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    syncInputBar.visibility = View.VISIBLE
+                } else {
+                    syncInputBar.visibility = View.GONE
+                }
             }
         }
     }
