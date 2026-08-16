@@ -75,14 +75,23 @@ class VoiceInputController(
 
         override fun onError(error: Int) {
             if (!isListening) return
-            val fatal = error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ||
-                    error == SpeechRecognizer.ERROR_CLIENT
-            if (fatal) {
+            // CHỈ coi là lỗi chết (tắt hẳn mic) khi thật sự không thể tiếp tục:
+            // thiếu quyền micro. ERROR_CLIENT KHÔNG còn bị coi là lỗi chết nữa —
+            // đây thực ra là lỗi TẠM THỜI rất hay gặp khi startListening() được
+            // gọi ngay sau cancel() mà RecognitionService của máy chưa kịp dọn
+            // xong phiên cũ (đặc biệt các máy đời thấp / ROM tuỳ biến). Trước
+            // đây cứ gặp ERROR_CLIENT là tắt mic luôn, không thử lại -> đúng
+            // triệu chứng "lúc dùng được lúc không" vì lỗi này xảy ra ngẫu
+            // nhiên tuỳ thời điểm, không phải lỗi vĩnh viễn.
+            if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
                 stop(sentEnter = false)
                 return
             }
-            // ERROR_RECOGNIZER_BUSY: đợi lâu hơn
-            val delay = if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) 800L else 300L
+            // ERROR_RECOGNIZER_BUSY / ERROR_CLIENT: đợi lâu hơn cho hệ thống kịp dọn phiên cũ.
+            val delay = when (error) {
+                SpeechRecognizer.ERROR_RECOGNIZER_BUSY, SpeechRecognizer.ERROR_CLIENT -> 800L
+                else -> 300L
+            }
             handler.removeCallbacks(listenAgainRunnable)
             handler.postDelayed(listenAgainRunnable, delay)
         }
@@ -109,7 +118,13 @@ class VoiceInputController(
             return
         }
         try {
-            current.cancel()
+            // KHÔNG gọi cancel() ngay sát trước startListening() nữa. Gọi 2 lệnh
+            // này liên tiếp trong cùng 1 lượt xử lý khiến RecognitionService của
+            // hệ thống (đặc biệt máy đời thấp / ROM tuỳ biến) chưa kịp dọn xong
+            // phiên cũ đã nhận lệnh mới -> hay trả về ERROR_CLIENT ngẫu nhiên,
+            // đúng là nguồn gốc triệu chứng "lúc dùng được lúc không". Phiên
+            // trước khi tới đây đã kết thúc rồi (listenAgain chỉ được gọi sau
+            // onResults/onError hoặc lúc start() lần đầu), nên không cần cancel().
             current.startListening(buildIntent())
         } catch (e: Exception) {
             // Instance hiện tại bị lỗi không dùng lại được -> đành tạo lại,
