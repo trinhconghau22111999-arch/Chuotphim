@@ -79,7 +79,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyIconTall"
-                android:layout_height="66dp"
+                android:layout_height="52dp"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
