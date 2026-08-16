@@ -61,10 +61,11 @@
          mediaControls, các hàng đó vẫn giữ nguyên 56dp, đồng bộ trong từng hàng
          như cũ. -->
     <style name="RemoteKeyButtonTall" parent="RemoteKeyButton">
-        <item name="android:layout_height">68dp</item>
+        <item name="android:layout_height">48dp</item>
     </style>
 
     <style name="RemoteKeyIconButtonTall" parent="RemoteKeyIconButton">
-        <item name="android:layout_height">68dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:textSize">14sp</item>
     </style>
 </resources>
