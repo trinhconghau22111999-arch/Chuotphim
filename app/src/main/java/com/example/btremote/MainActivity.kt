@@ -715,12 +715,8 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(trackpad)
             }
             FullscreenMode.KEYBOARD -> {
-                // Bỏ hẳn khối chữ hướng dẫn to (chỉ tốn chỗ, không có tác dụng) —
-                // cho thẳng syncInputBar chiếm HẾT phần trống phía trên bàn phím ảo,
-                // vừa hiển thị nhiều chữ hơn vừa không còn khoảng trống vô ích.
-                syncInputBar.layoutParams = fillRemainingSpace
-                syncInput.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
-                mainColumn.addView(syncInputBar)
+                syncInputBar.visibility = android.view.View.VISIBLE
+                syncInput.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             FullscreenMode.NONE -> {
                 // Thứ tự CỐ ĐỊNH: thanh trạng thái -> chuột (co giãn) -> 3 phím dưới cùng.
@@ -744,7 +740,7 @@ class MainActivity : AppCompatActivity() {
                 syncInput.layoutParams = LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f
                 )
-                if (keyboardVisible) mainColumn.addView(syncInputBar)
+                syncInputBar.visibility = if (keyboardVisible) android.view.View.VISIBLE else android.view.View.GONE
             }
         }
     }

@@ -265,82 +265,86 @@
 
         </LinearLayout>
 
-        <!-- Thanh nhập liệu nổi: chỉ thêm vào (bằng code, MainActivity) khi bàn phím
-             ảo hệ thống đang mở, luôn ở vị trí NGAY TRÊN bàn phím (nhờ mainColumn
-             tự co lại do windowSoftInputMode="adjustResize" + đây là view cuối cùng).
-             Hiển thị đúng những gì app ĐÃ gửi lên TV (không lấy được nội dung thật
-             trên TV vì HID không có chiều nhận ngược) — coi như "bản nháp đồng bộ".
-             Gõ trực tiếp vào đây hoặc dán (paste) văn bản có dấu từ điện thoại đều
-             được gửi lên TV ngay (tự chuyển Telex nếu cần). Tự xoá trắng khi
-             di chuột/bấm chuột hoặc bấm Home, vì lúc đó ô nhập trên TV coi như
-             đã đổi/mất focus, không còn đồng bộ với những gì hiển thị ở đây nữa. -->
-        <LinearLayout
-            android:id="@+id/syncInputBar"
-            android:layout_width="match_parent"
+    </LinearLayout>
+
+
+    <!-- Thanh nhập liệu nổi: chỉ thêm vào (bằng code, MainActivity) khi bàn phím
+         ảo hệ thống đang mở, luôn ở vị trí NGAY TRÊN bàn phím (nhờ mainColumn
+         tự co lại do windowSoftInputMode="adjustResize" + đây là view cuối cùng).
+         Hiển thị đúng những gì app ĐÃ gửi lên TV (không lấy được nội dung thật
+         trên TV vì HID không có chiều nhận ngược) — coi như "bản nháp đồng bộ".
+         Gõ trực tiếp vào đây hoặc dán (paste) văn bản có dấu từ điện thoại đều
+         được gửi lên TV ngay (tự chuyển Telex nếu cần). Tự xoá trắng khi
+         di chuột/bấm chuột hoặc bấm Home, vì lúc đó ô nhập trên TV coi như
+         đã đổi/mất focus, không còn đồng bộ với những gì hiển thị ở đây nữa. -->
+    <LinearLayout
+        android:id="@+id/syncInputBar"
+        android:layout_gravity="bottom"
+        android:visibility="gone"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="#2A2A2A"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/syncInput"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="#2A2A2A"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
-            android:gravity="center_vertical">
+            android:layout_weight="1"
+            android:minHeight="44dp"
+            android:gravity="top|start"
+            android:background="@android:color/transparent"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:textSize="16sp"
+            android:hint="Đang gõ trên TV — có thể dán văn bản có dấu vào đây"
+            android:inputType="text"
+            android:importantForAutofill="no"
+            android:maxLines="1" />
 
-            <EditText
-                android:id="@+id/syncInput"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minHeight="44dp"
-                android:gravity="top|start"
-                android:background="@android:color/transparent"
-                android:textColor="#FFFFFF"
-                android:textColorHint="#888888"
-                android:textSize="16sp"
-                android:hint="Đang gõ trên TV — có thể dán văn bản có dấu vào đây"
-                android:inputType="text"
-                android:importantForAutofill="no"
-                android:maxLines="1" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPasteClipboard"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            app:cornerRadius="20dp"
+            app:icon="@drawable/ic_paste"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="18dp"
+            android:backgroundTint="#40FFFFFF"
+            android:text=""
+            android:contentDescription="Dán văn bản từ điện thoại" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPasteClipboard"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                app:cornerRadius="20dp"
-                app:icon="@drawable/ic_paste"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:iconSize="18dp"
-                android:backgroundTint="#40FFFFFF"
-                android:text=""
-                android:contentDescription="Dán văn bản từ điện thoại" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnClearSyncInput"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="4dp"
-                android:minWidth="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                app:cornerRadius="20dp"
-                app:icon="@drawable/ic_clear"
-                app:iconGravity="textStart"
-                app:iconPadding="0dp"
-                app:iconSize="16dp"
-                android:backgroundTint="#40FFFFFF"
-                android:text=""
-                android:contentDescription="Xoá ô nhập (không xoá chữ đã gửi trên TV)" />
-
-        </LinearLayout>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClearSyncInput"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            app:cornerRadius="20dp"
+            app:icon="@drawable/ic_clear"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="16dp"
+            android:backgroundTint="#40FFFFFF"
+            android:text=""
+            android:contentDescription="Xoá ô nhập (không xoá chữ đã gửi trên TV)" />
 
     </LinearLayout>
 
