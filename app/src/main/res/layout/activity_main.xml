@@ -94,8 +94,8 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp">
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp">
 
             <!-- Nút Thiết bị + Home: viết lại từ đầu, đơn giản, không còn các
                  mẹo "\n" ép cứng / lineSpacingExtra âm / includeFontPadding
@@ -139,8 +139,8 @@
 
         <!-- Hàng nút Volume: đặt cố định ngay dưới 3 phím điều khiển, cùng style
              RemoteKeyButton để đồng bộ kích cỡ/bo góc với hàng phía trên.
-             paddingTop=8dp giống controlsRow -> khối 3 hàng icon (controlsRow/
-             volumeControls/mediaControls) có cùng chiều cao tổng thể, cân đối,
+             paddingTop=4dp (đã giảm 50% so với bản gốc 8dp) -> khối 3 hàng icon
+             (controlsRow/volumeControls/mediaControls) có khoảng cách đều nhau,
              không hàng nào bị lệch cao/thấp hơn hàng khác. -->
         <LinearLayout
             android:id="@+id/volumeControls"
@@ -150,8 +150,8 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnScreenOff"
@@ -189,7 +189,7 @@
              dùng RemoteKeyIconButton (cỡ chữ cố định) thay vì RemoteKeyButton để
              icon không bị auto-size thu nhỏ hơn do hàng này có 5 nút (hẹp hơn 2
              hàng trên chỉ có 4 nút) — đảm bảo icon cùng cỡ với hàng controlsRow.
-             paddingTop=8dp đồng bộ với 2 hàng trên. -->
+             paddingTop=4dp (đã giảm 50% so với bản gốc 8dp), đồng bộ với 2 hàng trên. -->
         <LinearLayout
             android:id="@+id/mediaControls"
             android:layout_width="match_parent"
@@ -198,8 +198,8 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPreviousTrack"
