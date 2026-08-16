@@ -76,22 +76,20 @@
             android:layout_height="1dp"
             android:background="#444444" />
 
-        <!-- LƯU Ý: controlsRow/volumeControls/mediaControls PHẢI là con
-             TRỰC TIẾP của mainColumn — MainActivity.applyLayoutState() gọi
-             mainColumn.removeAllViews() rồi mainColumn.addView(controlsRow),
-             addView(volumeControls), addView(mediaControls) thẳng mỗi khi
-             bàn phím ảo ẩn/hiện. Từng bọc 3 hàng này vào 1 LinearLayout cha
-             (keyRowsContainer) để "gộp 1 nền" nhưng làm addView() ném
-             IllegalStateException (view đã có cha khác) -> app văng ngay khi
-             bấm nút mở bàn phím. Quay lại cấu trúc phẳng, dùng CHUNG 1 màu
-             nền (key_rows_background) khai báo riêng ở mỗi hàng thay vì gộp
-             view — vẫn nhìn liền mạch vì 3 hàng cùng màu, không còn crash. -->
+        <!-- 4 phím điều khiển (Thiết bị/Home/Back/bàn phím): dùng RemoteKeyButtonTall/
+             RemoteKeyIconButtonTall (68dp, RIÊNG cho hàng này) thay vì 56dp như
+             mọi hàng khác — "Thiết bị" xuống 2 dòng cần thêm chỗ để MaterialButton
+             canh giữa cho thoải mái, nếu vẫn 56dp thì dù 4 nút cùng 1 chiều cao
+             THẬT, nút 2 dòng vẫn bị đẩy lệch nội dung lên/xuống bên trong chính
+             nó, tạo cảm giác "nút thấp nút cao". Cả 4 nút trong hàng này cùng
+             dùng chiều cao 68dp nên vẫn thẳng hàng, cân đối với nhau; các hàng
+             khác (volumeControls/mediaControls) không bị ảnh hưởng, vẫn 56dp. -->
         <LinearLayout
             android:id="@+id/controlsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:background="@color/key_rows_background"
+            android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
 >
@@ -115,7 +113,7 @@
                 android:paddingBottom="0dp"
                 android:minWidth="0dp"
                 android:minHeight="0dp"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
@@ -125,7 +123,7 @@
                 android:gravity="center"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:text="Home" />
 
             <!-- Back: chuyển từ hàng volumeControls lên đây, đứng cùng nhóm điều
@@ -134,7 +132,7 @@
                 android:id="@+id/btnBack"
                 style="@style/RemoteKeyButtonTall"
                 android:text="Back"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Quay lại (phím Escape — hầu hết TV nhận là nút Back)" />
 
             <!-- Nút bàn phím: viết lại từ đầu, đơn giản, đồng bộ cách làm
@@ -147,8 +145,8 @@
                 app:icon="@drawable/ic_keyboard"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
-                app:iconSize="24dp"
-                android:textSize="14dp"
+                app:iconSize="20dp"
+                android:textSize="12dp"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
@@ -162,9 +160,8 @@
             android:id="@+id/volumeControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
             android:orientation="horizontal"
-            android:background="@color/key_rows_background"
+            android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp">
 
@@ -172,21 +169,21 @@
                 android:id="@+id/btnScreenOff"
                 style="@style/RemoteKeyButton"
                 android:text="OFF"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeDown"
                 style="@style/RemoteKeyButton"
                 android:text="Vol −"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Giảm âm lượng" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeUp"
                 style="@style/RemoteKeyButton"
                 android:text="Vol +"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Tăng âm lượng" />
 
             <!-- Mic: chuyển từ hàng controlsRow xuống đây, thay chỗ Back cũ.
@@ -202,7 +199,7 @@
                 app:icon="@drawable/ic_mic"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
-                app:iconSize="24dp"
+                app:iconSize="20dp"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
         </LinearLayout>
@@ -218,9 +215,8 @@
             android:id="@+id/mediaControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
             android:orientation="horizontal"
-            android:background="@color/key_rows_background"
+            android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp">
 

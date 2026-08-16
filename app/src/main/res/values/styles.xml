@@ -30,7 +30,7 @@
          sẽ không ảnh hưởng tới chữ trên các phím remote này. -->
     <style name="RemoteKeyButton" parent="Widget.Material3.Button">
         <item name="android:layout_width">0dp</item>
-        <item name="android:layout_height">47dp</item>
+        <item name="android:layout_height">39dp</item>
         <item name="android:layout_weight">1</item>
         <item name="android:layout_marginStart">4dp</item>
         <item name="android:layout_marginEnd">4dp</item>
@@ -40,25 +40,6 @@
         <item name="android:insetRight">0dp</item>
         <item name="android:paddingStart">4dp</item>
         <item name="android:paddingEnd">4dp</item>
-        <!-- QUAN TRỌNG: Widget.Material3.Button mặc định có paddingTop/paddingBottom
-             riêng (không đối xứng nhau) để bù trừ cho line-height của font Material.
-             Khi ép layout_height xuống cố định 39dp (nhỏ hơn nhiều so với chiều cao
-             gốc mà Material3 tính toán để chứa padding đó), phần nội dung (chữ)
-             vẫn bị tính gravity=center DỰA TRÊN vùng còn lại SAU KHI trừ đi cặp
-             padding không đối xứng này -> chữ bị lệch xuống dưới ("tuột") so với
-             icon (icon dùng đường vẽ riêng qua iconGravity, ít bị ảnh hưởng bởi
-             padding văn bản này hơn). Ép cả 2 về 0dp để gravity=center canh giữa
-             chuẩn xác trên toàn bộ chiều cao 39dp, không còn lệch. -->
-        <item name="android:paddingTop">0dp</item>
-        <item name="android:paddingBottom">0dp</item>
-        <!-- includeFontPadding=false: TextView/Button mặc định chừa thêm khoảng
-             đệm trên/dưới chữ (ascent/descent của font, KHÔNG PHẢI kích thước
-             glyph thật) — khoảng đệm này không đối xứng và thay đổi tuỳ textSize,
-             nên 2 nút cùng gravity=center nhưng khác cỡ chữ (Home/Back 14dp vs
-             OFF/Vol−/Vol+ 12dp) vẫn hiện chữ lệch tâm khác nhau dù đã zero hết
-             padding/margin ở trên. Tắt hẳn để chữ canh giữa đúng theo glyph thật,
-             không còn phụ thuộc cỡ chữ. -->
-        <item name="android:includeFontPadding">false</item>
         <!-- BẮT BUỘC: Widget.Material3.Button mặc định có minHeight ~48dp
              (chuẩn touch-target accessibility). Nếu không tắt, Material3 vẫn
              cố vẽ nền nút theo khung 48dp ảo rồi mới bị ép cắt xuống đúng
@@ -70,11 +51,11 @@
              Set ở đây (style gốc) để áp dụng cho TẤT CẢ nút cùng lúc. -->
         <item name="android:minHeight">0dp</item>
         <item name="android:minWidth">0dp</item>
-        <item name="cornerRadius">16dp</item>
+        <item name="cornerRadius">13dp</item>
         <item name="android:textAllCaps">false</item>
         <item name="android:maxLines">1</item>
         <item name="android:ellipsize">end</item>
-        <item name="android:textSize">17dp</item>
+        <item name="android:textSize">14dp</item>
         <!-- Canh giữa chữ/icon TRONG style gốc thay vì để từng nút tự khai
              báo riêng lẻ — trước đây chỉ Thiết bị/Home/mic/bàn phím có
              android:gravity="center" ở layout, còn Back/OFF/Vol−/Vol+ và cả
@@ -92,6 +73,8 @@
              cần màu riêng (OFF đỏ...) vẫn override backgroundTint tại chỗ,
              ghi đè lên giá trị này bình thường. -->
         <item name="android:backgroundTint">#00000000</item>
+        <item name="strokeColor">#4CAF50</item>
+        <item name="strokeWidth">1dp</item>
     </style>
 
     <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⏮ ⏯ ⏭ « »...): kế thừa mọi
@@ -99,7 +82,7 @@
          nên chiều cao luôn khớp các nút chữ trong cùng hàng/hàng khác) nhưng
          dùng cỡ chữ 20sp lớn hơn cho phù hợp icon. -->
     <style name="RemoteKeyIconButton" parent="RemoteKeyButton">
-        <item name="android:textSize">22dp</item>
+        <item name="android:textSize">18dp</item>
     </style>
 
     <!-- controlsRow (Thiết bị / Home / Back / bàn phím) dùng riêng 2 style Tall
@@ -109,11 +92,11 @@
          và để dễ tách riêng chỉnh sau này nếu cần mà không ảnh hưởng hàng
          khác. -->
     <style name="RemoteKeyButtonTall" parent="RemoteKeyButton">
-        <item name="android:layout_height">47dp</item>
+        <item name="android:layout_height">39dp</item>
     </style>
 
     <style name="RemoteKeyIconButtonTall" parent="RemoteKeyIconButton">
-        <item name="android:layout_height">47dp</item>
-        <item name="android:textSize">16dp</item>
+        <item name="android:layout_height">39dp</item>
+        <item name="android:textSize">13dp</item>
     </style>
 </resources>
