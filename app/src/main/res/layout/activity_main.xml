@@ -84,6 +84,7 @@
                 app:icon="@drawable/ic_phone_tv_switch"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
+                android:backgroundTint="@color/key_neon_green"
                 android:contentDescription="Chọn thiết bị" />
 
             <com.google.android.material.button.MaterialButton
@@ -108,6 +109,7 @@
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="20dp"
+                android:backgroundTint="@color/key_neon_green"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>

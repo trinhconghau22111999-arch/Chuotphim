@@ -11,6 +11,7 @@
     <color name="key_default">#616161</color>
     <color name="key_danger">#F44336</color>
     <color name="key_active">#4FC3F7</color>
+    <color name="key_neon_green">#39FF14</color>
     <color name="text_primary">#FFFFFF</color>
     <color name="text_hint">#888888</color>
 </resources>
