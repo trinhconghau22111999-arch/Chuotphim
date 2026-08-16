@@ -573,10 +573,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Đổi màu nút micro để báo hiệu đang nghe hay không — cùng cách đổi màu với
-     *  2 nút toàn màn hình góc trên (xem updateToggleButtonVisualState()). */
+     *  2 nút toàn màn hình góc trên (xem updateToggleButtonVisualState()).
+     *  Bình thường (không nghe) = đen, khớp với nền đen đặt sẵn trong layout;
+     *  đang nghe = đỏ, để vẫn có tín hiệu trực quan rõ ràng khi mic đang bật. */
     private fun updateVoiceButtonVisualState(listening: Boolean) {
         findViewById<MaterialButton>(R.id.btnVoiceInput).backgroundTintList = ColorStateList.valueOf(
-            if (listening) 0xFFE53935.toInt() else 0xFF6750A4.toInt()
+            if (listening) 0xFFE53935.toInt() else 0xFF000000.toInt()
         )
     }
 

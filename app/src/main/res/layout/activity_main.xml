@@ -180,12 +180,21 @@
                 android:textSize="14sp"
                 android:contentDescription="Tăng âm lượng" />
 
-            <!-- Mic: chuyển từ hàng controlsRow xuống đây, thay chỗ Back cũ. -->
+            <!-- Mic: chuyển từ hàng controlsRow xuống đây, thay chỗ Back cũ.
+                 Dùng icon vector (ic_mic, trắng xám) thay cho emoji "🎤" vì emoji
+                 có màu cố định của hệ thống, không tô lại được — nền đen đặt cố
+                 định ở đây, code (updateVoiceButtonVisualState) chỉ đổi sang đỏ
+                 khi đang nghe, các lúc khác luôn giữ nguyên màu đen này. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
                 style="@style/RemoteKeyIconButton"
                 android:gravity="center"
-                android:text="🎤"
+                android:text=""
+                app:icon="@drawable/ic_mic"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                android:backgroundTint="#000000"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
         </LinearLayout>
