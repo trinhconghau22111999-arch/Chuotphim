@@ -123,7 +123,7 @@
                 android:gravity="center"
                 android:maxLines="1"
                 android:ellipsize="end"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:text="Home" />
 
             <!-- Back: chuyển từ hàng volumeControls lên đây, đứng cùng nhóm điều
@@ -132,7 +132,7 @@
                 android:id="@+id/btnBack"
                 style="@style/RemoteKeyButtonTall"
                 android:text="Back"
-                android:textSize="14dp"
+                android:textSize="12dp"
                 android:contentDescription="Quay lại (phím Escape — hầu hết TV nhận là nút Back)" />
 
             <!-- Nút bàn phím: viết lại từ đầu, đơn giản, đồng bộ cách làm
