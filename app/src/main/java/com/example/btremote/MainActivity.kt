@@ -193,6 +193,10 @@ class MainActivity : AppCompatActivity() {
                     statusText.text = "Chưa kết nối thiết bị nào — hãy chọn thiết bị để kết nối"
                     // Tự kết nối lại thiết bị đã dùng lần trước (nếu có) — không cần chọn lại.
                     hidManager.autoReconnectLastDevice()
+                    // Đăng ký HID xong (tức là đã xin quyền + bật Bluetooth xong) —
+                    // đúng lúc app đã sẵn sàng dùng, hiện hướng dẫn 2 icon góc trên
+                    // (chỉ hiện 1 lần duy nhất, xem maybeShowFullscreenIconsHint()).
+                    maybeShowFullscreenIconsHint()
                 }
             }
 
@@ -613,8 +617,43 @@ class MainActivity : AppCompatActivity() {
      * thời điểm: bấm nút còn lại trong khi đang bật chế độ kia sẽ tự chuyển sang.
      */
     private fun toggleFullscreenMode(mode: FullscreenMode) {
+        val turnedOn = fullscreenMode != mode
         fullscreenMode = if (fullscreenMode == mode) FullscreenMode.NONE else mode
         applyFullscreenMode()
+
+        // Thông báo ngắn mỗi lần nhấn đúp — người dùng biết ngay là đã bật/tắt
+        // đúng chế độ, tránh nhấn đúp mà không rõ có ăn hay không (đặc biệt khi
+        // đang ở gần trackpad, dễ nhầm với thao tác lướt chuột).
+        val label = if (mode == FullscreenMode.MOUSE) "chuột" else "bàn phím"
+        Toast.makeText(
+            this,
+            if (turnedOn) "Đã bật chế độ $label toàn màn hình — nhấn đúp lại để tắt"
+            else "Đã tắt chế độ $label toàn màn hình",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    /**
+     * Hướng dẫn ngắn cho 2 nút tròn góc trên (🖱 chuột / ⌨ bàn phím) — chỉ hiện
+     * ĐÚNG 1 LẦN (lần đầu app đăng ký HID thành công), nhớ bằng SharedPreferences
+     * để những lần mở app sau không bị hiện lại làm phiền.
+     */
+    private fun maybeShowFullscreenIconsHint() {
+        val prefs = getSharedPreferences("btremote_prefs", MODE_PRIVATE)
+        if (prefs.getBoolean("hint_fullscreen_icons_shown", false)) return
+        prefs.edit().putBoolean("hint_fullscreen_icons_shown", true).apply()
+
+        AlertDialog.Builder(this)
+            .setTitle("Mẹo nhỏ")
+            .setMessage(
+                "2 nút tròn ở góc trên màn hình:\n" +
+                    "🖱 (trái) — chế độ chuột toàn màn hình, xoay ngang\n" +
+                    "⌨ (phải) — chế độ bàn phím toàn màn hình, xoay ngang\n\n" +
+                    "Nhấn ĐÚP (2 lần liên tiếp thật nhanh) vào nút để bật/tắt. " +
+                    "Nhấn 1 lần sẽ không có tác dụng gì — tránh bấm nhầm khi đang lướt ngón tay trên trackpad."
+            )
+            .setPositiveButton("Đã hiểu", null)
+            .show()
     }
 
     private fun applyFullscreenMode() {
