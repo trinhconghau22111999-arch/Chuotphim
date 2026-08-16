@@ -22,11 +22,21 @@ import android.speech.SpeechRecognizer
  * bind kịp cho lần sau, không hề gọi bất kỳ callback lỗi nào -> nút mic bật lên
  * (isListening=true) nhưng thực chất không nghe gì cả, trông như "lúc được lúc
  * không" tuỳ may rủi có kịp bind hay không.
- * Sửa: tạo SpeechRecognizer đúng 1 LẦN cho cả phiên nghe liên tục, các lần
- * "nghe lại" sau mỗi câu chỉ gọi lại startListening() trên CÙNG 1 instance đó
- * (đây là cách dùng được Google khuyến nghị cho continuous listening), không
- * destroy+create lại nữa. Chỉ thật sự destroy() khi dừng hẳn (stop()) hoặc khi
- * instance bị lỗi nặng không dùng lại được (recreateAndListen()).
+ * LƯU Ý QUAN TRỌNG #2 (fix lỗi "chỉ dùng được lần đầu, bấm lại lần sau không
+ * bao giờ nghe được nữa"):
+ * Bản trước vẫn còn destroy() SpeechRecognizer mỗi khi người dùng BẤM TẮT mic
+ * (stop()), rồi tạo mới hoàn toàn ở lần bấm BẬT tiếp theo (start()). Trên
+ * nhiều máy, sau khi 1 SpeechRecognizer đã bị destroy() (unbind khỏi
+ * RecognitionService của hệ thống), lần tạo mới kế tiếp KHÔNG bind lại được
+ * nữa — không phải do rate-limit tạm thời như lưu ý #1 ở trên, mà là kẹt VĨNH
+ * VIỄN cho tới khi khởi động lại app, y hệt triệu chứng "chỉ dùng lần đầu, lần
+ * sau không bao giờ dùng được nữa".
+ * Sửa: chỉ tạo SpeechRecognizer ĐÚNG 1 LẦN trong suốt vòng đời của
+ * VoiceInputController (lazy, ở lần start() đầu tiên). Bấm tắt (stop()) từ
+ * giờ CHỈ cancel()/stopListening(), KHÔNG còn destroy() nữa — instance vẫn
+ * còn sống, sẵn sàng cho lần bấm bật tiếp theo dùng lại ngay. Chỉ thật sự
+ * destroy() khi cả Activity bị huỷ (MainActivity.onDestroy() gọi
+ * VoiceInputController.destroy()).
  */
 class VoiceInputController(
     private val context: Context,
@@ -82,9 +92,10 @@ class VoiceInputController(
         if (!SpeechRecognizer.isRecognitionAvailable(context)) return
         isListening = true
         resetSilenceTimer()
-        destroyRecognizer()
-        recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-            setRecognitionListener(recognitionListener)
+        if (recognizer == null) {
+            recognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+                setRecognitionListener(recognitionListener)
+            }
         }
         listenAgain()
     }
@@ -133,7 +144,9 @@ class VoiceInputController(
         handler.removeCallbacks(silenceRunnable)
         handler.removeCallbacks(listenAgainRunnable)
         isListening = false
-        destroyRecognizer()
+        // KHÔNG destroy() ở đây nữa — xem "LƯU Ý QUAN TRỌNG #2" ở đầu file.
+        // Chỉ dừng nghe, giữ nguyên instance để lần bấm bật tiếp theo dùng lại.
+        try { recognizer?.cancel() } catch (_: Exception) {}
         onStopped(sentEnter)
     }
 
