@@ -97,7 +97,8 @@ class TrackpadView @JvmOverloads constructor(
 
     /** 4 viền góc kiểu khung ngắm ở 4 góc trackpad. Mọi kích thước (độ dài cạnh góc,
      *  khoảng cách lề, độ dày nét) đều tính theo % chiều nhỏ nhất của view -> co dãn
-     *  đúng theo độ lớn trackpad thực tế trên từng máy/mỗi lần xoay màn hình. */
+     *  đúng theo độ lớn trackpad thực tế trên từng máy/mỗi lần xoay màn hình.
+     *  2 góc trên được hạ xuống thêm topOffset để tránh vùng 2 nút tròn nổi (44dp + 8dp margin). */
     private fun drawCornerBrackets(canvas: Canvas) {
         val shortSide = minOf(width, height).toFloat()
         if (shortSide <= 0f) return
@@ -107,19 +108,22 @@ class TrackpadView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
+        // 2 nút tròn nổi: 44dp + margin 8dp = 52dp, đổi sang px
+        val density = resources.displayMetrics.density
+        val topOffset = 56 * density  // 56dp đủ chỗ cho nút tròn
 
-        // Trên-trái
+        // Trên-trái (hạ xuống topOffset)
         cornerPath.reset()
-        cornerPath.moveTo(margin, margin + cornerLen)
-        cornerPath.lineTo(margin, margin)
-        cornerPath.lineTo(margin + cornerLen, margin)
+        cornerPath.moveTo(margin, topOffset + cornerLen)
+        cornerPath.lineTo(margin, topOffset)
+        cornerPath.lineTo(margin + cornerLen, topOffset)
         canvas.drawPath(cornerPath, cornerPaint)
 
-        // Trên-phải
+        // Trên-phải (hạ xuống topOffset)
         cornerPath.reset()
-        cornerPath.moveTo(w - margin - cornerLen, margin)
-        cornerPath.lineTo(w - margin, margin)
-        cornerPath.lineTo(w - margin, margin + cornerLen)
+        cornerPath.moveTo(w - margin - cornerLen, topOffset)
+        cornerPath.lineTo(w - margin, topOffset)
+        cornerPath.lineTo(w - margin, topOffset + cornerLen)
         canvas.drawPath(cornerPath, cornerPaint)
 
         // Dưới-trái
