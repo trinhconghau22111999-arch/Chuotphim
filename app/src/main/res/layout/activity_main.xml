@@ -255,7 +255,7 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="18dp"
-            android:backgroundTint="#40FFFFFF"
+            android:backgroundTint="@color/sync_bar_btn"
             android:text=""
             android:contentDescription="Dán văn bản từ điện thoại" />
 
@@ -273,7 +273,7 @@
             app:iconGravity="textStart"
             app:iconPadding="0dp"
             app:iconSize="16dp"
-            android:backgroundTint="#40FFFFFF"
+            android:backgroundTint="@color/sync_bar_btn"
             android:text=""
             android:contentDescription="Xoá ô nhập (không xoá chữ đã gửi trên TV)" />
 

@@ -18,6 +18,7 @@
     <color name="key_neon_green">#39FF14</color>
     <color name="key_teal">#00BCD4</color>
     <color name="icon_on_teal">#FFFFFF</color>
+    <color name="sync_bar_btn">#40FFFFFF</color>
     <color name="text_primary">#FFFFFF</color>
     <!-- Chữ trên các mặt nền (thanh trạng thái, ô gõ đồng bộ) — khác với
          text_primary (chữ trên nút, luôn trắng vì nút luôn nền xám tối). -->
