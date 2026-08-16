@@ -18,7 +18,8 @@
         android:id="@+id/mainColumn"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:background="#000000">
 
         <!-- topBar: khi CHƯA đăng ký HID thì ẩn statusText, hiện nút đăng ký để
              người dùng bấm; khi ĐÃ đăng ký thì đảo lại — chỉ 1 trong 2 hiện tại
