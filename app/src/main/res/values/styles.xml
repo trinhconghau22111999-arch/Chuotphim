@@ -30,9 +30,10 @@
         <item name="android:textSize">0sp</item>
     </style>
 
-    <!-- Nút cho hàng điều hướng — chiều cao theo parent (match_parent) -->
+    <!-- Nút cao hơn (68dp) dùng riêng cho hàng điều hướng trên cùng, đủ chỗ
+         cho nút "Thiết bị" xuống 2 dòng mà vẫn canh giữa đẹp -->
     <style name="RemoteKeyTall" parent="RemoteKey">
-        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_height">68dp</item>
     </style>
 
     <style name="RemoteKeyIconTall" parent="RemoteKeyTall">
