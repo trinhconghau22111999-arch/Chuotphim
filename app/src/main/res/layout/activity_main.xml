@@ -145,7 +145,7 @@
                 app:icon="@drawable/ic_keyboard"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
-                app:iconSize="20dp"
+                app:iconSize="15dp"
                 android:textSize="12dp"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
