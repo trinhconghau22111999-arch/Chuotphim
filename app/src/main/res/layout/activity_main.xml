@@ -108,6 +108,8 @@
                 android:maxLines="2"
                 android:ellipsize="end"
                 android:textSize="9sp"
+                app:strokeColor="#F44336"
+                app:strokeWidth="2dp"
                 android:text="Thiết bị" />
 
             <com.google.android.material.button.MaterialButton
