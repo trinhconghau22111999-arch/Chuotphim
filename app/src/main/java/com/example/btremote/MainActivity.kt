@@ -380,7 +380,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateVoiceButtonVisualState(listening: Boolean) {
         btnVoiceInput.backgroundTintList = ColorStateList.valueOf(
-            if (listening) 0xFFE53935.toInt() else ContextCompat.getColor(this, R.color.key_default)
+            if (listening) ContextCompat.getColor(this, R.color.key_neon_green)
+            else ContextCompat.getColor(this, R.color.key_default)
         )
     }
 
