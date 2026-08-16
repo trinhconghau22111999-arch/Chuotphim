@@ -32,11 +32,11 @@ class TrackpadView @JvmOverloads constructor(
     private var hintDismissed = prefs.getBoolean(PREF_HINT_DISMISSED, false)
 
     private val paint = Paint().apply {
-        color = Color.parseColor("#333333")
+        color = Color.parseColor("#FFFFFF")
         style = Paint.Style.FILL
     }
     private val textPaint = Paint().apply {
-        color = Color.parseColor("#888888")
+        color = Color.parseColor("#AAAAAA")
         textSize = 36f
         isAntiAlias = true
         textAlign = Paint.Align.CENTER
@@ -45,7 +45,7 @@ class TrackpadView @JvmOverloads constructor(
     // luôn tính theo tỉ lệ % kích thước trackpad hiện tại (xem cornerLen/cornerMargin
     // trong onDraw), nên tự co dãn đúng theo độ lớn của trackpad, không bị cố định cứng.
     private val cornerPaint = Paint().apply {
-        color = Color.parseColor("#9E9E9E")
+        color = Color.parseColor("#CCCCCC")
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
