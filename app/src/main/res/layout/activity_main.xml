@@ -97,48 +97,26 @@
             android:paddingTop="6dp"
             android:paddingBottom="6dp">
 
-            <!-- maxLines=2 + ellipsize=none: chữ tự xuống dòng thay vì bị "..."
-                 cắt bớt, không phụ thuộc đo/đoán bề rộng màn hình. Không đổi
-                 layout_weight (giữ = 1, đều với 2 nút icon bên cạnh) để không lặp
-                 lại lỗi cũ (weight lệch từng làm icon 🎤 bị ellipsize theo).
-                 "\n" TƯỜNG MINH (thay vì để tự wrap): MaterialButton có lỗi hiển
-                 thị đã biết — khi chữ tự wrap sang 2 dòng do KHÔNG ĐỦ CHỖ NGANG
-                 (không phải do "\n"), có độ trễ giữa lượt ĐO (measure, lúc này
-                 có thể tưởng còn 1 dòng) và lượt VẼ (khi đã xác định là 2 dòng),
-                 khiến nền nút vẽ ra THẤP hơn 1 chút so với chiều cao 68dp thật
-                 đã khai báo — chỉ nút nào thật sự PHẢI tự wrap mới dính (do đó
-                 "Home" 1 dòng vẫn đúng 68dp, chỉ "Thiết bị" bị thấp hơn dù cùng
-                 style hệt nhau). Ép "\n" tường minh khiến số dòng CỐ ĐỊNH ngay
-                 từ đầu, không còn phụ thuộc quyết định wrap lúc đo -> hết lệch.
-                 includeFontPadding=false: bớt khoảng đệm thừa trên/dưới do dấu
-                 tiếng Việt (ệ, ị...) kéo dài ascent/descent của font, giúp phần
-                 chữ 2 dòng được đo/vẽ nhất quán hơn. -->
+            <!-- Nút Thiết bị + Home: viết lại từ đầu, đơn giản, không còn các
+                 mẹo "\n" ép cứng / lineSpacingExtra âm / includeFontPadding
+                 của các lần sửa trước — để hệ thống tự đo/vẽ theo cách chuẩn,
+                 tránh đúng lỗi timing giữa measure và draw đã từng gặp. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyButtonTall"
-                android:paddingStart="2dp"
-                android:paddingEnd="2dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
-                android:textSize="9sp"
+                android:gravity="center"
                 android:maxLines="2"
-                android:ellipsize="none"
-                android:lineSpacingExtra="-2sp"
-                android:includeFontPadding="false"
-                android:text="Thiết\nbị" />
+                android:ellipsize="end"
+                android:textSize="9sp"
+                android:text="Thiết bị" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyHome"
                 style="@style/RemoteKeyButtonTall"
-                android:paddingStart="2dp"
-                android:paddingEnd="2dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="2dp"
+                android:gravity="center"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:textSize="9sp"
-                android:maxLines="2"
-                android:ellipsize="none"
-                android:lineSpacingExtra="-2sp"
-                android:includeFontPadding="false"
                 android:text="Home" />
 
             <!-- Nút nhập liệu bằng giọng nói: dùng RemoteKeyIconButtonTall (cùng
