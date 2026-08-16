@@ -2,4 +2,9 @@
 <resources>
     <!-- Nền icon app: xanh dương đậm để nổi bật hình remote TV màu tối ở giữa -->
     <color name="ic_launcher_background">#1565C0</color>
+
+    <!-- Nền dùng chung cho toàn bộ khối 3 hàng phím (controlsRow/volumeControls/
+         mediaControls) — 1 màu duy nhất thay vì mỗi hàng tự khai báo riêng,
+         sáng hơn màu #1B1B1B cũ 1 chút để không bị đen kịt. -->
+    <color name="key_rows_background">#262626</color>
 </resources>

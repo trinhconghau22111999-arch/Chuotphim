@@ -32,7 +32,9 @@ class TrackpadView @JvmOverloads constructor(
     private var hintDismissed = prefs.getBoolean(PREF_HINT_DISMISSED, false)
 
     private val paint = Paint().apply {
-        color = Color.parseColor("#333333")
+        // Nhạt hơn 1 chút so với #333333 cũ, để phân biệt rõ với khối nút
+        // phía dưới (key_rows_background = #262626).
+        color = Color.parseColor("#3D3D3D")
         style = Paint.Style.FILL
     }
     private val textPaint = Paint().apply {
