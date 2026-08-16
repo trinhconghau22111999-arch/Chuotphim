@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icon "chọn thiết bị" kết hợp 3 phần trong 1 icon duy nhất, thay cho ký tự
+     "⇄" trước đây: điện thoại bên trái, 2 mũi tên đổi chiều ở giữa (giữ đúng
+     ý nghĩa gốc: chuyển đổi kết nối), và TV bên phải — thể hiện rõ chiều
+     kết nối "điện thoại ⇄ TV". Vector khá dẹt (viewport rộng gấp ~2 lần cao)
+     vì phải nén 3 khối cạnh nhau, nhưng nút bấm/nền phím giữ nguyên kích
+     thước cũ — chỉ icon nhỏ lại để vừa. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="29.4dp"
+    android:height="14dp"
+    android:viewportWidth="42"
+    android:viewportHeight="20"
+    android:tint="#FFFFFF">
+
+    <!-- Điện thoại: khung viền bo góc -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M4,3 L6,3 Q8,3 8,5 L8,15 Q8,17 6,17 L4,17 Q2,17 2,15 L2,5 Q2,3 4,3 Z" />
+    <!-- Nút Home nhỏ ở đáy điện thoại -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M4.3,15.5 L5.7,15.5" />
+
+    <!-- 2 mũi tên đổi chiều ở giữa -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M13,8 L25,8 M21,5 L25,8 L21,11" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M25,13 L13,13 M17,10 L13,13 L17,16" />
+
+    <!-- TV: màn hình bo góc + 2 chân xoè + đế ngang -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M31,4 L37,4 Q39,4 39,6 L39,10 Q39,12 37,12 L31,12 Q29,12 29,10 L29,6 Q29,4 31,4 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M32,12 L30,16 M36,12 L38,16" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.4"
+        android:strokeLineCap="round"
+        android:pathData="M29,16 L39,16" />
+</vector>
