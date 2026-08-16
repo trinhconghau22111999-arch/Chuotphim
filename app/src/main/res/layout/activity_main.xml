@@ -80,7 +80,7 @@
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyIconOnlyTall"
                 android:layout_height="match_parent"
-                android:layout_weight="1.6"
+                android:layout_weight="1"
                 android:text=""
                 app:icon="@drawable/ic_phone_tv_switch"
                 app:iconGravity="textStart"
