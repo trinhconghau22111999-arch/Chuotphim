@@ -71,7 +71,7 @@
         <LinearLayout
             android:id="@+id/rowNav"
             android:layout_width="match_parent"
-            android:layout_height="68dp"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:background="@color/bg_row"
             android:paddingHorizontal="4dp">
@@ -113,7 +113,7 @@
         <LinearLayout
             android:id="@+id/rowVolume"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="4dp"
             android:orientation="horizontal"
             android:background="@color/bg_row"
@@ -122,6 +122,7 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnScreenOff"
                 style="@style/RemoteKey"
+                android:layout_height="match_parent"
                 android:text="OFF"
                 android:backgroundTint="@color/key_danger"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
@@ -129,16 +130,19 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeDown"
                 style="@style/RemoteKey"
+                android:layout_height="match_parent"
                 android:text="Vol −" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVolumeUp"
                 style="@style/RemoteKey"
+                android:layout_height="match_parent"
                 android:text="Vol +" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
                 style="@style/RemoteKey"
+                android:layout_height="match_parent"
                 android:text="Mic"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
