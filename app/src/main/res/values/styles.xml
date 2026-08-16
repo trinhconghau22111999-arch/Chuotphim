@@ -38,6 +38,18 @@
         <item name="android:maxLines">1</item>
         <item name="android:ellipsize">end</item>
         <item name="android:textSize">16sp</item>
+        <!-- Canh giữa chữ/icon TRONG style gốc thay vì để từng nút tự khai
+             báo riêng lẻ — trước đây chỉ Thiết bị/Home/mic/bàn phím có
+             android:gravity="center" ở layout, còn Back/OFF/Vol−/Vol+ và cả
+             5 nút Media (Rewind/Previous/PlayPause/Next/FastForward) THIẾU
+             thuộc tính này, khiến chữ/icon của các nút đó bị lệch không
+             đồng đều (khi sát cạnh trên, khi tuột xuống dưới) tuỳ máy/font
+             render — đây là nguyên nhân THẬT của lỗi, không liên quan gì
+             đến khoảng cách paddingTop/Bottom giữa các hàng. Đặt ở style gốc
+             để MỌI nút dùng RemoteKeyButton/Tall/IconButton/IconButtonTall
+             đều tự động canh giữa, không còn phụ thuộc việc từng nút có nhớ
+             khai báo gravity hay không. -->
+        <item name="android:gravity">center</item>
         <!-- Nền xám thay vì tím mặc định của theme Material3 (colorPrimary
              chưa override nên trước đây rơi về tím #6750A4 mặc định). Các nút
              cần màu riêng (OFF đỏ...) vẫn override backgroundTint tại chỗ,
