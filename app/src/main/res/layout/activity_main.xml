@@ -80,10 +80,12 @@
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyIconOnlyTall"
                 android:layout_height="match_parent"
+                android:layout_weight="1.6"
                 android:text=""
                 app:icon="@drawable/ic_phone_tv_switch"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
+                app:iconSize="30dp"
                 android:backgroundTint="@color/key_neon_green"
                 android:contentDescription="Chọn thiết bị" />
 
