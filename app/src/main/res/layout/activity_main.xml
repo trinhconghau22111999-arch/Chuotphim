@@ -116,6 +116,8 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyButtonTall"
+                android:minHeight="68dp"
+                android:gravity="center"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
                 android:paddingTop="2dp"
@@ -123,7 +125,7 @@
                 android:textSize="13sp"
                 android:maxLines="2"
                 android:ellipsize="none"
-                android:lineSpacingExtra="-2sp"
+                android:lineSpacingExtra="0sp"
                 android:includeFontPadding="false"
                 android:text="Thiết\nbị" />
 
