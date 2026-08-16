@@ -30,10 +30,12 @@
         <item name="android:textSize">0sp</item>
     </style>
 
-    <!-- Nút cao hơn (68dp) dùng riêng cho hàng điều hướng trên cùng, đủ chỗ
-         cho nút "Thiết bị" xuống 2 dòng mà vẫn canh giữa đẹp -->
+    <!-- Hàng điều hướng trên cùng giờ cũng dùng chung chiều cao 56dp với các
+         hàng còn lại (Volume/Media) — không còn cần cao hơn 68dp nữa. Vẫn giữ
+         tên style Tall riêng (không đổi tên) để không phải sửa lại mọi
+         android:id tham chiếu style này trong layout. -->
     <style name="RemoteKeyTall" parent="RemoteKey">
-        <item name="android:layout_height">68dp</item>
+        <item name="android:layout_height">56dp</item>
     </style>
 
     <style name="RemoteKeyIconTall" parent="RemoteKeyTall">
