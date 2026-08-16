@@ -22,6 +22,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -119,6 +120,7 @@ class MainActivity : AppCompatActivity() {
         setupSyncInputBar()
         setupFullscreenToggles()
         setupKeyboardAutoLayout()
+        setupBackPressToExitFullscreen()
 
         setHidRegisteredUi(registered = false)
         btnRegisterHid.setOnClickListener {
@@ -438,6 +440,23 @@ class MainActivity : AppCompatActivity() {
         } else {
             imm.hideSoftInputFromWindow(syncInputField.windowToken, 0)
         }
+    }
+
+    // Bấm phím Back của hệ thống khi đang ở chế độ toàn màn hình (chuột/bàn phím,
+    // xoay ngang) thì thoát chế độ đó, xoay dọc về màn hình bình thường — thay vì
+    // thoát hẳn app như hành vi Back mặc định.
+    private fun setupBackPressToExitFullscreen() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (fullscreenMode != FullscreenMode.NONE) {
+                    fullscreenMode = FullscreenMode.NONE
+                    applyFullscreenMode()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
 
     private fun updateToggleButtonVisualState(button: MaterialButton, active: Boolean) {
