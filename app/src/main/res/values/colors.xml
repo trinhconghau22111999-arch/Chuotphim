@@ -2,6 +2,15 @@
 <resources>
     <!-- Nền icon app: xanh dương đậm để nổi bật hình remote TV màu tối ở giữa -->
     <color name="ic_launcher_background">#1565C0</color>
-    <!-- key_rows_background đã bị xoá cùng đợt xoá toàn bộ nút, không còn hàng
-         phím nào dùng màu này nữa. -->
+
+    <color name="bg_root">#000000</color>
+    <color name="bg_top_bar">#212121</color>
+    <color name="bg_row">#1B1B1B</color>
+    <color name="bg_divider">#444444</color>
+    <color name="bg_sync_bar">#2A2A2A</color>
+    <color name="key_default">#616161</color>
+    <color name="key_danger">#F44336</color>
+    <color name="key_active">#4FC3F7</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_hint">#888888</color>
 </resources>

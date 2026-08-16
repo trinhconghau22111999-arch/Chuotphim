@@ -1,11 +1,298 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Giao diện tối giản: CHỈ còn trackpad, chiếm toàn bộ màn hình.
-    Không còn nút nào (Home/Back/Volume/Media/Mic/Bàn phím/Đăng ký HID/Chọn
-    thiết bị/2 nút toàn màn hình góc trên...) — app tự đăng ký HID và tự kết
-    nối lại thiết bị Bluetooth gần nhất khi mở lên (xem MainActivity.kt).
+    Root: FrameLayout với 2 lớp:
+      - mainColumn: nội dung chính (trạng thái / trackpad / 3 hàng nút / thanh
+        gõ đồng bộ), thứ tự các view con do MainActivity.applyLayoutState()
+        tự dựng lại tuỳ chế độ hiện tại (bình thường / chuột toàn màn hình /
+        bàn phím toàn màn hình).
+      - 2 nút tròn nổi góc trên: luôn nằm trên mọi lớp để bấm được bất cứ lúc nào.
 -->
-<com.example.btremote.TrackpadView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/trackpad"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/mainColumn"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/bg_root">
+
+        <FrameLayout
+            android:id="@+id/topBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/bg_top_bar">
+
+            <!-- padding 56dp 2 bên: chừa chỗ cho 2 nút tròn nổi (44dp + margin 8dp) -->
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:paddingStart="56dp"
+                android:paddingEnd="56dp"
+                android:textColor="@color/text_primary"
+                android:text="Chưa kết nối thiết bị nào — hãy chọn thiết bị để kết nối"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRegisterHid"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="56dp"
+                android:layout_marginEnd="56dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:textAllCaps="false"
+                android:textColor="@color/key_danger"
+                android:text="Đăng ký làm bàn phím và chuột" />
+
+        </FrameLayout>
+
+        <com.example.btremote.TrackpadView
+            android:id="@+id/trackpad"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <View
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/bg_divider" />
+
+        <!-- Hàng điều hướng: Thiết bị / Home / Back / Bàn phím -->
+        <LinearLayout
+            android:id="@+id/rowNav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/bg_row"
+            android:paddingHorizontal="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPickDevice"
+                style="@style/RemoteKeyIconTall"
+                android:text="⇄"
+                android:contentDescription="Chọn thiết bị" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnHome"
+                style="@style/RemoteKeyTall"
+                android:text="Home" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBack"
+                style="@style/RemoteKeyTall"
+                android:text="Back"
+                android:contentDescription="Quay lại (gửi phím Esc)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOpenKeyboard"
+                style="@style/RemoteKeyIconTall"
+                android:text=""
+                app:icon="@drawable/ic_keyboard"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="20dp"
+                android:contentDescription="Mở bàn phím để gõ chữ" />
+
+        </LinearLayout>
+
+        <!-- Hàng nguồn/âm lượng: OFF / Vol- / Vol+ / Mic -->
+        <LinearLayout
+            android:id="@+id/rowVolume"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:background="@color/bg_row"
+            android:paddingHorizontal="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScreenOff"
+                style="@style/RemoteKey"
+                android:text="OFF"
+                android:backgroundTint="@color/key_danger"
+                android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVolumeDown"
+                style="@style/RemoteKey"
+                android:text="Vol −" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVolumeUp"
+                style="@style/RemoteKey"
+                android:text="Vol +" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnVoiceInput"
+                style="@style/RemoteKeyIcon"
+                android:text=""
+                app:icon="@drawable/ic_mic"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                app:iconSize="22dp"
+                android:contentDescription="Nhập liệu bằng giọng nói" />
+
+        </LinearLayout>
+
+        <!-- Hàng media: Rewind / Previous / Play-Pause / Next / Fast forward -->
+        <LinearLayout
+            android:id="@+id/rowMedia"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:orientation="horizontal"
+            android:background="@color/bg_row"
+            android:paddingHorizontal="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRewind"
+                style="@style/RemoteKeyIcon"
+                android:text="«"
+                android:contentDescription="Tua lùi" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPreviousTrack"
+                style="@style/RemoteKeyIcon"
+                android:text="⏮"
+                android:contentDescription="Bài trước" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnPlayPause"
+                style="@style/RemoteKeyIcon"
+                android:text="⏯"
+                android:contentDescription="Play/Pause" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnNextTrack"
+                style="@style/RemoteKeyIcon"
+                android:text="⏭"
+                android:contentDescription="Bài tiếp theo" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFastForward"
+                style="@style/RemoteKeyIcon"
+                android:text="»"
+                android:contentDescription="Tua tới" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Thanh gõ đồng bộ: chỉ thêm vào cây view khi bàn phím ảo đang mở, luôn
+         là view cuối trong mainColumn nên tự nằm ngay trên bàn phím ảo. -->
+    <LinearLayout
+        android:id="@+id/syncInputBar"
+        android:layout_gravity="bottom"
+        android:visibility="gone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/bg_sync_bar"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="6dp"
+        android:gravity="center_vertical">
+
+        <EditText
+            android:id="@+id/syncInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:minHeight="44dp"
+            android:gravity="top|start"
+            android:background="@android:color/transparent"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"
+            android:textSize="16sp"
+            android:hint="Đang gõ trên TV — có thể dán văn bản có dấu vào đây"
+            android:inputType="text"
+            android:importantForAutofill="no"
+            android:maxLines="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPasteClipboard"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="20dp"
+            app:icon="@drawable/ic_paste"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="18dp"
+            android:backgroundTint="#40FFFFFF"
+            android:text=""
+            android:contentDescription="Dán văn bản từ điện thoại" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClearSyncInput"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="4dp"
+            android:minWidth="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:cornerRadius="20dp"
+            app:icon="@drawable/ic_clear"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:iconSize="16dp"
+            android:backgroundTint="#40FFFFFF"
+            android:text=""
+            android:contentDescription="Xoá ô nhập (không xoá chữ đã gửi trên TV)" />
+
+    </LinearLayout>
+
+    <!-- Nút tròn nổi góc trên trái: bật/tắt chế độ chuột toàn màn hình (nhấn đúp) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMouseFullscreen"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="8dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        app:cornerRadius="22dp"
+        app:icon="@drawable/ic_mouse"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="20dp"
+        android:backgroundTint="#40000000"
+        android:text=""
+        android:contentDescription="Nhấn đúp để bật/tắt chuột toàn màn hình" />
+
+    <!-- Nút tròn nổi góc trên phải: bật/tắt chế độ bàn phím toàn màn hình (nhấn đúp) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnKeyboardFullscreen"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="8dp"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        app:cornerRadius="22dp"
+        app:icon="@drawable/ic_keyboard"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="20dp"
+        android:backgroundTint="#40000000"
+        android:text=""
+        android:contentDescription="Nhấn đúp để bật/tắt bàn phím toàn màn hình" />
+
+</FrameLayout>
