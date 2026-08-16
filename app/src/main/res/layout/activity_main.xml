@@ -94,8 +94,8 @@
             android:background="#1B1B1B"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp">
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp">
 
             <!-- maxLines=2 + ellipsize=none: chữ tự xuống dòng thay vì bị "..."
                  cắt bớt, không phụ thuộc đo/đoán bề rộng màn hình. Không đổi
@@ -116,16 +116,14 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyButtonTall"
-                android:minHeight="68dp"
-                android:gravity="center"
                 android:paddingStart="2dp"
                 android:paddingEnd="2dp"
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp"
-                android:textSize="13sp"
+                android:textSize="9sp"
                 android:maxLines="2"
                 android:ellipsize="none"
-                android:lineSpacingExtra="0sp"
+                android:lineSpacingExtra="-2sp"
                 android:includeFontPadding="false"
                 android:text="Thiết\nbị" />
 
@@ -136,7 +134,7 @@
                 android:paddingEnd="2dp"
                 android:paddingTop="2dp"
                 android:paddingBottom="2dp"
-                android:textSize="13sp"
+                android:textSize="9sp"
                 android:maxLines="2"
                 android:ellipsize="none"
                 android:lineSpacingExtra="-2sp"
