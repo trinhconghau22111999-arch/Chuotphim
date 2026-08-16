@@ -484,14 +484,9 @@ class MainActivity : AppCompatActivity() {
             }
             FullscreenMode.NONE -> {
                 trackpad.layoutParams = fillRemaining
-                // topBar PHẢI thêm TRƯỚC trackpad/divider: mainColumn.addView() luôn
-                // thêm vào CUỐI danh sách con, nên nếu thêm trackpad/divider trước sẽ
-                // đẩy topBar xuống lọt giữa trackpad và hàng nút thay vì nằm trên
-                // cùng như thiết kế ban đầu (đã xác nhận qua toàn bộ ảnh chụp trước
-                // giờ: thanh thông báo luôn ở mép trên cùng màn hình).
-                mainColumn.addView(topBar)
                 mainColumn.addView(trackpad)
                 mainColumn.addView(divider)
+                mainColumn.addView(topBar)
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
