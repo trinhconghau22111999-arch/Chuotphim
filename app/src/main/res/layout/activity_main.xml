@@ -97,20 +97,19 @@
             android:paddingTop="1dp"
             android:paddingBottom="3dp">
 
-            <!-- Nút Thiết bị + Home: viết lại từ đầu, đơn giản, không còn các
-                 mẹo "\n" ép cứng / lineSpacingExtra âm / includeFontPadding
-                 của các lần sửa trước — để hệ thống tự đo/vẽ theo cách chuẩn,
-                 tránh đúng lỗi timing giữa measure và draw đã từng gặp. -->
+            <!-- Nút Thiết bị: đổi từ chữ "Thiết bị" sang icon 2 mũi tên ngược
+                 chiều (⇄, U+21C4) — quy ước phổ biến cho "chuyển đổi/chọn
+                 thiết bị". Bỏ maxLines=2/ellipsize/textSize=9sp vì không còn
+                 cần chỗ cho chữ dài xuống 2 dòng, dùng chung cỡ chữ 20sp như
+                 các nút icon khác trong app. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
-                style="@style/RemoteKeyButtonTall"
+                style="@style/RemoteKeyIconButtonTall"
                 android:gravity="center"
-                android:maxLines="2"
-                android:ellipsize="end"
-                android:textSize="9sp"
                 app:strokeColor="#F44336"
                 app:strokeWidth="2dp"
-                android:text="Thiết bị" />
+                android:text="⇄"
+                android:contentDescription="Chọn thiết bị" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/keyHome"
