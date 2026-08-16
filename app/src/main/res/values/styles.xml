@@ -38,6 +38,11 @@
         <item name="android:maxLines">1</item>
         <item name="android:ellipsize">end</item>
         <item name="android:textSize">16sp</item>
+        <!-- Nền xám thay vì tím mặc định của theme Material3 (colorPrimary
+             chưa override nên trước đây rơi về tím #6750A4 mặc định). Các nút
+             cần màu riêng (OFF đỏ...) vẫn override backgroundTint tại chỗ,
+             ghi đè lên giá trị này bình thường. -->
+        <item name="android:backgroundTint">#616161</item>
     </style>
 
     <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⏮ ⏯ ⏭ « »...): kế thừa mọi
