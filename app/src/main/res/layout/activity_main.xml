@@ -95,7 +95,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnOpenKeyboard"
-                style="@style/RemoteKeyIconTall"
+                style="@style/RemoteKeyIconOnlyTall"
                 android:text=""
                 app:icon="@drawable/ic_keyboard"
                 app:iconGravity="textStart"
@@ -134,7 +134,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnVoiceInput"
-                style="@style/RemoteKeyIcon"
+                style="@style/RemoteKeyIconOnly"
                 android:text=""
                 app:icon="@drawable/ic_mic"
                 app:iconGravity="textStart"
@@ -227,6 +227,7 @@
             android:minWidth="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:textSize="0sp"
             app:cornerRadius="20dp"
             app:icon="@drawable/ic_paste"
             app:iconGravity="textStart"
@@ -244,6 +245,7 @@
             android:minWidth="0dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
+            android:textSize="0sp"
             app:cornerRadius="20dp"
             app:icon="@drawable/ic_clear"
             app:iconGravity="textStart"
@@ -266,6 +268,7 @@
         android:minHeight="0dp"
         android:insetTop="0dp"
         android:insetBottom="0dp"
+        android:textSize="0sp"
         app:cornerRadius="22dp"
         app:icon="@drawable/ic_mouse"
         app:iconGravity="textStart"
@@ -286,6 +289,7 @@
         android:minHeight="0dp"
         android:insetTop="0dp"
         android:insetBottom="0dp"
+        android:textSize="0sp"
         app:cornerRadius="22dp"
         app:icon="@drawable/ic_keyboard"
         app:iconGravity="textStart"

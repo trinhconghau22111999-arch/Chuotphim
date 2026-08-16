@@ -14,12 +14,20 @@
         <item name="android:backgroundTint">@color/key_default</item>
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+        <item name="android:includeFontPadding">false</item>
         <item name="cornerRadius">8dp</item>
     </style>
 
     <!-- Nút icon chuẩn (56dp, chữ/icon lớn hơn, dùng cho hàng Media) -->
     <style name="RemoteKeyIcon" parent="RemoteKey">
         <item name="android:textSize">20sp</item>
+    </style>
+
+    <!-- Nút CHỈ CÓ ICON (không chữ): textSize PHẢI = 0sp, vì MaterialButton tính vị
+         trí icon dựa trên khoảng trống chữ "ảo" theo textSize dù chữ rỗng — để
+         textSize khác 0 làm icon bị đẩy lệch tâm (bug đã gặp ở nút mic/bàn phím). -->
+    <style name="RemoteKeyIconOnly" parent="RemoteKey">
+        <item name="android:textSize">0sp</item>
     </style>
 
     <!-- Nút cao hơn (68dp) dùng riêng cho hàng điều hướng trên cùng, đủ chỗ
@@ -30,6 +38,11 @@
 
     <style name="RemoteKeyIconTall" parent="RemoteKeyTall">
         <item name="android:textSize">22sp</item>
+    </style>
+
+    <!-- Bản CHỈ CÓ ICON của RemoteKeyIconTall — xem giải thích ở RemoteKeyIconOnly. -->
+    <style name="RemoteKeyIconOnlyTall" parent="RemoteKeyTall">
+        <item name="android:textSize">0sp</item>
     </style>
 
 </resources>
