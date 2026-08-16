@@ -88,12 +88,14 @@
                 android:id="@+id/btnHome"
                 style="@style/RemoteKeyTall"
                 android:layout_height="56dp"
+                android:layout_gravity="bottom"
                 android:text="Home" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnBack"
                 style="@style/RemoteKeyTall"
                 android:layout_height="56dp"
+                android:layout_gravity="bottom"
                 android:text="Back"
                 android:contentDescription="Quay lại (gửi phím Esc)" />
 
