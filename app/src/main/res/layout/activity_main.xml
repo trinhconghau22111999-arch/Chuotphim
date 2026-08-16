@@ -76,31 +76,22 @@
             android:layout_height="1dp"
             android:background="#444444" />
 
-        <!-- Khối chứa chung cả 3 hàng phím (controlsRow/volumeControls/
-             mediaControls): 1 nền DUY NHẤT (key_rows_background) áp dụng cho
-             cả khối thay vì mỗi hàng tự vẽ nền riêng như trước — 3 hàng giờ
-             trông liền thành 1 mảng thay vì 3 khối tách biệt. Mỗi hàng bên
-             trong không còn khai báo background của riêng nó. -->
-        <LinearLayout
-            android:id="@+id/keyRowsContainer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@color/key_rows_background">
-
-        <!-- 4 phím điều khiển (Thiết bị/Home/Back/bàn phím): dùng RemoteKeyButtonTall/
-             RemoteKeyIconButtonTall (68dp, RIÊNG cho hàng này) thay vì 56dp như
-             mọi hàng khác — "Thiết bị" xuống 2 dòng cần thêm chỗ để MaterialButton
-             canh giữa cho thoải mái, nếu vẫn 56dp thì dù 4 nút cùng 1 chiều cao
-             THẬT, nút 2 dòng vẫn bị đẩy lệch nội dung lên/xuống bên trong chính
-             nó, tạo cảm giác "nút thấp nút cao". Cả 4 nút trong hàng này cùng
-             dùng chiều cao 68dp nên vẫn thẳng hàng, cân đối với nhau; các hàng
-             khác (volumeControls/mediaControls) không bị ảnh hưởng, vẫn 56dp. -->
+        <!-- LƯU Ý: controlsRow/volumeControls/mediaControls PHẢI là con
+             TRỰC TIẾP của mainColumn — MainActivity.applyLayoutState() gọi
+             mainColumn.removeAllViews() rồi mainColumn.addView(controlsRow),
+             addView(volumeControls), addView(mediaControls) thẳng mỗi khi
+             bàn phím ảo ẩn/hiện. Từng bọc 3 hàng này vào 1 LinearLayout cha
+             (keyRowsContainer) để "gộp 1 nền" nhưng làm addView() ném
+             IllegalStateException (view đã có cha khác) -> app văng ngay khi
+             bấm nút mở bàn phím. Quay lại cấu trúc phẳng, dùng CHUNG 1 màu
+             nền (key_rows_background) khai báo riêng ở mỗi hàng thay vì gộp
+             view — vẫn nhìn liền mạch vì 3 hàng cùng màu, không còn crash. -->
         <LinearLayout
             android:id="@+id/controlsRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
+            android:background="@color/key_rows_background"
             android:paddingStart="4dp"
             android:paddingEnd="4dp"
 >
@@ -173,6 +164,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:orientation="horizontal"
+            android:background="@color/key_rows_background"
             android:paddingStart="4dp"
             android:paddingEnd="4dp">
 
@@ -228,6 +220,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:orientation="horizontal"
+            android:background="@color/key_rows_background"
             android:paddingStart="4dp"
             android:paddingEnd="4dp">
 
@@ -268,8 +261,6 @@
                 style="@style/RemoteKeyIconButton"
                 android:text="»"
                 android:contentDescription="Tua tới" />
-
-        </LinearLayout>
 
         </LinearLayout>
 
