@@ -72,7 +72,9 @@
              chưa override nên trước đây rơi về tím #6750A4 mặc định). Các nút
              cần màu riêng (OFF đỏ...) vẫn override backgroundTint tại chỗ,
              ghi đè lên giá trị này bình thường. -->
-        <item name="android:backgroundTint">#616161</item>
+        <item name="android:backgroundTint">#00000000</item>
+        <item name="strokeColor">#44FFFFFF</item>
+        <item name="strokeWidth">1dp</item>
     </style>
 
     <!-- Style cho phím CHỈ CÓ 1 KÝ TỰ ICON (⏮ ⏯ ⏭ « »...): kế thừa mọi

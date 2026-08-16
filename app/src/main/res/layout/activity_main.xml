@@ -58,8 +58,6 @@
                 android:paddingBottom="10dp"
                 android:textAllCaps="false"
                 android:textColor="#F44336"
-                app:strokeColor="#F44336"
-                app:strokeWidth="2dp"
                 android:text="Đăng ký làm bàn phím và chuột" />
 
         </FrameLayout>
@@ -116,8 +114,6 @@
                 android:minWidth="0dp"
                 android:minHeight="0dp"
                 android:textSize="26dp"
-                app:strokeColor="#F44336"
-                app:strokeWidth="2dp"
                 android:text="⇄"
                 android:contentDescription="Chọn thiết bị" />
 
@@ -146,8 +142,6 @@
                 style="@style/RemoteKeyIconButtonTall"
                 android:gravity="center"
                 android:text="⌨"
-                app:strokeColor="#4CAF50"
-                app:strokeWidth="2dp"
                 android:contentDescription="Mở bàn phím để gõ chữ" />
 
         </LinearLayout>
@@ -172,7 +166,6 @@
                 style="@style/RemoteKeyButton"
                 android:text="OFF"
                 android:textSize="14dp"
-                android:backgroundTint="#D32F2F"
                 android:contentDescription="Tắt màn hình (chỉ áp dụng cho TV)" />
 
             <com.google.android.material.button.MaterialButton
@@ -203,7 +196,6 @@
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="20dp"
-                android:backgroundTint="#000000"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
 
         </LinearLayout>
