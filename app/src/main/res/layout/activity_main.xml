@@ -148,7 +148,7 @@
         <LinearLayout
             android:id="@+id/rowMedia"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="4dp"
             android:orientation="horizontal"
@@ -158,30 +158,35 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRewind"
                 style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
                 android:text="«"
                 android:contentDescription="Tua lùi" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPreviousTrack"
                 style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
                 android:text="⏮"
                 android:contentDescription="Bài trước" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPlayPause"
                 style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
                 android:text="⏯"
                 android:contentDescription="Play/Pause" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNextTrack"
                 style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
                 android:text="⏭"
                 android:contentDescription="Bài tiếp theo" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnFastForward"
                 style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
                 android:text="»"
                 android:contentDescription="Tua tới" />
 
