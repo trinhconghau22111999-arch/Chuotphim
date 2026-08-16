@@ -102,10 +102,21 @@
                  thiết bị". Bỏ maxLines=2/ellipsize/textSize=9sp vì không còn
                  cần chỗ cho chữ dài xuống 2 dòng, dùng chung cỡ chữ 20sp như
                  các nút icon khác trong app. -->
+            <!-- Nút Thiết bị (⇄): override riêng padding/minSize/textSize thay vì
+                 dùng nguyên style RemoteKeyIconButtonTall (13sp) — Material3
+                 Button mặc định có paddingTop/Bottom + minWidth/minHeight khá lớn,
+                 chiếm hết chỗ khiến icon không lớn được dù nút cao 39dp. Đặt hết
+                 các padding/min về 0 để icon chiếm tối đa chiều cao hàng, cỡ chữ
+                 26sp là mức lớn nhất còn nằm gọn trong 39dp (không bị cắt trên/dưới). -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickDevice"
                 style="@style/RemoteKeyIconButtonTall"
                 android:gravity="center"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:textSize="26sp"
                 app:strokeColor="#F44336"
                 app:strokeWidth="2dp"
                 android:text="⇄"
