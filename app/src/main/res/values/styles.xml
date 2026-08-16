@@ -40,6 +40,17 @@
         <item name="android:insetRight">0dp</item>
         <item name="android:paddingStart">4dp</item>
         <item name="android:paddingEnd">4dp</item>
+        <!-- QUAN TRỌNG: Widget.Material3.Button mặc định có paddingTop/paddingBottom
+             riêng (không đối xứng nhau) để bù trừ cho line-height của font Material.
+             Khi ép layout_height xuống cố định 39dp (nhỏ hơn nhiều so với chiều cao
+             gốc mà Material3 tính toán để chứa padding đó), phần nội dung (chữ)
+             vẫn bị tính gravity=center DỰA TRÊN vùng còn lại SAU KHI trừ đi cặp
+             padding không đối xứng này -> chữ bị lệch xuống dưới ("tuột") so với
+             icon (icon dùng đường vẽ riêng qua iconGravity, ít bị ảnh hưởng bởi
+             padding văn bản này hơn). Ép cả 2 về 0dp để gravity=center canh giữa
+             chuẩn xác trên toàn bộ chiều cao 39dp, không còn lệch. -->
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
         <!-- BẮT BUỘC: Widget.Material3.Button mặc định có minHeight ~48dp
              (chuẩn touch-target accessibility). Nếu không tắt, Material3 vẫn
              cố vẽ nền nút theo khung 48dp ảo rồi mới bị ép cắt xuống đúng
