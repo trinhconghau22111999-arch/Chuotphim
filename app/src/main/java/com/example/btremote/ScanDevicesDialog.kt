@@ -39,6 +39,12 @@ class ScanDevicesDialog : DialogFragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var tvStatus: TextView
     private var isReceiverRegistered = false
+    // Receiver theo dõi kết quả ghép nối (BOND_STATE_CHANGED), tạo động trong
+    // connectDevice() khi thiết bị chưa pair. Giữ tham chiếu ở đây để có thể
+    // unregister trong stopScan() nếu dialog bị đóng giữa lúc đang ghép nối dở
+    // (trước đây không gỡ, có thể rò rỉ receiver nếu không bao giờ nhận được
+    // broadcast BOND_BONDED/BOND_NONE).
+    private var pairReceiver: BroadcastReceiver? = null
 
     private val receiver = object : BroadcastReceiver() {
         @SuppressLint("MissingPermission")
@@ -173,7 +179,7 @@ class ScanDevicesDialog : DialogFragment() {
             // Chưa pair → tự khởi động pair ngay trong app
             statusView.text = device.address + "  → Đang ghép nối..."
             // Lắng nghe kết quả pair
-            val pairReceiver = object : BroadcastReceiver() {
+            val receiverForPairing = object : BroadcastReceiver() {
                 @SuppressLint("MissingPermission")
                 override fun onReceive(context: Context, intent: Intent) {
                     if (intent.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED) return
@@ -185,7 +191,7 @@ class ScanDevicesDialog : DialogFragment() {
                     val state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
                     when (state) {
                         BluetoothDevice.BOND_BONDED -> {
-                            context.unregisterReceiver(this)
+                            unregisterPairReceiver()
                             // Pair xong → connect HID
                             activity?.runOnUiThread {
                                 statusView.text = device.address + "  ✓ Đã ghép nối → Đang kết nối..."
@@ -194,7 +200,7 @@ class ScanDevicesDialog : DialogFragment() {
                             }
                         }
                         BluetoothDevice.BOND_NONE -> {
-                            context.unregisterReceiver(this)
+                            unregisterPairReceiver()
                             activity?.runOnUiThread {
                                 statusView.text = device.address + "  ✗ Ghép nối thất bại"
                             }
@@ -202,14 +208,19 @@ class ScanDevicesDialog : DialogFragment() {
                     }
                 }
             }
+            // Nếu trước đó còn 1 receiver ghép nối khác chưa dọn (vd bấm ghép nối
+            // 2 thiết bị liên tiếp) thì gỡ nó trước, tránh rò rỉ.
+            unregisterPairReceiver()
+            pairReceiver = receiverForPairing
             requireContext().registerReceiver(
-                pairReceiver,
+                receiverForPairing,
                 IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
             )
             try {
                 device.createBond()
             } catch (e: SecurityException) {
                 statusView.text = device.address + "  ✗ Không có quyền ghép nối"
+                unregisterPairReceiver()
             }
         }
     }
@@ -245,7 +256,17 @@ class ScanDevicesDialog : DialogFragment() {
             try { requireContext().unregisterReceiver(receiver) } catch (_: Exception) {}
             isReceiverRegistered = false
         }
+        // Dọn luôn receiver đang chờ kết quả ghép nối (nếu có) — dialog có thể bị
+        // đóng (onStop) trước khi nhận được broadcast BOND_BONDED/BOND_NONE, nếu
+        // không gỡ ở đây thì receiver này rò rỉ tới khi Activity/App bị huỷ.
+        unregisterPairReceiver()
         try { BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery() } catch (_: Exception) {}
+    }
+
+    private fun unregisterPairReceiver() {
+        val current = pairReceiver ?: return
+        pairReceiver = null
+        try { context?.unregisterReceiver(current) } catch (_: Exception) {}
     }
 
     private fun dpToPx(ctx: Context, dp: Int): Int =

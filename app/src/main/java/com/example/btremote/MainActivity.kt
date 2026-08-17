@@ -76,7 +76,16 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.BLUETOOTH_SCAN
             )
         else
-            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN)
+            // Android 9-11 (API 28-30): BLUETOOTH_SCAN chưa có cờ "neverForLocation"
+            // (chỉ có từ Android 12) nên startDiscovery()/ACTION_FOUND cần thêm
+            // ACCESS_FINE_LOCATION mới trả kết quả quét — thiếu quyền này thì
+            // "Quét thiết bị mới" (ScanDevicesDialog) và fallback theo RSSI
+            // (ProximityAutoConnector) luôn ra danh sách rỗng dù không báo lỗi gì.
+            arrayOf(
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            )
 
     private val startupPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -260,8 +269,31 @@ class MainActivity : AppCompatActivity() {
         val missing = requiredPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
-        if (missing.isEmpty()) ensureBluetoothEnabledThenRegister()
-        else startupPermissionLauncher.launch(missing.toTypedArray())
+        if (missing.isEmpty()) {
+            ensureBluetoothEnabledThenRegister()
+        } else if (Manifest.permission.ACCESS_FINE_LOCATION in missing) {
+            // Chỉ xảy ra trên Android 9-11 (xem requiredPermissions). Giải thích trước
+            // khi bật hộp thoại quyền hệ thống, vì người dùng dễ thắc mắc/từ chối khi
+            // thấy "app điều khiển TV qua Bluetooth" lại đòi quyền Vị trí.
+            AlertDialog.Builder(this)
+                .setTitle("Cần quyền Vị trí để quét Bluetooth")
+                .setMessage(
+                    "Trên phiên bản Android này, hệ thống bắt buộc phải có quyền Vị trí " +
+                    "thì mới cho phép quét thiết bị Bluetooth xung quanh.\n\n" +
+                    "Ứng dụng KHÔNG dùng để định vị GPS hay theo dõi vị trí của bạn — " +
+                    "đây chỉ là yêu cầu kỹ thuật của Android để dò tìm và ghép nối TV/PC."
+                )
+                .setCancelable(false)
+                .setPositiveButton("Tiếp tục") { _, _ ->
+                    startupPermissionLauncher.launch(missing.toTypedArray())
+                }
+                .setNegativeButton("Để sau") { _, _ ->
+                    resetRegisterButton()
+                }
+                .show()
+        } else {
+            startupPermissionLauncher.launch(missing.toTypedArray())
+        }
     }
 
     @SuppressLint("MissingPermission")

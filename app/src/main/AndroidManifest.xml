@@ -8,6 +8,16 @@
     <uses-permission
         android:name="android.permission.BLUETOOTH_SCAN"
         android:usesPermissionFlags="neverForLocation" />
+    <!-- Chỉ cần trên Android 9-11 (API 28-30): trước khi có cờ "neverForLocation"
+         ở BLUETOOTH_SCAN (Android 12+), hệ thống bắt buộc phải có quyền vị trí
+         thì startDiscovery()/ACTION_FOUND mới trả kết quả quét Bluetooth, dù app
+         không hề dùng để định vị GPS thật — chỉ dùng RSSI để so sánh gần/xa
+         tương đối giữa các thiết bị đã pair (xem ScanDevicesDialog,
+         ProximityAutoConnector). Từ Android 12 trở lên không cần quyền này nữa
+         nên giới hạn maxSdkVersion=30. -->
+    <uses-permission
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
