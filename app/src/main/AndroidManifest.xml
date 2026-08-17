@@ -7,15 +7,6 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- Cần cho HidForegroundService: giữ HID đăng ký/kết nối sống độc lập với
-         Activity, không bị hệ thống dọn dẹp mỗi khi app bị thu nhỏ/vuốt khỏi
-         recent — tránh phải đăng ký lại mỗi lần mở app. -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
-    <!-- Android 13+ (API 33) yêu cầu quyền này mới hiện được thông báo cố định
-         của foreground service; không có quyền thì service vẫn chạy bình
-         thường, chỉ là không thấy thông báo trạng thái. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature android:name="android.hardware.bluetooth" android:required="true" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -49,11 +40,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <service
-            android:name=".HidForegroundService"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
 
     </application>
 </manifest>

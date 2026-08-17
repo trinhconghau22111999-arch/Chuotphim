@@ -34,12 +34,6 @@ class HidManager(private val context: Context) {
     private var registered: Boolean = false
     var listener: Listener? = null
 
-    /** Cho UI vừa mới bind vào service biết ngay trạng thái hiện tại, không cần
-     *  chờ 1 sự kiện callback mới (vì onRegistered()/onConnectionStateChanged()
-     *  có thể đã bắn ra từ trước khi UI kịp gán listener). */
-    fun isRegistered(): Boolean = registered
-    fun currentConnectedDevice(): BluetoothDevice? = connectedDevice
-
     private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
 
     private val sdpSettings = BluetoothHidDeviceAppSdpSettings(
@@ -81,6 +75,10 @@ class HidManager(private val context: Context) {
                 // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
                 // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
                 prefs.edit().putString(PREF_LAST_DEVICE, device.address).apply()
+                // Đánh dấu thiết bị này đã từng kết nối HID OK ít nhất 1 lần -> từ
+                // giờ về sau connectTo() sẽ không bao giờ tự hủy pair/pair lại với
+                // riêng thiết bị này nữa (xem rememberKnownGoodDevice() + connectTo()).
+                rememberKnownGoodDevice(device.address)
             } else {
                 // Mất kết nối -> không còn biết chắc đèn Caps Lock máy nhận đang ở
                 // trạng thái nào nữa, về lại mặc định "tắt" cho lần kết nối sau.
@@ -159,6 +157,13 @@ class HidManager(private val context: Context) {
      * cũ không đúng "vai trò". Cách xử lý: sau 1 khoảng chờ, nếu vẫn chưa kết nối
      * được, TỰ ÂM THẦM hủy pair rồi pair lại rồi kết nối lại đúng 1 lần — không hỏi,
      * không toast, không thông báo gì cho người dùng (xem maybeAutoRepair bên dưới).
+     *
+     * QUAN TRỌNG: cơ chế tự hủy pair/pair lại này CHỈ áp dụng cho lần đầu gặp lỗi
+     * thật sự với 1 thiết bị — tức thiết bị đó CHƯA từng kết nối HID thành công
+     * lần nào (xem isKnownGoodDevice()). Thiết bị nào đã từng kết nối HID OK rồi
+     * thì những lần sau chỉ bấm chọn là kết nối thẳng qua doConnect(), không đụng
+     * gì tới pairing nữa — tránh việc 1 lần host phản hồi chậm hơn bình thường
+     * (quá CONNECT_CHECK_DELAY_MS) lại khiến app hủy pair 1 kết nối vốn đang tốt.
      */
     fun connectTo(device: BluetoothDevice) {
         // Mỗi lần user/hệ thống chủ động gọi kết nối tới thiết bị này là 1 "lượt"
@@ -166,7 +171,9 @@ class HidManager(private val context: Context) {
         // cùng 1 lượt, không chặn giữa các lượt khác nhau).
         if (autoRepairTriedForAddress == device.address) autoRepairTriedForAddress = null
         doConnect(device)
-        mainHandler.postDelayed({ maybeAutoRepair(device) }, CONNECT_CHECK_DELAY_MS)
+        if (!isKnownGoodDevice(device.address)) {
+            mainHandler.postDelayed({ maybeAutoRepair(device) }, CONNECT_CHECK_DELAY_MS)
+        }
     }
 
     private fun doConnect(device: BluetoothDevice) {
@@ -260,6 +267,21 @@ class HidManager(private val context: Context) {
             Log.w(TAG, "removeBond() lỗi (bỏ qua): ${e.message}")
             cleanupBondReceiver()
         }
+    }
+
+    /** Thiết bị này đã từng kết nối HID thành công ít nhất 1 lần chưa? */
+    private fun isKnownGoodDevice(address: String): Boolean =
+        prefs.getStringSet(PREF_HID_OK_DEVICES, null)?.contains(address) == true
+
+    /** Đánh dấu 1 địa chỉ vào danh sách "đã từng kết nối HID OK". SharedPreferences
+     *  khuyến cáo không sửa trực tiếp Set trả về từ getStringSet() -> copy ra
+     *  HashSet mới rồi ghi đè lại toàn bộ. */
+    private fun rememberKnownGoodDevice(address: String) {
+        val current = prefs.getStringSet(PREF_HID_OK_DEVICES, null) ?: emptySet()
+        if (address in current) return
+        prefs.edit()
+            .putStringSet(PREF_HID_OK_DEVICES, HashSet(current).apply { add(address) })
+            .apply()
     }
 
     fun bondedDevices(): Set<BluetoothDevice> {
@@ -400,6 +422,8 @@ class HidManager(private val context: Context) {
     companion object {
         private const val TAG = "HidManager"
         private const val PREF_LAST_DEVICE = "last_connected_device_address"
+        // Tập hợp địa chỉ các thiết bị đã từng kết nối HID thành công ít nhất 1 lần.
+        private const val PREF_HID_OK_DEVICES = "hid_known_good_device_addresses"
         // Chờ 4s sau connect() trước khi kết luận "chưa thấy kết nối" và cân nhắc
         // auto re-pair — đủ thời gian cho 1 kết nối HID bình thường thành công.
         private const val CONNECT_CHECK_DELAY_MS = 4000L
