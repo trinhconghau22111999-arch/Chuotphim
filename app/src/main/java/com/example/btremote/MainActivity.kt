@@ -41,6 +41,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var hidManager: HidManager
     private lateinit var voiceInput: VoiceInputController
     private lateinit var syncInput: SyncInputController
+    private var proximityConnector: ProximityAutoConnector? = null
 
     private lateinit var rootContainer: FrameLayout
     private lateinit var mainColumn: LinearLayout
@@ -146,9 +147,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        proximityConnector?.stop()
         voiceInput.destroy()
         hidManager.unregister()
         super.onDestroy()
+    }
+
+    private fun startProximityConnectorIfNeeded() {
+        // Chỉ bật nếu có >1 thiết bị đã pair — 1 thiết bị thì không cần auto-switch
+        if (hidManager.bondedDevices().size <= 1) return
+        proximityConnector?.stop()
+        proximityConnector = ProximityAutoConnector(this, hidManager) { newDevice, oldDevice ->
+            val oldName = try { oldDevice?.name ?: "không rõ" } catch (_: Exception) { "không rõ" }
+            val newName = try { newDevice.name ?: newDevice.address } catch (_: Exception) { newDevice.address }
+            toast("Tự động chuyển sang thiết bị gần hơn: $newName")
+        }
+        proximityConnector?.start()
     }
 
     /** Hiện ngay lỗi của lần văng app gần nhất (nếu có) — chỉ hiện 1 lần rồi thôi. */
@@ -197,6 +211,7 @@ class MainActivity : AppCompatActivity() {
             overlayUnregistered.visibility = View.GONE
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
             hidManager.autoReconnectLastDevice()
+            startProximityConnectorIfNeeded()
         }
 
         override fun onUnregistered() = runOnUiThread {
@@ -330,6 +345,8 @@ class MainActivity : AppCompatActivity() {
         dialog.callback = object : ScanDevicesDialog.Callback {
             override fun onDeviceSelected(device: BluetoothDevice) {
                 hidManager.connectTo(device)
+                // Khởi động lại proximity connector vì số thiết bị pair có thể tăng
+                startProximityConnectorIfNeeded()
             }
         }
         dialog.show(supportFragmentManager, "scan_devices")
