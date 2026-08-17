@@ -111,6 +111,10 @@ class HidManager(private val context: Context) {
     /** Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong danh sách bonded devices. */
     fun connectTo(device: BluetoothDevice) {
         try {
+            // Ngắt thiết bị đang kết nối (nếu có) trước khi connect thiết bị mới
+            if (connectedDevice != null && connectedDevice?.address != device.address) {
+                hidDevice?.disconnect(connectedDevice!!)
+            }
             hidDevice?.connect(device)
         } catch (e: Exception) {
             listener?.onError("Không kết nối được tới thiết bị: ${e.message}")
