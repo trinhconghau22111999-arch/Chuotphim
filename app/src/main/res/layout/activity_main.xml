@@ -281,6 +281,55 @@
 
     </LinearLayout>
 
+    <!-- Overlay xám phủ toàn màn hình khi chưa đăng ký HID -->
+    <FrameLayout
+        android:id="@+id/overlayUnregistered"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Chưa đăng ký làm bàn phím và chuột"
+                android:textColor="#FFFFFF"
+                android:textSize="16sp"
+                android:gravity="center"
+                android:layout_marginBottom="24dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRegisterHidOverlay"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                android:textAllCaps="false"
+                android:textSize="16sp"
+                android:textColor="#F44336"
+                android:text="Đăng ký làm bàn phím và chuột"
+                app:strokeColor="#F44336"
+                app:strokeWidth="2dp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
     <!-- Nút tròn nổi góc trên trái: bật/tắt chế độ chuột toàn màn hình (nhấn đúp) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnMouseFullscreen"

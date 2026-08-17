@@ -58,6 +58,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnKeyboardFullscreen: MaterialButton
     private lateinit var btnVoiceInput: MaterialButton
     private lateinit var btnOpenKeyboard: MaterialButton
+    private lateinit var overlayUnregistered: FrameLayout
+    private lateinit var btnRegisterHidOverlay: MaterialButton
 
     private enum class FullscreenMode { NONE, MOUSE, KEYBOARD }
     private var fullscreenMode = FullscreenMode.NONE
@@ -123,13 +125,24 @@ class MainActivity : AppCompatActivity() {
         setupBackPressToExitFullscreen()
 
         setHidRegisteredUi(registered = false)
-        btnRegisterHid.setOnClickListener {
-            btnRegisterHid.isEnabled = false
-            btnRegisterHid.text = "Đang đăng ký..."
+
+        // Nút đăng ký trên topBar (ẩn vì đã dùng overlay thay thế)
+        btnRegisterHid.visibility = View.GONE
+
+        // Nút đăng ký trên overlay giữa màn hình
+        btnRegisterHidOverlay.setOnClickListener {
+            btnRegisterHidOverlay.isEnabled = false
+            btnRegisterHidOverlay.text = "Đang đăng ký..."
             autoRegisterAndPromptBluetooth()
         }
 
-        autoRegisterAndPromptBluetooth()
+        // Nếu đã từng đăng ký thành công trước đó thì tự đăng ký lại
+        if (wasRegisteredBefore()) {
+            overlayUnregistered.visibility = View.GONE
+            autoRegisterAndPromptBluetooth()
+        } else {
+            overlayUnregistered.visibility = View.VISIBLE
+        }
     }
 
     override fun onDestroy() {
@@ -171,6 +184,8 @@ class MainActivity : AppCompatActivity() {
         btnKeyboardFullscreen = findViewById(R.id.btnKeyboardFullscreen)
         btnVoiceInput = findViewById(R.id.btnVoiceInput)
         btnOpenKeyboard = findViewById(R.id.btnOpenKeyboard)
+        overlayUnregistered = findViewById(R.id.overlayUnregistered)
+        btnRegisterHidOverlay = findViewById(R.id.btnRegisterHidOverlay)
     }
 
     // ---------- Đăng ký HID + kết nối thiết bị ----------
@@ -178,11 +193,17 @@ class MainActivity : AppCompatActivity() {
     private fun buildHidListener() = object : HidManager.Listener {
         override fun onRegistered() = runOnUiThread {
             setHidRegisteredUi(registered = true)
+            saveRegisteredState(true)
+            overlayUnregistered.visibility = View.GONE
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
             hidManager.autoReconnectLastDevice()
         }
 
-        override fun onUnregistered() = runOnUiThread { setHidRegisteredUi(registered = false) }
+        override fun onUnregistered() = runOnUiThread {
+            setHidRegisteredUi(registered = false)
+            // Chỉ hiện overlay nếu lần này bị unregister do lỗi (không phải do app thoát bình thường)
+            // Không reset wasRegisteredBefore() ở đây để tránh vòng lặp
+        }
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
@@ -194,6 +215,7 @@ class MainActivity : AppCompatActivity() {
             resetRegisterButton()
             toast(message)
         }
+
     }
 
     private fun autoRegisterAndPromptBluetooth() {
@@ -224,6 +246,12 @@ class MainActivity : AppCompatActivity() {
     private fun resetRegisterButton() {
         btnRegisterHid.isEnabled = true
         btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
+        btnRegisterHidOverlay.isEnabled = true
+        btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
+        // Hiện lại overlay nếu chưa đăng ký thành công lần nào
+        if (!wasRegisteredBefore()) {
+            overlayUnregistered.visibility = View.VISIBLE
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -607,8 +635,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
+    /** Kiểm tra xem người dùng đã từng đăng ký HID thành công chưa (lưu qua SharedPreferences). */
+    private fun wasRegisteredBefore(): Boolean =
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_HID_REGISTERED, false)
+
+    /** Lưu trạng thái đăng ký HID vào SharedPreferences. */
+    private fun saveRegisteredState(registered: Boolean) {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+            .putBoolean(KEY_HID_REGISTERED, registered)
+            .apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "btremote_prefs"
         private const val KEY_UNPAIR_NOTICE_SHOWN = "unpair_notice_shown"
+        private const val KEY_HID_REGISTERED = "hid_registered"
     }
 }
