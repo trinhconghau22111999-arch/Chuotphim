@@ -95,7 +95,7 @@ class HidManager(private val context: Context) {
          * thật của máy nhận, không cần đoán hay để người dùng tự đảo thủ công.
          */
         override fun onSetReport(device: BluetoothDevice?, type: Byte, id: Byte, data: ByteArray?) {
-            if (id != HidDescriptor.ID_KEYBOARD || data.isNullOrEmpty()) return
+            if (id != HidDescriptor.ID_KEYBOARD || data == null || data.isEmpty()) return
             val newCapsLockOn = (data[0].toInt() and 0x02) != 0
             if (newCapsLockOn != capsLockOn) {
                 capsLockOn = newCapsLockOn
@@ -205,8 +205,9 @@ class HidManager(private val context: Context) {
         cleanupBondReceiver()
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent == null) return
                 val changed: BluetoothDevice? =
-                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                 if (changed?.address != device.address) return
                 when (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)) {
                     BluetoothDevice.BOND_NONE -> {
