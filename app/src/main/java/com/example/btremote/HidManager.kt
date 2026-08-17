@@ -25,7 +25,14 @@ class HidManager(private val context: Context) {
 
     private var hidDevice: BluetoothHidDevice? = null
     private var connectedDevice: BluetoothDevice? = null
+    private var registered: Boolean = false
     var listener: Listener? = null
+
+    /** Cho UI vừa mới bind vào service biết ngay trạng thái hiện tại, không cần
+     *  chờ 1 sự kiện callback mới (vì onRegistered()/onConnectionStateChanged()
+     *  có thể đã bắn ra từ trước khi UI kịp gán listener). */
+    fun isRegistered(): Boolean = registered
+    fun currentConnectedDevice(): BluetoothDevice? = connectedDevice
 
     private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
 
@@ -57,6 +64,7 @@ class HidManager(private val context: Context) {
 
     private val hidCallback = object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
+            this@HidManager.registered = registered
             if (registered) listener?.onRegistered() else listener?.onUnregistered()
         }
 

@@ -5,13 +5,17 @@ import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.ClipboardManager
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.os.IBinder
 import android.speech.SpeechRecognizer
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -66,14 +70,21 @@ class MainActivity : AppCompatActivity() {
     private var voiceStartPos = 0
 
     private val requiredPermissions: Array<String>
-        get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-            arrayOf(
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_ADVERTISE,
-                Manifest.permission.BLUETOOTH_SCAN
-            )
-        else
-            arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN)
+        get() {
+            val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                arrayOf(
+                    Manifest.permission.BLUETOOTH_CONNECT,
+                    Manifest.permission.BLUETOOTH_ADVERTISE,
+                    Manifest.permission.BLUETOOTH_SCAN
+                )
+            else
+                arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.BLUETOOTH_ADMIN)
+            // Android 13+ (API 33): không xin quyền này thì service vẫn chạy
+            // nền bình thường, chỉ là không hiện được thông báo trạng thái.
+            return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+                perms + Manifest.permission.POST_NOTIFICATIONS
+            else perms
+        }
 
     private val startupPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -101,6 +112,55 @@ class MainActivity : AppCompatActivity() {
         if (granted) beginVoiceListening() else toast("Cần cấp quyền Micro để nhập liệu bằng giọng nói")
     }
 
+    private var isBound = false
+
+    private val hidServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as? HidForegroundService.LocalBinder ?: return
+            isBound = true
+            hidManager = binder.service.hidManager
+            binder.service.externalListener = buildHidListener()
+
+            syncInput = SyncInputController(syncInputField, hidManager)
+            setupTrackpad()
+            setupNavRow()
+            setupVolumeRow()
+            setupMediaRow()
+            setupSyncInputBar()
+
+            // Service có thể đã đăng ký/đã kết nối từ TRƯỚC khi màn hình này kịp
+            // bind (đây chính là điểm cốt lõi giải quyết "lâu lâu bắt đăng ký
+            // lại") — đồng bộ ngay trạng thái hiện có, không chờ 1 sự kiện mới.
+            syncCurrentHidState()
+
+            btnRegisterHid.isEnabled = true
+            autoRegisterAndPromptBluetooth()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName?) {
+            // Không làm gì thêm — service vẫn tiếp tục chạy nền (foreground),
+            // đây chỉ là mất liên kết tạm thời tới UI; Android tự bind lại khi
+            // cần, hidManager tham chiếu vẫn còn dùng được tới lúc đó.
+            isBound = false
+        }
+    }
+
+    private fun startAndBindHidService() {
+        val intent = Intent(this, HidForegroundService::class.java)
+        ContextCompat.startForegroundService(this, intent)
+        bindService(intent, hidServiceConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    private fun syncCurrentHidState() {
+        val registered = hidManager.isRegistered()
+        setHidRegisteredUi(registered)
+        if (registered) {
+            val device = hidManager.currentConnectedDevice()
+            statusText.text = if (device != null) "Đang kết nối tới: ${safeName(device)}"
+                else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashHandler.install(this)
         super.onCreate(savedInstanceState)
@@ -109,32 +169,35 @@ class MainActivity : AppCompatActivity() {
         showLastCrashIfAny()
 
         bindViews()
-        hidManager = HidManager(this).also { it.listener = buildHidListener() }
         voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceStopped)
-        syncInput = SyncInputController(syncInputField, hidManager)
 
-        setupTrackpad()
-        setupNavRow()
-        setupVolumeRow()
-        setupMediaRow()
-        setupSyncInputBar()
         setupFullscreenToggles()
         setupKeyboardAutoLayout()
         setupBackPressToExitFullscreen()
 
         setHidRegisteredUi(registered = false)
+        // Vô hiệu hoá tới khi bind xong service, tránh bấm trúng lúc hidManager
+        // chưa được gán (bind service gần như tức thời với service local nên
+        // cửa sổ này rất ngắn, nhưng vẫn cần chắn cho an toàn).
+        btnRegisterHid.isEnabled = false
         btnRegisterHid.setOnClickListener {
             btnRegisterHid.isEnabled = false
             btnRegisterHid.text = "Đang đăng ký..."
             autoRegisterAndPromptBluetooth()
         }
 
-        autoRegisterAndPromptBluetooth()
+        startAndBindHidService()
     }
 
     override fun onDestroy() {
         voiceInput.destroy()
-        hidManager.unregister()
+        // KHÔNG gọi hidManager.unregister() ở đây nữa: HidForegroundService sở
+        // hữu HidManager và tiếp tục chạy nền sau khi Activity bị hủy, để lần
+        // mở app sau nối lại vào service đang chạy sẵn thay vì đăng ký lại.
+        if (isBound) {
+            unbindService(hidServiceConnection)
+            isBound = false
+        }
         super.onDestroy()
     }
 
@@ -179,7 +242,6 @@ class MainActivity : AppCompatActivity() {
         override fun onRegistered() = runOnUiThread {
             setHidRegisteredUi(registered = true)
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
-            hidManager.autoReconnectLastDevice()
         }
 
         override fun onUnregistered() = runOnUiThread { setHidRegisteredUi(registered = false) }
