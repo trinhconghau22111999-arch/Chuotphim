@@ -200,13 +200,20 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onUnregistered() = runOnUiThread {
-            setHidRegisteredUi(registered = false)
-            // Chỉ hiện overlay nếu lần này bị unregister do lỗi (không phải do app thoát bình thường)
-            // Không reset wasRegisteredBefore() ở đây để tránh vòng lặp
+            // Không làm gì nếu đã đăng ký thành công trước đó — callback này fire
+            // cả khi app đang thoát bình thường (onDestroy → unregister), không
+            // nên hiện overlay hay reset UI vì nó sẽ flash xấu và gây nhầm lẫn.
+            if (!wasRegisteredBefore()) {
+                setHidRegisteredUi(registered = false)
+                overlayUnregistered.visibility = View.VISIBLE
+            }
         }
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
+            // Khi kết nối được thiết bị = chắc chắn đã registered thành công
+            saveRegisteredState(true)
+            overlayUnregistered.visibility = View.GONE
             statusText.text = if (connected) "Đang kết nối tới: ${safeName(device)}"
                 else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
         }
@@ -240,7 +247,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun setHidRegisteredUi(registered: Boolean) {
         statusText.visibility = if (registered) View.VISIBLE else View.GONE
-        btnRegisterHid.visibility = if (registered) View.GONE else View.VISIBLE
+        // btnRegisterHid ẩn vĩnh viễn — dùng overlayUnregistered thay thế
+        btnRegisterHid.visibility = View.GONE
+        // Khi đã đăng ký: ẩn overlay. Khi mất đăng ký: chỉ hiện overlay nếu chưa
+        // từng đăng ký thành công (tránh hiện lại overlay khi app đang thoát)
+        if (registered) {
+            overlayUnregistered.visibility = View.GONE
+        }
     }
 
     private fun resetRegisterButton() {
