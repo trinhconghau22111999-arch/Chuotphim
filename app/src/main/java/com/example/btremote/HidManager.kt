@@ -17,12 +17,17 @@ class HidManager(private val context: Context) {
     interface Listener {
         fun onRegistered()
         fun onUnregistered()
-        fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean)
+        /** [wasIntentional] = true nếu ngắt này là do chính app chủ động gọi
+         *  connectTo() sang thiết bị khác (không phải do ra xa/mất tín hiệu). */
+        fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean, wasIntentional: Boolean = false)
         fun onError(message: String)
     }
 
     private var hidDevice: BluetoothHidDevice? = null
     private var connectedDevice: BluetoothDevice? = null
+    // Địa chỉ thiết bị mà app vừa chủ động gọi disconnect() (vì user chọn thiết bị
+    // khác) — dùng để phân biệt với trường hợp thiết bị tự rớt vì ra xa.
+    private var pendingIntentionalDisconnectAddress: String? = null
     val isConnected: Boolean get() = connectedDevice != null
     val currentConnectedAddress: String? get() = connectedDevice?.address
     var listener: Listener? = null
@@ -62,13 +67,16 @@ class HidManager(private val context: Context) {
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, state: Int) {
             val connected = state == BluetoothProfile.STATE_CONNECTED
+            val wasIntentional = !connected && device != null &&
+                device.address == pendingIntentionalDisconnectAddress
+            if (!connected) pendingIntentionalDisconnectAddress = null
             connectedDevice = if (connected) device else null
             if (connected && device != null) {
                 // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
                 // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
                 prefs.edit().putString(PREF_LAST_DEVICE, device.address).apply()
             }
-            listener?.onConnectionStateChanged(device, connected)
+            listener?.onConnectionStateChanged(device, connected, wasIntentional)
         }
     }
 
@@ -114,6 +122,7 @@ class HidManager(private val context: Context) {
         try {
             // Ngắt thiết bị đang kết nối (nếu có) trước khi connect thiết bị mới
             if (connectedDevice != null && connectedDevice?.address != device.address) {
+                pendingIntentionalDisconnectAddress = connectedDevice?.address
                 hidDevice?.disconnect(connectedDevice!!)
             }
             hidDevice?.connect(device)

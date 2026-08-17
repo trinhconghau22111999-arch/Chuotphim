@@ -154,15 +154,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startProximityConnectorIfNeeded() {
-        // Chỉ bật nếu có >1 thiết bị đã pair — 1 thiết bị thì không cần auto-switch
+        // Chỉ cần tạo nếu có >1 thiết bị đã pair — 1 thiết bị thì không có gì để fallback sang.
         if (hidManager.bondedDevices().size <= 1) return
-        proximityConnector?.stop()
-        proximityConnector = ProximityAutoConnector(this, hidManager) { newDevice, oldDevice ->
-            val oldName = try { oldDevice?.name ?: "không rõ" } catch (_: Exception) { "không rõ" }
-            val newName = try { newDevice.name ?: newDevice.address } catch (_: Exception) { newDevice.address }
-            toast("Tự động chuyển sang thiết bị gần hơn: $newName")
-        }
-        proximityConnector?.start()
+        if (proximityConnector != null) return
+        proximityConnector = ProximityAutoConnector(
+            context = this,
+            hidManager = hidManager,
+            onFallbackConnected = { newDevice, oldDevice ->
+                val oldName = try { oldDevice.name ?: "không rõ" } catch (_: Exception) { "không rõ" }
+                val newName = try { newDevice.name ?: newDevice.address } catch (_: Exception) { newDevice.address }
+                toast("$oldName ngoài tầm, không nối lại được — tự chuyển sang: $newName")
+            },
+            onRestoredOriginal = { device ->
+                val name = try { device.name ?: device.address } catch (_: Exception) { device.address }
+                toast("Đã nối lại được thiết bị gốc: $name")
+            }
+        )
+        // Không .start() ngay — bộ này chỉ kích hoạt (arm) khi thật sự có sự kiện rớt
+        // kết nối ngoài ý muốn, xem onConnectionStateChanged bên dưới.
     }
 
     /** Hiện ngay lỗi của lần văng app gần nhất (nếu có) — chỉ hiện 1 lần rồi thôi. */
@@ -224,13 +233,20 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) = runOnUiThread {
+        override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean, wasIntentional: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
             // Khi kết nối được thiết bị = chắc chắn đã registered thành công
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = if (connected) "Đã kết nối tới: ${safeName(device)}"
                 else "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
+
+            // Rớt kết nối NGOÀI Ý MUỐN (ra xa/mất tín hiệu, không phải do tự chọn thiết
+            // bị khác) -> kích hoạt fallback: thử nối lại thiết bị này, rồi mới tìm
+            // thiết bị gần nhất khác nếu không nối lại được.
+            if (!connected && device != null && !wasIntentional) {
+                proximityConnector?.onDisconnected(device)
+            }
         }
 
         override fun onError(message: String) = runOnUiThread {
@@ -334,6 +350,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(title)
             .setItems(items) { _, which ->
+                proximityConnector?.disarm() // user tự chọn -> huỷ mọi fallback tự động đang chạy dở
                 if (which < bonded.size) hidManager.connectTo(bonded[which])
                 else openScanDialog()
             }
@@ -344,6 +361,7 @@ class MainActivity : AppCompatActivity() {
         val dialog = ScanDevicesDialog()
         dialog.callback = object : ScanDevicesDialog.Callback {
             override fun onDeviceSelected(device: BluetoothDevice) {
+                proximityConnector?.disarm() // user tự chọn -> huỷ mọi fallback tự động đang chạy dở
                 hidManager.connectTo(device)
             }
         }
