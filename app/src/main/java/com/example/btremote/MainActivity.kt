@@ -66,7 +66,6 @@ class MainActivity : AppCompatActivity() {
     private var isKeyboardVisible = false
     private var lastManualKeyboardOpenAt = 0L
     private var voiceStartPos = 0
-    private var returnedFromBtSettings = false
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -313,60 +312,29 @@ class MainActivity : AppCompatActivity() {
             .apply()
     }
 
+
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialogInternal() {
-        // "Quét thiết bị mới…" giờ mở THẲNG trang Cài đặt Bluetooth của hệ thống
-        // (thay vì dialog tự quét/tự ghép nối trong app trước đây) — người dùng
-        // ghép nối (pair) trực tiếp ở đó, xong quay lại app bấm "Chọn thiết bị"
-        // để chọn máy vừa ghép nối trong danh sách đã pair.
         val bonded = hidManager.bondedDevices().toList()
         val scanLabel = "🔍  Quét thiết bị mới…"
         val items = (bonded.map { safeName(it) } + scanLabel).toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("Chọn thiết bị để kết nối")
             .setItems(items) { _, which ->
-                if (which < bonded.size) hidManager.connectTo(bonded[which]) else openSystemBluetoothSettings()
+                if (which < bonded.size) hidManager.connectTo(bonded[which])
+                else openScanDialog()
             }
             .show()
     }
 
-    private fun openSystemBluetoothSettings() {
-        try {
-            returnedFromBtSettings = true
-            startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
-        } catch (e: Exception) {
-            returnedFromBtSettings = false
-            toast("Máy này không có trang Cài đặt Bluetooth để mở")
+    private fun openScanDialog() {
+        val dialog = ScanDevicesDialog()
+        dialog.callback = object : ScanDevicesDialog.Callback {
+            override fun onDeviceSelected(device: BluetoothDevice) {
+                hidManager.connectTo(device)
+            }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (returnedFromBtSettings) {
-            returnedFromBtSettings = false
-            // Vừa quay về từ Settings Bluetooth (sau khi pair thiết bị mới).
-            // Nhắc user ngắt kết nối Bluetooth thường trước, rồi chọn thiết bị trong app.
-            AlertDialog.Builder(this)
-                .setTitle("Vừa ghép nối thiết bị mới?")
-                .setMessage(
-                    "Nếu bạn vừa ghép nối (pair) thiết bị mới trong Cài đặt Bluetooth, " +
-                    "hãy làm thêm 1 bước quan trọng:\n\n" +
-                    "1. Vào lại Cài đặt Bluetooth\n" +
-                    "2. Nhấn vào thiết bị vừa pair\n" +
-                    "3. Bấm \"Ngắt kết nối\" (Disconnect)\n" +
-                    "4. Quay lại app, bấm \"Chọn thiết bị\" để kết nối qua HID\n\n" +
-                    "Bỏ qua bước ngắt kết nối này sẽ khiến app không dùng được."
-                )
-                .setPositiveButton("Mở Cài đặt Bluetooth") { _, _ ->
-                    returnedFromBtSettings = true
-                    startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
-                }
-                .setNegativeButton("Đã ngắt rồi, chọn thiết bị") { _, _ ->
-                    showBondedDevicesDialogInternal()
-                }
-                .setCancelable(true)
-                .show()
-        }
+        dialog.show(supportFragmentManager, "scan_devices")
     }
 
     @SuppressLint("MissingPermission")
