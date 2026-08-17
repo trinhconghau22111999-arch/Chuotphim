@@ -195,7 +195,7 @@ class MainActivity : AppCompatActivity() {
             setHidRegisteredUi(registered = true)
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
-            statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
+            statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
             hidManager.autoReconnectLastDevice()
         }
 
@@ -215,7 +215,7 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = if (connected) "Đã kết nối tới: ${safeName(device)}"
-                else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
+                else "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
         }
 
         override fun onError(message: String) = runOnUiThread {
