@@ -83,7 +83,7 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:text=""
-                app:icon="@drawable/ic_phone_tv_switch"
+                app:icon="@drawable/ic_settings_gear"
                 app:iconGravity="textStart"
                 app:iconPadding="0dp"
                 app:iconSize="24dp"
