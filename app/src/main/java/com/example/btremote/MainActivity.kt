@@ -345,8 +345,6 @@ class MainActivity : AppCompatActivity() {
         dialog.callback = object : ScanDevicesDialog.Callback {
             override fun onDeviceSelected(device: BluetoothDevice) {
                 hidManager.connectTo(device)
-                // Khởi động lại proximity connector vì số thiết bị pair có thể tăng
-                startProximityConnectorIfNeeded()
             }
         }
         dialog.show(supportFragmentManager, "scan_devices")
