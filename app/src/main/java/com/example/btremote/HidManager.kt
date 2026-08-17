@@ -7,7 +7,10 @@ import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothHidDeviceAppQosSettings
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -107,6 +110,7 @@ class HidManager(private val context: Context) {
     }
 
     fun unregister() {
+        cleanupRebondReceiver()
         try {
             hidDevice?.unregisterApp()
         } catch (e: Exception) {
@@ -157,6 +161,80 @@ class HidManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     private fun safeDeviceLabel(device: BluetoothDevice): String =
         try { device.name ?: device.address } catch (e: SecurityException) { device.address }
+
+    // ---------- Gỡ pair rồi tự pair lại (khi kết nối HID thất bại) ----------
+
+    private var rebondReceiver: BroadcastReceiver? = null
+
+    /**
+     * Gỡ pair rồi tự pair lại 1 thiết bị — dùng khi kết nối HID thất bại vì
+     * thiết bị được pair TRƯỚC khi app đăng ký HID (link key cũ không mang
+     * thuộc tính HID, xem giải thích ở connectTo()/timeout ở trên).
+     *
+     * removeBond() là API ẩn của Android (không nằm trong SDK công khai) nên
+     * phải gọi qua reflection — hoạt động trên phần lớn máy nhưng 1 số ROM
+     * (custom ROM khóa kỹ) có thể chặn. Nếu vậy sẽ báo lỗi rõ ràng để người
+     * dùng tự gỡ pair thủ công, thay vì im lặng thất bại.
+     */
+    @SuppressLint("MissingPermission")
+    fun unpairAndReconnect(device: BluetoothDevice) {
+        cleanupRebondReceiver()
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent) {
+                val changedDevice = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                if (changedDevice?.address != device.address) return
+                when (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)) {
+                    BluetoothDevice.BOND_NONE -> {
+                        // Gỡ pair xong -> chủ động pair lại ngay, lúc này HID đã
+                        // đăng ký sẵn nên link key mới sẽ có đúng thuộc tính HID.
+                        try {
+                            device.createBond()
+                        } catch (e: Exception) {
+                            cleanupRebondReceiver()
+                            listener?.onError(
+                                "Gỡ pair xong nhưng không pair lại được: ${e.message}. " +
+                                    "Hãy vào Cài đặt Bluetooth pair thủ công với ${safeDeviceLabel(device)}."
+                            )
+                        }
+                    }
+                    BluetoothDevice.BOND_BONDED -> {
+                        cleanupRebondReceiver()
+                        connectTo(device)
+                    }
+                    // BOND_BONDING: đang trong quá trình pair -> chờ tiếp, không làm gì.
+                }
+            }
+        }
+        rebondReceiver = receiver
+        context.registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED))
+
+        try {
+            // removeBond() ẩn -> gọi qua reflection.
+            val removeBond = device.javaClass.getMethod("removeBond")
+            val started = removeBond.invoke(device) as? Boolean ?: false
+            if (!started) {
+                cleanupRebondReceiver()
+                listener?.onError(
+                    "Không gỡ pair được ${safeDeviceLabel(device)} tự động — " +
+                        "hãy vào Cài đặt Bluetooth gỡ pair thủ công rồi pair lại."
+                )
+            }
+        } catch (e: Exception) {
+            cleanupRebondReceiver()
+            listener?.onError(
+                "Máy này không cho app tự gỡ pair (${e.message}) — " +
+                    "hãy vào Cài đặt Bluetooth gỡ pair \"${safeDeviceLabel(device)}\" thủ công rồi pair lại."
+            )
+        }
+    }
+
+    private fun cleanupRebondReceiver() {
+        rebondReceiver?.let {
+            try { context.unregisterReceiver(it) } catch (e: Exception) { /* đã unregister rồi, bỏ qua */ }
+        }
+        rebondReceiver = null
+    }
 
     fun bondedDevices(): Set<BluetoothDevice> {
         return try {

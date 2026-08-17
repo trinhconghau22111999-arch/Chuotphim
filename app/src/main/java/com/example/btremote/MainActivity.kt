@@ -69,6 +69,9 @@ class MainActivity : AppCompatActivity() {
      *  thành dialog lỗi nếu HID không kết nối được (xem showConnectErrorDialog). */
     private var connectingDialog: AlertDialog? = null
     private var hidRegistered = false
+    /** Thiết bị đang cố kết nối lúc dialog "Đang kết nối…"/"Kết nối thất bại"
+     *  hiện ra — cần lưu lại để nút "Ngắt & pair lại" biết gọi cho thiết bị nào. */
+    private var pendingConnectDevice: BluetoothDevice? = null
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -261,11 +264,12 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showConnectingDialog(device: BluetoothDevice) {
+    private fun showConnectingDialog(device: BluetoothDevice, title: String = "Đang kết nối…") {
+        pendingConnectDevice = device
         connectingDialog?.dismiss()
         connectingDialog = AlertDialog.Builder(this)
-            .setTitle("Đang kết nối…")
-            .setMessage("Đang kết nối tới ${safeName(device)}\n(có thể mất vài giây)")
+            .setTitle(title)
+            .setMessage("${safeName(device)}\n(có thể mất vài giây)")
             .setCancelable(false)
             .setNegativeButton("Hủy", null)
             .show()
@@ -278,15 +282,23 @@ class MainActivity : AppCompatActivity() {
 
     /** Trang lỗi thật sự khi bấm vào thiết bị đã pair nhưng HID không kết nối
      *  được — thay vì chỉ 1 dòng toast thoáng qua rồi mất, để người dùng đọc
-     *  kỹ nguyên nhân và có nút thử lại ngay tại chỗ. */
+     *  kỹ nguyên nhân và có nút xử lý ngay tại chỗ: thử lại, hoặc để app tự
+     *  gỡ pair + pair lại (nguyên nhân phổ biến nhất của lỗi này). */
     private fun showConnectErrorDialog(message: String) {
         dismissConnectingDialog()
-        AlertDialog.Builder(this)
+        val device = pendingConnectDevice
+        val builder = AlertDialog.Builder(this)
             .setTitle("Kết nối thất bại")
             .setMessage(message)
             .setPositiveButton("Đóng", null)
             .setNeutralButton("Thử lại") { _, _ -> showBondedDevicesDialog() }
-            .show()
+        if (device != null) {
+            builder.setNegativeButton("Ngắt & pair lại") { _, _ ->
+                showConnectingDialog(device, title = "Đang ngắt & pair lại…")
+                hidManager.unpairAndReconnect(device)
+            }
+        }
+        builder.show()
     }
 
     @SuppressLint("MissingPermission")
