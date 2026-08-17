@@ -19,6 +19,8 @@ class HidManager(private val context: Context) {
         fun onUnregistered()
         fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean)
         fun onError(message: String)
+        /** Máy nhận vừa báo Caps Lock đổi trạng thái (bật/tắt). Không bắt buộc lắng nghe. */
+        fun onCapsLockChanged(capsLockOn: Boolean) {}
     }
 
     private var hidDevice: BluetoothHidDevice? = null
@@ -65,10 +67,34 @@ class HidManager(private val context: Context) {
                 // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
                 // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
                 prefs.edit().putString(PREF_LAST_DEVICE, device.address).apply()
+            } else {
+                // Mất kết nối -> không còn biết chắc đèn Caps Lock máy nhận đang ở
+                // trạng thái nào nữa, về lại mặc định "tắt" cho lần kết nối sau.
+                capsLockOn = false
             }
             listener?.onConnectionStateChanged(device, connected)
         }
+
+        /**
+         * Host (TV/PC) chủ động gửi report này về mỗi khi trạng thái đèn LED
+         * (Num/Caps/Scroll Lock) thay đổi — kể cả khi người dùng tự bấm Caps Lock
+         * trên bàn phím thật khác, hoặc trạng thái đã bật sẵn từ trước khi app
+         * kết nối tới. Nhờ đây HidManager luôn biết đúng trạng thái Caps Lock
+         * thật của máy nhận, không cần đoán hay để người dùng tự đảo thủ công.
+         */
+        override fun onSetReport(device: BluetoothDevice?, type: Byte, id: Byte, data: ByteArray?) {
+            if (id != HidDescriptor.ID_KEYBOARD || data.isNullOrEmpty()) return
+            val newCapsLockOn = (data[0].toInt() and 0x02) != 0
+            if (newCapsLockOn != capsLockOn) {
+                capsLockOn = newCapsLockOn
+                listener?.onCapsLockChanged(capsLockOn)
+            }
+        }
     }
+
+    /** Trạng thái Caps Lock thật của máy nhận, do chính máy nhận báo về qua HID
+     *  Output Report (xem onSetReport ở trên) — không phải suy đoán. */
+    private var capsLockOn = false
 
     /** Bước 1: lấy proxy tới profile HID_DEVICE của hệ thống. */
     fun start() {
@@ -207,12 +233,21 @@ class HidManager(private val context: Context) {
     /** true = tự chuyển tiếng Việt có dấu sang Telex trước khi gõ (mặc định bật). */
     var vietnameseTelexEnabled = true
 
-    /** Gõ 1 chuỗi văn bản, gửi từng ký tự nối tiếp. */
+    /**
+     * Gõ 1 chuỗi văn bản, gửi từng ký tự nối tiếp.
+     *
+     * Tự bù Caps Lock: KeyMapper.charToKeycode() tính sẵn cờ Shift theo giả định
+     * Caps Lock máy nhận đang TẮT. Nếu capsLockOn (đọc thật từ máy nhận, xem
+     * onSetReport) đang bật, chỉ riêng CHỮ CÁI mới bị đảo hoa/thường trên bàn
+     * phím thật — số và ký hiệu (!, @, .,...) không bị Caps Lock ảnh hưởng — nên
+     * ở đây chỉ đảo bit Shift cho chữ cái, giữ nguyên cho các ký tự còn lại.
+     */
     fun typeText(text: String) {
         val toSend = if (vietnameseTelexEnabled) VietnameseTelex.toTelex(text) else text
         for (c in toSend) {
             val mapped = KeyMapper.charToKeycode(c) ?: continue
-            sendKeyPress(mapped.first, mapped.second)
+            val shift = if (c.isLetter() && capsLockOn) !mapped.second else mapped.second
+            sendKeyPress(mapped.first, shift)
         }
     }
 

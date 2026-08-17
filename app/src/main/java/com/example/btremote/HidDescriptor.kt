@@ -63,6 +63,22 @@ object HidDescriptor {
         0x19, 0x00,             //   Usage Minimum (0)
         0x29, 0x65,             //   Usage Maximum (101)
         0x81.toByte(), 0x00,    //   Input (Data,Array) -> 6 phím đang nhấn
+        //   Output Report: LED trạng thái (Num/Caps/Scroll Lock...) — máy nhận
+        //   (Windows/macOS/Android TV) sẽ tự gửi report này về mỗi khi Caps Lock
+        //   đổi trạng thái. Nhờ khai báo thêm khối này mà HidManager đọc được
+        //   bit Caps Lock thật từ host qua callback onSetReport(), từ đó tự bù
+        //   Shift khi gõ chữ cái mà không cần người dùng tự bấm đảo thủ công.
+        0x05, 0x08,             //   Usage Page (LEDs)
+        0x19, 0x01,             //   Usage Minimum (1 - Num Lock)
+        0x29, 0x05,             //   Usage Maximum (5 - Kana)
+        0x15, 0x00,             //   Logical Minimum (0)
+        0x25, 0x01,             //   Logical Maximum (1)
+        0x75, 0x01,             //   Report Size (1)
+        0x95.toByte(), 0x05,    //   Report Count (5) -> 5 đèn LED
+        0x91.toByte(), 0x02,    //   Output (Data,Var,Abs)
+        0x95.toByte(), 0x01,    //   Report Count (1)
+        0x75, 0x03,             //   Report Size (3) -> đệm cho tròn 1 byte
+        0x91.toByte(), 0x01,    //   Output (Constant)
         0xC0.toByte(),          // End Collection
 
         // ---- Mouse (Report ID 2) ----

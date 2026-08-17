@@ -15,11 +15,12 @@ object KeyMapper {
         "BACKSPACE" to 0x2A,
         "ESC" to 0x29,
         "HOME" to 0x4A,
-        // Dùng để đảo trạng thái Caps Lock trên máy nhận (bật <-> tắt) — xem
-        // MainActivity.setupNavRow(): giữ nút bàn phím ảo để gửi phím này, vì
-        // app không đọc được trạng thái Caps Lock hiện tại của máy nhận (chưa
-        // khai báo Output Report LED trong HidDescriptor) nên không thể tự
-        // phát hiện và sửa; chỉ có thể cho người dùng chủ động đảo lại.
+        // Gửi phím Caps Lock thật (bật <-> tắt) tới máy nhận nếu cần dùng trực
+        // tiếp. Từ khi HidDescriptor khai báo Output Report LED, HidManager đã
+        // tự đọc được trạng thái Caps Lock thật của máy nhận qua onSetReport()
+        // và tự bù Shift khi gõ chữ (xem HidManager.typeText), nên bình thường
+        // không cần gọi phím này nữa — chỉ giữ lại phòng khi cần điều khiển
+        // Caps Lock thủ công cho mục đích khác.
         "CAPSLOCK" to 0x39,
     )
 
