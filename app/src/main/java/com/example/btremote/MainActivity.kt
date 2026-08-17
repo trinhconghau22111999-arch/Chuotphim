@@ -180,7 +180,6 @@ class MainActivity : AppCompatActivity() {
             setHidRegisteredUi(registered = true)
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
             hidManager.autoReconnectLastDevice()
-            openBluetoothSettingsOnFirstRegisterEver()
         }
 
         override fun onUnregistered() = runOnUiThread { setHidRegisteredUi(registered = false) }
@@ -194,27 +193,6 @@ class MainActivity : AppCompatActivity() {
         override fun onError(message: String) = runOnUiThread {
             resetRegisterButton()
             toast(message)
-        }
-    }
-
-    /**
-     * Lần "đăng ký làm bàn phím và chuột" ĐẦU TIÊN sau khi cài app (chỉ 1 lần duy
-     * nhất trong suốt vòng đời cài đặt, đánh dấu bằng SharedPreferences) — tự mở
-     * luôn trang Cài đặt Bluetooth của hệ thống ngay sau khi đăng ký xong, để người
-     * dùng chọn/ghép nối thiết bị trực tiếp tại đó. Bấm Back từ trang Cài đặt hệ
-     * thống sẽ tự quay lại app bình thường (activity mới chỉ mở đè lên trên).
-     * Những lần đăng ký sau (mở lại app các lần sau, hệ thống yêu cầu đăng ký lại
-     * HID...) sẽ KHÔNG tự mở nữa — người dùng dùng nút "Chọn thiết bị" trong app.
-     */
-    private fun openBluetoothSettingsOnFirstRegisterEver() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_FIRST_REGISTER_SETTINGS_SHOWN, false)) return
-        prefs.edit().putBoolean(KEY_FIRST_REGISTER_SETTINGS_SHOWN, true).apply()
-        try {
-            startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
-        } catch (e: Exception) {
-            // Một số ROM tuỳ biến không có màn hình này -> bỏ qua, người dùng vẫn
-            // dùng được nút "Chọn thiết bị" trong app như bình thường.
         }
     }
 
@@ -669,6 +647,5 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "btremote_prefs"
         private const val KEY_UNPAIR_NOTICE_SHOWN = "unpair_notice_shown"
-        private const val KEY_FIRST_REGISTER_SETTINGS_SHOWN = "first_register_settings_shown"
     }
 }
