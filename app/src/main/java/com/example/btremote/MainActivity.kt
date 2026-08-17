@@ -12,9 +12,6 @@ import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.os.SystemClock
 import android.speech.SpeechRecognizer
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -556,27 +553,12 @@ class MainActivity : AppCompatActivity() {
 
         val label = if (mode == FullscreenMode.MOUSE) "chuột" else "bàn phím"
         if (turningOn) {
-            // Thông báo "đã bật" quan trọng hơn (báo cách tắt lại) nên hiện lâu gấp 1,7 lần
-            // Toast thường (~2s) — Android không cho set duration tuỳ ý nên phải tự lặp show().
-            toastExtended("Đã bật chế độ $label toàn màn hình — nhấn đúp lại để tắt", FULLSCREEN_ON_TOAST_MS)
+            // Thông báo "đã bật" quan trọng hơn (báo cách tắt lại) nên dùng luôn mức
+            // LENGTH_LONG (~3,5s) có sẵn của hệ thống thay vì SHORT (~2s) mặc định.
+            Toast.makeText(this, "Đã bật chế độ $label toàn màn hình — nhấn đúp lại để tắt", Toast.LENGTH_LONG).show()
         } else {
             toast("Đã tắt chế độ $label toàn màn hình")
         }
-    }
-
-    /** Hiện Toast lâu hơn mức SHORT/LONG mặc định bằng cách tự gọi lại show() liên tục
-     *  cho tới khi đủ [durationMs] — Toast chuẩn của Android không cho set duration tuỳ ý. */
-    private fun toastExtended(message: String, durationMs: Long) {
-        val toast = Toast.makeText(this, message, Toast.LENGTH_SHORT)
-        val handler = Handler(Looper.getMainLooper())
-        val endAt = SystemClock.elapsedRealtime() + durationMs
-        val reshow = object : Runnable {
-            override fun run() {
-                toast.show()
-                if (SystemClock.elapsedRealtime() < endAt) handler.postDelayed(this, TOAST_RESHOW_STEP_MS)
-            }
-        }
-        handler.post(reshow)
     }
 
     private fun applyFullscreenMode() {
@@ -715,11 +697,5 @@ class MainActivity : AppCompatActivity() {
         private const val PREFS_NAME = "btremote_prefs"
         private const val KEY_UNPAIR_NOTICE_SHOWN = "unpair_notice_shown"
         private const val KEY_HID_REGISTERED = "hid_registered"
-
-        // Toast.LENGTH_SHORT hệ thống hiện ~2000ms -> gấp 1,7 lần = 3400ms.
-        private const val TOAST_SHORT_MS = 2000L
-        private const val FULLSCREEN_ON_TOAST_MS = (TOAST_SHORT_MS * 1.7).toLong() // 3400ms
-        // Gọi lại show() hơi sớm hơn lúc Toast cũ vừa tắt để không bị nháy/hụt hiển thị.
-        private const val TOAST_RESHOW_STEP_MS = 1800L
     }
 }
