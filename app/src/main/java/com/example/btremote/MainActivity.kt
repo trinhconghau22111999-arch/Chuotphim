@@ -273,64 +273,27 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialogInternal() {
-        // TRƯỚC ĐÂY: nếu chưa pair sẵn từ Cài đặt hệ thống thì danh sách rỗng và
-        // dừng lại ở đây luôn — không có cách nào pair TỪ TRONG APP, phải thoát ra
-        // Cài đặt > Bluetooth. SỬA: luôn thêm mục "Quét thiết bị mới…" ở cuối danh
-        // sách, mở ra showScanDialog() để quét + ghép nối (pair) ngay tại đây.
+        // "Quét thiết bị mới…" giờ mở THẲNG trang Cài đặt Bluetooth của hệ thống
+        // (thay vì dialog tự quét/tự ghép nối trong app trước đây) — người dùng
+        // ghép nối (pair) trực tiếp ở đó, xong quay lại app bấm "Chọn thiết bị"
+        // để chọn máy vừa ghép nối trong danh sách đã pair.
         val bonded = hidManager.bondedDevices().toList()
         val scanLabel = "🔍  Quét thiết bị mới…"
         val items = (bonded.map { safeName(it) } + scanLabel).toTypedArray()
         AlertDialog.Builder(this)
             .setTitle("Chọn thiết bị để kết nối")
             .setItems(items) { _, which ->
-                if (which < bonded.size) hidManager.connectTo(bonded[which]) else showScanDialog()
+                if (which < bonded.size) hidManager.connectTo(bonded[which]) else openSystemBluetoothSettings()
             }
             .show()
     }
 
-    /**
-     * Quét thiết bị Bluetooth lân cận (kể cả CHƯA pair) và cho ghép nối ngay tại
-     * đây — khác showBondedDevicesDialog() vốn chỉ chọn trong số máy đã pair sẵn.
-     */
-    @SuppressLint("MissingPermission")
-    private fun showScanDialog() {
-        val found = mutableListOf<BluetoothDevice>()
-        val adapter = android.widget.ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Đang quét Bluetooth gần đây…")
-            .setAdapter(adapter) { _, which ->
-                val device = found.getOrNull(which) ?: return@setAdapter
-                hidManager.stopDiscovery()
-                toast("Đang ghép nối với ${safeName(device)}… xác nhận mã PIN nếu được hỏi.")
-                hidManager.pairThenConnect(device) { success ->
-                    runOnUiThread {
-                        if (!success) toast("Ghép nối với ${safeName(device)} thất bại, thử lại.")
-                    }
-                }
-            }
-            .setNegativeButton("Đóng") { _, _ -> hidManager.stopDiscovery() }
-            .setOnDismissListener { hidManager.stopDiscovery() }
-            .create()
-        dialog.show()
-
-        hidManager.startDiscovery(
-            onDeviceFound = { device ->
-                if (found.none { it.address == device.address }) {
-                    found.add(device)
-                    runOnUiThread {
-                        adapter.add(safeName(device))
-                        adapter.notifyDataSetChanged()
-                    }
-                }
-            },
-            onFinished = {
-                runOnUiThread {
-                    if (found.isEmpty()) toast("Không tìm thấy thiết bị nào — đảm bảo TV/PC đang bật Bluetooth.")
-                    dialog.setTitle("Đã quét xong — chạm tên thiết bị để ghép nối")
-                }
-            }
-        )
+    private fun openSystemBluetoothSettings() {
+        try {
+            startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
+        } catch (e: Exception) {
+            toast("Máy này không có trang Cài đặt Bluetooth để mở")
+        }
     }
 
     @SuppressLint("MissingPermission")

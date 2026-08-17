@@ -7,13 +7,8 @@ import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothHidDeviceAppQosSettings
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
-import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
 import android.util.Log
-import androidx.core.content.ContextCompat
 import java.util.concurrent.Executor
 
 @SuppressLint("MissingPermission")
@@ -105,9 +100,6 @@ class HidManager(private val context: Context) {
     }
 
     fun unregister() {
-        stopDiscovery()
-        bondReceiver?.let { try { context.unregisterReceiver(it) } catch (e: Exception) { /* bỏ qua */ } }
-        bondReceiver = null
         try {
             hidDevice?.unregisterApp()
         } catch (e: Exception) {
@@ -143,134 +135,6 @@ class HidManager(private val context: Context) {
         val device = bondedDevices().firstOrNull { it.address == address } ?: return
         connectTo(device)
     }
-
-    // ---------- Quét + ghép nối (pair) ngay trong app ----------
-    //
-    // TRƯỚC ĐÂY: nút "Chọn thiết bị" chỉ đọc BluetoothAdapter.bondedDevices — tức
-    // là chỉ những máy ĐÃ pair sẵn từ Cài đặt hệ thống. Nếu chưa pair từ trước,
-    // danh sách rỗng -> app chỉ toast bảo "vào Cài đặt > Bluetooth pair trước" chứ
-    // không tự làm được, người dùng phải thoát app ra ngoài Settings.
-    // SỬA: thêm startDiscovery() để tự quét các thiết bị lân cận (kể cả CHƯA pair)
-    // và pairThenConnect() để tự gọi device.createBond() ghép nối ngay tại đây,
-    // không cần rời khỏi app nữa.
-
-    private var discoveryReceiver: BroadcastReceiver? = null
-    private var bondReceiver: BroadcastReceiver? = null
-
-    /** Quét các thiết bị Bluetooth cổ điển (classic) lân cận, kể cả chưa pair. */
-    fun startDiscovery(onDeviceFound: (BluetoothDevice) -> Unit, onFinished: () -> Unit) {
-        val adapter = BluetoothAdapter.getDefaultAdapter()
-        if (adapter == null) {
-            onFinished()
-            return
-        }
-        stopDiscovery()
-
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                when (intent.action) {
-                    BluetoothDevice.ACTION_FOUND -> {
-                        val device = extraDevice(intent) ?: return
-                        onDeviceFound(device)
-                    }
-                    BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> onFinished()
-                }
-            }
-        }
-        discoveryReceiver = receiver
-        ContextCompat.registerReceiver(
-            context, receiver,
-            IntentFilter().apply {
-                addAction(BluetoothDevice.ACTION_FOUND)
-                addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-            },
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-
-        try {
-            // Nếu app đang tự làm HID device (registerApp) thì có thể đang ở chế độ
-            // discoverable riêng, không ảnh hưởng tới startDiscovery (chỉ là quét,
-            // không phải bật discoverable) nên cứ gọi thẳng.
-            if (!adapter.startDiscovery()) {
-                onFinished()
-            }
-        } catch (e: SecurityException) {
-            listener?.onError("Thiếu quyền quét Bluetooth: ${e.message}")
-            onFinished()
-        }
-    }
-
-    fun stopDiscovery() {
-        discoveryReceiver?.let {
-            try { context.unregisterReceiver(it) } catch (e: Exception) { /* đã huỷ rồi, bỏ qua */ }
-        }
-        discoveryReceiver = null
-        try { BluetoothAdapter.getDefaultAdapter()?.cancelDiscovery() } catch (e: Exception) { /* bỏ qua */ }
-    }
-
-    /**
-     * Ghép nối (pair) trực tiếp với 1 thiết bị chưa pair, rồi tự kết nối HID luôn khi
-     * xong — thay cho việc phải thoát app ra Cài đặt > Bluetooth để pair thủ công.
-     * Nếu thiết bị đã pair sẵn thì bỏ qua bước ghép nối, kết nối HID luôn.
-     */
-    fun pairThenConnect(device: BluetoothDevice, onResult: (success: Boolean) -> Unit) {
-        if (device.bondState == BluetoothDevice.BOND_BONDED) {
-            connectTo(device)
-            onResult(true)
-            return
-        }
-
-        bondReceiver?.let { try { context.unregisterReceiver(it) } catch (e: Exception) { /* bỏ qua */ } }
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(ctx: Context, intent: Intent) {
-                if (intent.action != BluetoothDevice.ACTION_BOND_STATE_CHANGED) return
-                val changed = extraDevice(intent) ?: return
-                if (changed.address != device.address) return
-
-                when (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)) {
-                    BluetoothDevice.BOND_BONDED -> {
-                        context.unregisterReceiver(this)
-                        bondReceiver = null
-                        connectTo(device)
-                        onResult(true)
-                    }
-                    BluetoothDevice.BOND_NONE -> {
-                        // Ghép nối thất bại hoặc bị người dùng huỷ ở hộp thoại PIN.
-                        context.unregisterReceiver(this)
-                        bondReceiver = null
-                        onResult(false)
-                    }
-                    // BOND_BONDING: vẫn đang xử lý, chờ tiếp broadcast tiếp theo.
-                }
-            }
-        }
-        bondReceiver = receiver
-        ContextCompat.registerReceiver(
-            context, receiver,
-            IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
-
-        try {
-            if (!device.createBond()) {
-                context.unregisterReceiver(receiver)
-                bondReceiver = null
-                onResult(false)
-            }
-        } catch (e: SecurityException) {
-            try { context.unregisterReceiver(receiver) } catch (e2: Exception) { /* bỏ qua */ }
-            bondReceiver = null
-            listener?.onError("Thiếu quyền ghép nối Bluetooth: ${e.message}")
-            onResult(false)
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun extraDevice(intent: Intent): BluetoothDevice? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
-            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
-        else
-            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
 
     // ---------- Gửi report chuột ----------
 
