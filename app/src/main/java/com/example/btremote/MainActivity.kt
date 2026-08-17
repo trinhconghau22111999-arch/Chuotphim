@@ -228,6 +228,51 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialog() {
+        // Trước khi cho chọn thiết bị: nếu điện thoại này TỪNG ghép nối Bluetooth
+        // với thiết bị nhận (TV/đầu thu) theo cách thông thường (ngoài app, ví dụ
+        // qua Cài đặt hệ thống hoặc app điều khiển khác) từ trước, liên kết cũ đó
+        // có thể xung đột với kiểu ghép nối HID mà app này dùng. Cảnh báo 1 lần
+        // duy nhất, nhắc xoá (hủy ghép nối) thiết bị đó trong Cài đặt Bluetooth
+        // của điện thoại rồi mới quay lại ghép nối từ trong app.
+        if (!hasShownUnpairNotice()) {
+            markUnpairNoticeShown()
+            showUnpairNoticeDialog { showBondedDevicesDialogInternal() }
+            return
+        }
+        showBondedDevicesDialogInternal()
+    }
+
+    /** Hộp thoại nhắc xoá ghép nối Bluetooth cũ trước khi kết nối lại từ trong app —
+     *  dùng cả cho lần hiện tự động đầu tiên lẫn khi người dùng chủ động xem lại
+     *  (giữ nhấn nút "Chọn thiết bị"). */
+    private fun showUnpairNoticeDialog(onContinue: () -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle("Lưu ý trước khi kết nối")
+            .setMessage(
+                "Nếu điện thoại này đã từng ghép nối Bluetooth với TV/đầu thu " +
+                    "TRƯỚC ĐÂY (ví dụ ghép nối ngoài Cài đặt hệ thống hoặc bằng " +
+                    "app điều khiển khác), hãy vào Cài đặt Bluetooth của điện " +
+                    "thoại, XOÁ (hủy ghép nối) thiết bị đó trước, rồi quay lại " +
+                    "đây chọn thiết bị để kết nối lại từ trong app.\n\n" +
+                    "Bỏ qua bước này có thể khiến app không kết nối được hoặc " +
+                    "kết nối chập chờn."
+            )
+            .setPositiveButton("Đã hiểu, tiếp tục") { _, _ -> onContinue() }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun hasShownUnpairNotice(): Boolean =
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_UNPAIR_NOTICE_SHOWN, false)
+
+    private fun markUnpairNoticeShown() {
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+            .putBoolean(KEY_UNPAIR_NOTICE_SHOWN, true)
+            .apply()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun showBondedDevicesDialogInternal() {
         // TRƯỚC ĐÂY: nếu chưa pair sẵn từ Cài đặt hệ thống thì danh sách rỗng và
         // dừng lại ở đây luôn — không có cách nào pair TỪ TRONG APP, phải thoát ra
         // Cài đặt > Bluetooth. SỬA: luôn thêm mục "Quét thiết bị mới…" ở cuối danh
@@ -303,7 +348,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupNavRow() {
-        findViewById<MaterialButton>(R.id.btnPickDevice).setOnClickListener { showBondedDevicesDialog() }
+        findViewById<MaterialButton>(R.id.btnPickDevice).apply {
+            setOnClickListener { showBondedDevicesDialog() }
+            // Giữ nhấn để xem lại lưu ý "xoá ghép nối cũ" bất cứ lúc nào, kể cả sau
+            // khi đã hiện 1 lần rồi (phòng khi người dùng bỏ lỡ hoặc quên).
+            setOnLongClickListener { showUnpairNoticeDialog { showBondedDevicesDialogInternal() }; true }
+        }
         findViewById<MaterialButton>(R.id.btnHome).setOnClickListener {
             hidManager.sendSpecialKey("HOME")
             syncInput.reset()
@@ -593,4 +643,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+    companion object {
+        private const val PREFS_NAME = "btremote_prefs"
+        private const val KEY_UNPAIR_NOTICE_SHOWN = "unpair_notice_shown"
+    }
 }
