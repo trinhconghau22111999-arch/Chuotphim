@@ -65,6 +65,11 @@ class MainActivity : AppCompatActivity() {
     private var lastManualKeyboardOpenAt = 0L
     private var voiceStartPos = 0
 
+    /** Dialog "Đang kết nối…" hiện ngay khi bấm chọn 1 thiết bị đã pair, tự đổi
+     *  thành dialog lỗi nếu HID không kết nối được (xem showConnectErrorDialog). */
+    private var connectingDialog: AlertDialog? = null
+    private var hidRegistered = false
+
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             arrayOf(
@@ -186,13 +191,25 @@ class MainActivity : AppCompatActivity() {
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
+            if (connected) dismissConnectingDialog()
             statusText.text = if (connected) "Đang kết nối tới: ${safeName(device)}"
                 else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
         }
 
         override fun onError(message: String) = runOnUiThread {
-            resetRegisterButton()
-            toast(message)
+            // Chỉ reset nút "Đăng ký" nếu lỗi xảy ra TRONG lúc đăng ký HID — nếu
+            // HID đã đăng ký xong rồi (lỗi này là do bấm kết nối 1 thiết bị cụ
+            // thể thất bại) thì không được hiện lại nút đó, dễ gây hiểu lầm là
+            // phải đăng ký lại từ đầu.
+            if (!hidRegistered) resetRegisterButton()
+            // Có dialog "Đang kết nối…" đang mở -> lỗi này chắc chắn là do bấm
+            // kết nối 1 thiết bị cụ thể thất bại -> hiện hẳn 1 trang lỗi có nút
+            // "Thử lại", thay vì chỉ 1 dòng toast thoáng qua rồi mất.
+            if (connectingDialog != null) {
+                showConnectErrorDialog(message)
+            } else {
+                toast(message)
+            }
         }
     }
 
@@ -217,6 +234,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setHidRegisteredUi(registered: Boolean) {
+        hidRegistered = registered
         statusText.visibility = if (registered) View.VISIBLE else View.GONE
         btnRegisterHid.visibility = if (registered) View.GONE else View.VISIBLE
     }
@@ -235,7 +253,39 @@ class MainActivity : AppCompatActivity() {
         }
         AlertDialog.Builder(this)
             .setTitle("Chọn thiết bị để kết nối")
-            .setItems(devices.map { safeName(it) }.toTypedArray()) { _, which -> hidManager.connectTo(devices[which]) }
+            .setItems(devices.map { safeName(it) }.toTypedArray()) { _, which ->
+                val device = devices[which]
+                showConnectingDialog(device)
+                hidManager.connectTo(device)
+            }
+            .show()
+    }
+
+    private fun showConnectingDialog(device: BluetoothDevice) {
+        connectingDialog?.dismiss()
+        connectingDialog = AlertDialog.Builder(this)
+            .setTitle("Đang kết nối…")
+            .setMessage("Đang kết nối tới ${safeName(device)}\n(có thể mất vài giây)")
+            .setCancelable(false)
+            .setNegativeButton("Hủy", null)
+            .show()
+    }
+
+    private fun dismissConnectingDialog() {
+        connectingDialog?.dismiss()
+        connectingDialog = null
+    }
+
+    /** Trang lỗi thật sự khi bấm vào thiết bị đã pair nhưng HID không kết nối
+     *  được — thay vì chỉ 1 dòng toast thoáng qua rồi mất, để người dùng đọc
+     *  kỹ nguyên nhân và có nút thử lại ngay tại chỗ. */
+    private fun showConnectErrorDialog(message: String) {
+        dismissConnectingDialog()
+        AlertDialog.Builder(this)
+            .setTitle("Kết nối thất bại")
+            .setMessage(message)
+            .setPositiveButton("Đóng", null)
+            .setNeutralButton("Thử lại") { _, _ -> showBondedDevicesDialog() }
             .show()
     }
 

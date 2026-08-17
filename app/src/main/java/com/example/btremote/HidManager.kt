@@ -8,6 +8,8 @@ import android.bluetooth.BluetoothHidDeviceAppQosSettings
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import java.util.concurrent.Executor
 
@@ -61,6 +63,11 @@ class HidManager(private val context: Context) {
         override fun onConnectionStateChanged(device: BluetoothDevice?, state: Int) {
             val connected = state == BluetoothProfile.STATE_CONNECTED
             connectedDevice = if (connected) device else null
+            if (connected) {
+                // Kết nối thành công -> hủy timeout đang chờ, tránh báo lỗi nhầm sau đó.
+                pendingConnectRunnable?.let { timeoutHandler.removeCallbacks(it) }
+                pendingConnectRunnable = null
+            }
             if (connected && device != null) {
                 // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
                 // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
@@ -107,14 +114,49 @@ class HidManager(private val context: Context) {
         }
     }
 
+    private val timeoutHandler = Handler(Looper.getMainLooper())
+    private var pendingConnectRunnable: Runnable? = null
+
+    /** Thiết bị không phản hồi trong khoảng này sau khi gửi yêu cầu kết nối thì
+     *  coi như thất bại — API HID không tự báo timeout, phải tự canh lấy. */
+    private val CONNECT_TIMEOUT_MS = 8000L
+
     /** Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong danh sách bonded devices. */
     fun connectTo(device: BluetoothDevice) {
         try {
-            hidDevice?.connect(device)
+            // connect() trả về true/false báo đã GỬI yêu cầu hay chưa, không phải
+            // đã kết nối xong — trước đây bỏ qua giá trị này nên trường hợp gửi
+            // thất bại ngay từ đầu (false) không hiện lỗi gì cả, tưởng đang chờ.
+            val requestSent = hidDevice?.connect(device) ?: false
+            if (!requestSent) {
+                listener?.onError(
+                    "Không gửi được yêu cầu kết nối tới ${safeDeviceLabel(device)} — " +
+                        "thử bấm \"Đăng ký làm bàn phím và chuột\" lại rồi thử kết nối lại"
+                )
+                return
+            }
+
+            pendingConnectRunnable?.let { timeoutHandler.removeCallbacks(it) }
+            val runnable = Runnable {
+                if (connectedDevice?.address != device.address) {
+                    listener?.onError(
+                        "Không kết nối được tới ${safeDeviceLabel(device)} — thiết bị không phản hồi sau ${CONNECT_TIMEOUT_MS / 1000}s.\n\n" +
+                            "Nguyên nhân thường gặp:\n" +
+                            "• Thiết bị được pair TRƯỚC khi mở app này — cần gỡ pair (Forget) trên cả 2 máy rồi pair lại SAU khi app đã đăng ký HID xong.\n" +
+                            "• TV/PC đang kết nối với chuột/bàn phím/remote Bluetooth khác — tắt Bluetooth thiết bị đó rồi thử lại."
+                    )
+                }
+            }
+            pendingConnectRunnable = runnable
+            timeoutHandler.postDelayed(runnable, CONNECT_TIMEOUT_MS)
         } catch (e: Exception) {
             listener?.onError("Không kết nối được tới thiết bị: ${e.message}")
         }
     }
+
+    @SuppressLint("MissingPermission")
+    private fun safeDeviceLabel(device: BluetoothDevice): String =
+        try { device.name ?: device.address } catch (e: SecurityException) { device.address }
 
     fun bondedDevices(): Set<BluetoothDevice> {
         return try {
