@@ -23,6 +23,7 @@ class HidManager(private val context: Context) {
 
     private var hidDevice: BluetoothHidDevice? = null
     private var connectedDevice: BluetoothDevice? = null
+    val isConnected: Boolean get() = connectedDevice != null
     var listener: Listener? = null
 
     private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
