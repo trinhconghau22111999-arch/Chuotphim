@@ -54,17 +54,17 @@
         android:fillColor="#00BCD4"
         android:pathData="M22,66 A2,2 0 1,0 21.99,66 Z" />
 
-    <!-- Điện thoại (dưới-trái) -->
+    <!-- Điện thoại (dưới-trái, đã kéo vào trong 1 chút để không sát mép icon) -->
     <path
         android:fillColor="#26313A"
-        android:pathData="M4,64 H26 A5,5 0 0 1 31,69 V108 H0 V69 A5,5 0 0 1 4,64 Z" />
+        android:pathData="M10,58 H32 A5,5 0 0 1 37,63 V102 H6 V63 A5,5 0 0 1 10,58 Z" />
     <!-- Màn hình điện thoại -->
     <path
         android:fillColor="#4FC3F7"
-        android:pathData="M6,72 H25 V102 H6 Z" />
+        android:pathData="M12,66 H31 V96 H12 Z" />
     <!-- Camera điện thoại -->
     <path
         android:fillColor="#0D1418"
-        android:pathData="M10,68 A1.4,1.4 0 1,0 9.99,68 Z" />
+        android:pathData="M16,62 A1.4,1.4 0 1,0 15.99,62 Z" />
 
 </vector>
