@@ -62,6 +62,27 @@ class SyncInputController(
         sentText = ""
     }
 
+    /** Xoá TOÀN BỘ nội dung, gửi đủ số BACKSPACE để xoá luôn phần đã gửi lên TV —
+     *  dùng cho nút bấm "xoá" tường minh của người dùng (khác với reset(), vốn chỉ
+     *  dọn ô nhập tại app mà không đụng gì tới TV). */
+    fun clearAll() {
+        repeat(sentText.length) { hidManager.sendSpecialKey("BACKSPACE") }
+        setTextSilently("")
+        sentText = ""
+    }
+
+    /** Chèn 1 dấu cách vào cuối văn bản hiện tại nếu chưa có sẵn khoảng trắng —
+     *  gọi trước khi bắt đầu 1 phiên nhập giọng nói MỚI, để câu nói tiếp theo
+     *  không bị dính liền vào chữ đã có trước đó (đi qua watcher bình thường nên
+     *  dấu cách này cũng được gửi lên TV, giữ đồng bộ). */
+    fun ensureTrailingSpace() {
+        val text = input.text ?: return
+        if (text.isNotEmpty() && !text.last().isWhitespace()) {
+            text.append(' ')
+            input.setSelection(text.length)
+        }
+    }
+
     /** Chèn văn bản tại vị trí con trỏ hiện tại (dùng cho paste). Watcher tự lo gửi lên TV. */
     fun insertText(text: String) {
         val start = input.selectionStart.coerceAtLeast(0)

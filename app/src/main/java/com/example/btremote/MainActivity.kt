@@ -334,7 +334,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupSyncInputBar() {
         findViewById<MaterialButton>(R.id.btnPasteClipboard).setOnClickListener { pasteClipboard() }
-        findViewById<MaterialButton>(R.id.btnClearSyncInput).setOnClickListener { syncInput.reset() }
+        findViewById<MaterialButton>(R.id.btnClearSyncInput).setOnClickListener { syncInput.clearAll() }
     }
 
     private fun toggleVirtualKeyboard() {
@@ -419,6 +419,9 @@ class MainActivity : AppCompatActivity() {
         // luôn sai nên luôn gọi thẳng, không kiểm tra.
         applyLayoutState(keyboardVisible = true)
         syncInputField.requestFocus()
+        // Chèn khoảng trắng trước khi nghe câu mới, tránh dính liền vào chữ đã có
+        // (xem ensureTrailingSpace() trong SyncInputController).
+        syncInput.ensureTrailingSpace()
         voiceStartPos = syncInput.cursorPosition()
         voiceInput.start()
         updateVoiceButtonVisualState(listening = true)

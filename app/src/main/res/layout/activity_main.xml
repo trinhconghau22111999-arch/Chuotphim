@@ -277,7 +277,7 @@
             app:iconSize="16dp"
             android:backgroundTint="@color/sync_bar_btn"
             android:text=""
-            android:contentDescription="Xoá ô nhập (không xoá chữ đã gửi trên TV)" />
+            android:contentDescription="Xoá toàn bộ chữ (cả trên máy đang điều khiển)" />
 
     </LinearLayout>
 
