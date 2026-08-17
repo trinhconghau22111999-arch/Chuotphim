@@ -214,7 +214,7 @@ class MainActivity : AppCompatActivity() {
             // Khi kết nối được thiết bị = chắc chắn đã registered thành công
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
-            statusText.text = if (connected) "Đang kết nối tới: ${safeName(device)}"
+            statusText.text = if (connected) "Đã kết nối tới: ${safeName(device)}"
                 else "Chưa kết nối thiết bị nào — Hãy nhấn phím bên dưới để chọn thiết bị kết nối."
         }
 
