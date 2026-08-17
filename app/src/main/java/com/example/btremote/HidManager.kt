@@ -7,8 +7,14 @@ import android.bluetooth.BluetoothHidDevice
 import android.bluetooth.BluetoothHidDeviceAppQosSettings
 import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import androidx.core.content.ContextCompat
 import java.util.concurrent.Executor
 
 @SuppressLint("MissingPermission")
@@ -134,6 +140,8 @@ class HidManager(private val context: Context) {
     }
 
     fun unregister() {
+        mainHandler.removeCallbacksAndMessages(null)
+        cleanupBondReceiver()
         try {
             hidDevice?.unregisterApp()
         } catch (e: Exception) {
@@ -141,12 +149,116 @@ class HidManager(private val context: Context) {
         }
     }
 
-    /** Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong danh sách bonded devices. */
+    /**
+     * Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong
+     * danh sách bonded devices, hoặc từ autoReconnectLastDevice().
+     *
+     * Vấn đề thực tế: nếu thiết bị đích trước đó đã từng pair Bluetooth THƯỜNG với
+     * điện thoại này (vd nhận diện là "điện thoại" để nghe gọi/phát nhạc, không
+     * phải để làm bàn phím/chuột HID), 1 số máy sẽ từ chối kết nối HID vì cặp pair
+     * cũ không đúng "vai trò". Cách xử lý: sau 1 khoảng chờ, nếu vẫn chưa kết nối
+     * được, TỰ ÂM THẦM hủy pair rồi pair lại rồi kết nối lại đúng 1 lần — không hỏi,
+     * không toast, không thông báo gì cho người dùng (xem maybeAutoRepair bên dưới).
+     */
     fun connectTo(device: BluetoothDevice) {
+        // Mỗi lần user/hệ thống chủ động gọi kết nối tới thiết bị này là 1 "lượt"
+        // mới -> cho phép thử auto re-pair lại từ đầu (guard chỉ chặn LẶP trong
+        // cùng 1 lượt, không chặn giữa các lượt khác nhau).
+        if (autoRepairTriedForAddress == device.address) autoRepairTriedForAddress = null
+        doConnect(device)
+        mainHandler.postDelayed({ maybeAutoRepair(device) }, CONNECT_CHECK_DELAY_MS)
+    }
+
+    private fun doConnect(device: BluetoothDevice) {
         try {
             hidDevice?.connect(device)
         } catch (e: Exception) {
-            listener?.onError("Không kết nối được tới thiết bị: ${e.message}")
+            // Không gọi listener?.onError ở đây: lỗi ở bước này có thể tự phục hồi
+            // qua auto re-pair bên dưới, báo lỗi ngay sẽ gây thông báo giả (false
+            // alarm) trong lúc app đang tự xử lý.
+            Log.w(TAG, "connect() lỗi (bỏ qua, chờ auto re-pair tự xử lý): ${e.message}")
+        }
+    }
+
+    private var autoRepairTriedForAddress: String? = null
+    private var bondReceiver: BroadcastReceiver? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    private fun maybeAutoRepair(device: BluetoothDevice) {
+        if (connectedDevice?.address == device.address) return // đã kết nối được rồi
+        if (autoRepairTriedForAddress == device.address) return // đã thử với thiết bị này trong lượt này rồi
+        autoRepairTriedForAddress = device.address
+        silentUnpairAndRepair(device)
+    }
+
+    /** Hủy pair -> đợi hệ thống báo hủy xong -> pair lại -> đợi pair xong -> kết
+     *  nối HID lại. Toàn bộ diễn ra im lặng, không có UI/toast nào cho người dùng. */
+    @SuppressLint("MissingPermission")
+    private fun silentUnpairAndRepair(device: BluetoothDevice) {
+        cleanupBondReceiver()
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                val changed: BluetoothDevice? =
+                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                if (changed?.address != device.address) return
+                when (intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1)) {
+                    BluetoothDevice.BOND_NONE -> {
+                        // Vừa hủy pair xong -> pair lại ngay.
+                        try {
+                            device.createBond()
+                        } catch (e: Exception) {
+                            Log.w(TAG, "createBond() lỗi (bỏ qua): ${e.message}")
+                            cleanupBondReceiver()
+                        }
+                    }
+                    BluetoothDevice.BOND_BONDED -> {
+                        // Pair lại xong -> thử kết nối HID lại đúng 1 lần nữa.
+                        cleanupBondReceiver()
+                        doConnect(device)
+                    }
+                }
+            }
+        }
+        bondReceiver = receiver
+        try {
+            // Android 13+ (targetSdk 34) bắt buộc chỉ rõ cờ exported khi
+            // registerReceiver() bằng code, không thì ném SecurityException lúc
+            // chạy. Đây là broadcast hệ thống (đổi trạng thái pair), không cần
+            // app khác gửi được tới nên dùng NOT_EXPORTED là đúng và an toàn.
+            ContextCompat.registerReceiver(
+                context, receiver, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED),
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "registerReceiver lỗi (bỏ qua): ${e.message}")
+            bondReceiver = null
+            return
+        }
+        // Phòng khi quá trình hủy pair/pair lại bị kẹt (không có phản hồi nào từ hệ
+        // thống) -> tự dọn dẹp receiver sau 1 khoảng đủ dài, vẫn hoàn toàn im lặng.
+        mainHandler.postDelayed({ cleanupBondReceiver() }, REPAIR_TIMEOUT_MS)
+        removeBondReflect(device)
+    }
+
+    private fun cleanupBondReceiver() {
+        val r = bondReceiver ?: return
+        bondReceiver = null
+        try {
+            context.unregisterReceiver(r)
+        } catch (e: Exception) {
+            // Đã tự hủy đăng ký hoặc chưa từng đăng ký -> bỏ qua.
+        }
+    }
+
+    /** BluetoothDevice.removeBond() không nằm trong SDK public — gọi qua reflection,
+     *  cách làm phổ biến và ổn định qua nhiều đời Android cho việc hủy pair thủ công. */
+    @SuppressLint("MissingPermission")
+    private fun removeBondReflect(device: BluetoothDevice) {
+        try {
+            device.javaClass.getMethod("removeBond").invoke(device)
+        } catch (e: Exception) {
+            Log.w(TAG, "removeBond() lỗi (bỏ qua): ${e.message}")
+            cleanupBondReceiver()
         }
     }
 
@@ -169,6 +281,7 @@ class HidManager(private val context: Context) {
         val device = bondedDevices().firstOrNull { it.address == address } ?: return
         connectTo(device)
     }
+
 
     // ---------- Gửi report chuột ----------
 
@@ -287,5 +400,11 @@ class HidManager(private val context: Context) {
     companion object {
         private const val TAG = "HidManager"
         private const val PREF_LAST_DEVICE = "last_connected_device_address"
+        // Chờ 4s sau connect() trước khi kết luận "chưa thấy kết nối" và cân nhắc
+        // auto re-pair — đủ thời gian cho 1 kết nối HID bình thường thành công.
+        private const val CONNECT_CHECK_DELAY_MS = 4000L
+        // Nếu hủy pair/pair lại không có phản hồi gì sau 15s (kẹt) thì tự dọn dẹp,
+        // tránh giữ BroadcastReceiver mãi mãi.
+        private const val REPAIR_TIMEOUT_MS = 15000L
     }
 }
