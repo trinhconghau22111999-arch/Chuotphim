@@ -1,70 +1,70 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icon: điện thoại bên trái phát sóng Bluetooth sang TV bên phải -->
+<!-- Icon: TV lớn chiếm góc trên-phải, điện thoại nhỏ ở góc dưới-trái,
+     nối nhau bằng dải chấm tín hiệu (cast) màu teal -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Điện thoại (trái) -->
+    <!-- Viền TV (trái + dưới màn hình) -->
     <path
         android:fillColor="#26313A"
-        android:pathData="M22,28 H38 A5,5 0 0 1 43,33 V75 A5,5 0 0 1 38,80 H22 A5,5 0 0 1 17,75 V33 A5,5 0 0 1 22,28 Z" />
-    <!-- Màn hình điện thoại -->
-    <path
-        android:fillColor="#4FC3F7"
-        android:pathData="M20,36 H40 V68 H20 Z" />
-    <!-- Nút home điện thoại -->
-    <path
-        android:fillColor="#90A4AE"
-        android:pathData="M27,73 A3,3 0 1,0 33,73 A3,3 0 1,0 27,73 Z" />
-
-    <!-- Sóng Bluetooth (giữa) — ký hiệu BT cách điệu -->
-    <path
-        android:strokeColor="#00BCD4"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M50,46 L58,54 L50,62 M50,46 L50,62 M50,50 L56,54 L50,58" />
-
-    <!-- Mũi tên sang phải -->
-    <path
-        android:strokeColor="#00BCD4"
-        android:strokeWidth="2.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M63,54 L72,54 M68,50 L72,54 L68,58" />
-
-    <!-- TV (phải) -->
-    <path
-        android:fillColor="#26313A"
-        android:pathData="M76,34 H100 A4,4 0 0 1 104,38 V68 A4,4 0 0 1 100,72 H76 A4,4 0 0 1 72,68 V38 A4,4 0 0 1 76,34 Z" />
+        android:pathData="M28,0 H108 V59 H28 A6,6 0 0 1 22,53 V6 A6,6 0 0 1 28,0 Z" />
     <!-- Màn hình TV -->
     <path
-        android:fillColor="#EF5350"
-        android:pathData="M75,37 H101 V65 H75 Z" />
+        android:fillColor="#29B6F6"
+        android:pathData="M31,4 H108 V55 H31 Z" />
+    <!-- Ánh sáng phản chiếu trên màn hình -->
+    <path
+        android:fillColor="#4FC3F7"
+        android:fillAlpha="0.55"
+        android:pathData="M38,8 L51,8 L46,26 L34,20 Z" />
+
     <!-- Chân TV trái -->
     <path
         android:strokeColor="#90A4AE"
-        android:strokeWidth="3"
+        android:strokeWidth="3.4"
         android:strokeLineCap="round"
         android:fillColor="#00000000"
-        android:pathData="M81,72 L78,80" />
+        android:pathData="M43,59 L32,74" />
     <!-- Chân TV phải -->
     <path
         android:strokeColor="#90A4AE"
-        android:strokeWidth="3"
+        android:strokeWidth="3.4"
         android:strokeLineCap="round"
         android:fillColor="#00000000"
-        android:pathData="M95,72 L98,80" />
+        android:pathData="M88,59 L99,74" />
     <!-- Đế TV -->
     <path
         android:strokeColor="#90A4AE"
-        android:strokeWidth="3"
+        android:strokeWidth="4.2"
         android:strokeLineCap="round"
         android:fillColor="#00000000"
-        android:pathData="M75,80 L101,80" />
+        android:pathData="M30,76 L101,76" />
+
+    <!-- Chấm tín hiệu nối điện thoại với TV -->
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M33.5,52 A4.3,4.3 0 1,0 33.49,52 Z" />
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M27,60 A3,3 0 1,0 26.99,60 Z" />
+    <path
+        android:fillColor="#00BCD4"
+        android:pathData="M22,66 A2,2 0 1,0 21.99,66 Z" />
+
+    <!-- Điện thoại (dưới-trái) -->
+    <path
+        android:fillColor="#26313A"
+        android:pathData="M4,64 H26 A5,5 0 0 1 31,69 V108 H0 V69 A5,5 0 0 1 4,64 Z" />
+    <!-- Màn hình điện thoại -->
+    <path
+        android:fillColor="#4FC3F7"
+        android:pathData="M6,72 H25 V102 H6 Z" />
+    <!-- Camera điện thoại -->
+    <path
+        android:fillColor="#0D1418"
+        android:pathData="M10,68 A1.4,1.4 0 1,0 9.99,68 Z" />
 
 </vector>
