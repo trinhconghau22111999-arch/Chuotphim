@@ -66,6 +66,7 @@ class MainActivity : AppCompatActivity() {
     private var isKeyboardVisible = false
     private var lastManualKeyboardOpenAt = 0L
     private var voiceStartPos = 0
+    private var returnedFromBtSettings = false
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -331,9 +332,40 @@ class MainActivity : AppCompatActivity() {
 
     private fun openSystemBluetoothSettings() {
         try {
+            returnedFromBtSettings = true
             startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
         } catch (e: Exception) {
+            returnedFromBtSettings = false
             toast("Máy này không có trang Cài đặt Bluetooth để mở")
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (returnedFromBtSettings) {
+            returnedFromBtSettings = false
+            // Vừa quay về từ Settings Bluetooth (sau khi pair thiết bị mới).
+            // Nhắc user ngắt kết nối Bluetooth thường trước, rồi chọn thiết bị trong app.
+            AlertDialog.Builder(this)
+                .setTitle("Vừa ghép nối thiết bị mới?")
+                .setMessage(
+                    "Nếu bạn vừa ghép nối (pair) thiết bị mới trong Cài đặt Bluetooth, " +
+                    "hãy làm thêm 1 bước quan trọng:\n\n" +
+                    "1. Vào lại Cài đặt Bluetooth\n" +
+                    "2. Nhấn vào thiết bị vừa pair\n" +
+                    "3. Bấm \"Ngắt kết nối\" (Disconnect)\n" +
+                    "4. Quay lại app, bấm \"Chọn thiết bị\" để kết nối qua HID\n\n" +
+                    "Bỏ qua bước ngắt kết nối này sẽ khiến app không dùng được."
+                )
+                .setPositiveButton("Mở Cài đặt Bluetooth") { _, _ ->
+                    returnedFromBtSettings = true
+                    startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
+                }
+                .setNegativeButton("Đã ngắt rồi, chọn thiết bị") { _, _ ->
+                    showBondedDevicesDialogInternal()
+                }
+                .setCancelable(true)
+                .show()
         }
     }
 
