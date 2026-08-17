@@ -290,13 +290,10 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle("Lưu ý trước khi kết nối")
             .setMessage(
-                "Nếu điện thoại này đã từng ghép nối Bluetooth với TV/đầu thu " +
-                    "TRƯỚC ĐÂY (ví dụ ghép nối ngoài Cài đặt hệ thống hoặc bằng " +
-                    "app điều khiển khác), hãy vào Cài đặt Bluetooth của điện " +
-                    "thoại, XOÁ (hủy ghép nối) thiết bị đó trước, rồi quay lại " +
-                    "đây chọn thiết bị để kết nối lại từ trong app.\n\n" +
-                    "Bỏ qua bước này có thể khiến app không kết nối được hoặc " +
-                    "kết nối chập chờn."
+                "Nếu điện thoại này đã từng ghép nối Bluetooth với TV/Đầu thu trước đây, " +
+                    "hãy vào cài đặt Bluetooth của thiết bị đó chọn hủy ghép nối rồi quay lại " +
+                    "đây kết nối từ trong app.\n\n" +
+                    "Bỏ qua bước này có thể khiến app không hoạt động."
             )
             .setPositiveButton("Đã hiểu, tiếp tục") { _, _ -> onContinue() }
             .setCancelable(false)
