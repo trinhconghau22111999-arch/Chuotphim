@@ -15,6 +15,12 @@ object KeyMapper {
         "BACKSPACE" to 0x2A,
         "ESC" to 0x29,
         "HOME" to 0x4A,
+        // Dùng để đảo trạng thái Caps Lock trên máy nhận (bật <-> tắt) — xem
+        // MainActivity.setupNavRow(): giữ nút bàn phím ảo để gửi phím này, vì
+        // app không đọc được trạng thái Caps Lock hiện tại của máy nhận (chưa
+        // khai báo Output Report LED trong HidDescriptor) nên không thể tự
+        // phát hiện và sửa; chỉ có thể cho người dùng chủ động đảo lại.
+        "CAPSLOCK" to 0x39,
     )
 
     /** Trả về (keycode, canGõĐược). canGõĐược=false nghĩa là ký tự này chưa hỗ trợ. */

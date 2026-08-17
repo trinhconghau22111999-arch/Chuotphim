@@ -115,7 +115,7 @@
                 app:iconSize="20dp"
                 android:backgroundTint="@color/key_teal"
                 app:iconTint="@color/icon_on_teal"
-                android:contentDescription="Mở bàn phím để gõ chữ" />
+                android:contentDescription="Mở bàn phím để gõ chữ. Giữ để gửi Caps Lock" />
 
         </LinearLayout>
 

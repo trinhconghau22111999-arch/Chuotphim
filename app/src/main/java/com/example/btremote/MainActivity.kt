@@ -261,6 +261,15 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<MaterialButton>(R.id.btnBack).setOnClickListener { hidManager.sendSpecialKey("ESC") }
         btnOpenKeyboard.setOnClickListener { toggleVirtualKeyboard() }
+        // Giữ nút bàn phím ảo: gửi phím Caps Lock (bật <-> tắt) tới máy nhận.
+        // App không đọc được trạng thái Caps Lock hiện tại của máy nhận nên
+        // không thể tự phát hiện/sửa lỗi gõ hoa ra thường (và ngược lại) khi
+        // Caps Lock ở máy nhận đang bật sẵn — bấm giữ nút này 1 lần để đảo lại.
+        btnOpenKeyboard.setOnLongClickListener {
+            hidManager.sendSpecialKey("CAPSLOCK")
+            toast("Đã gửi Caps Lock — nếu gõ hoa/thường vẫn ngược, giữ nút này thêm 1 lần nữa để đảo lại")
+            true
+        }
     }
 
     private fun setupVolumeRow() {
