@@ -315,7 +315,7 @@ class MainActivity : AppCompatActivity() {
         val bonded = hidManager.bondedDevices().toList()
         val scanLabel = "🔍  Quét thiết bị mới…"
         val items = (bonded.map { safeName(it) } + scanLabel).toTypedArray()
-        val title = if (hidManager.isConnected) "Chọn lại thiết bị để kết nối" else "Chọn thiết bị để kết nối"
+        val title = if (hidManager.isConnected) "Chọn lại thiết bị để nối kết" else "Chọn thiết bị để nối kết"
         AlertDialog.Builder(this)
             .setTitle(title)
             .setItems(items) { _, which ->
