@@ -713,33 +713,22 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
-                if (keyboardVisible) {
-                    // QUAN TRỌNG: trước đây syncInputBar được ghim vào rootContainer
-                    // (FrameLayout.LayoutParams, gravity=bottom) TÁCH RỜI khỏi
-                    // mainColumn. Vì windowSoftInputMode="adjustResize" thu nhỏ CẢ
-                    // rootContainer LẪN mainColumn xuống đúng vùng hiển thị còn lại
-                    // phía trên bàn phím, cả 2 cùng co lại NGANG NHAU -> đáy
-                    // mainColumn (rowMedia) và đáy rootContainer (syncInputBar,
-                    // gravity=bottom) trùng đúng 1 vị trí -> syncInputBar (khai báo
-                    // sau mainColumn trong XML nên vẽ đè lên trên) CHE MẤT rowMedia/
-                    // rowVolume thay vì nằm gọn phía dưới chúng.
-                    // Sửa: gắn syncInputBar làm con TRỰC TIẾP của mainColumn, ngay
-                    // sau rowMedia, dùng LinearLayout.LayoutParams bình thường. Nhờ
-                    // vậy nó xếp NGAY SAU rowMedia trong dòng chảy dọc, 3 hàng phím
-                    // (rowNav/rowVolume/rowMedia) luôn nằm phía trên nó và phía trên
-                    // bàn phím ảo, không còn bị đè/che nữa.
-                    mainColumn.addView(
-                        syncInputBar,
-                        LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-                    )
-                    syncInputField.layoutParams =
-                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    syncInputBar.visibility = View.VISIBLE
-                } else {
-                    syncInputBar.visibility = View.GONE
-                }
+                // syncInputBar LUÔN ghim cố định vào rootContainer (FrameLayout,
+                // gravity=bottom) — TÁCH RỜI hoàn toàn khỏi mainColumn, không bao
+                // giờ chèn vào bên trong LinearLayout dọc nữa. Nhờ vậy trackpad
+                // (weight=1) và toàn bộ mainColumn giữ nguyên kích thước gốc, không
+                // bị co lại nhường chỗ khi mở bàn phím — bàn phím ảo (và
+                // syncInputBar) chỉ nổi đè lên trên như overlay bình thường, đúng ý
+                // muốn "bàn phím nổi lên trên, không đẩy/co gì cả".
+                rootContainer.addView(
+                    syncInputBar,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { gravity = android.view.Gravity.BOTTOM }
+                )
+                syncInputField.layoutParams =
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                syncInputBar.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
             }
         }
     }
