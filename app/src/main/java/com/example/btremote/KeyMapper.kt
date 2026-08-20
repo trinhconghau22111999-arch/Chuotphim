@@ -8,13 +8,13 @@ object KeyMapper {
 
     const val MOD_SHIFT: Int = 0x02
 
-    // Phím đặc biệt dùng cho các nút cứng — chỉ khai báo đúng 4 phím đang thực sự
-    // được gọi tới (ENTER/BACKSPACE qua SyncInputController, HOME/ESC qua nút Home/Back).
+    // Phím đặc biệt dùng cho các nút cứng — chỉ còn ENTER/BACKSPACE (qua
+    // SyncInputController). HOME/ESC đã bỏ khỏi đây: 2 nút Home/Back giờ gửi qua
+    // Consumer Control (AC Home/AC Back trong HidDescriptor) thay vì phím bàn phím
+    // thường, xem HidManager.sendHome()/sendBack() để biết lý do.
     val SPECIAL: Map<String, Int> = mapOf(
         "ENTER" to 0x28,
         "BACKSPACE" to 0x2A,
-        "ESC" to 0x29,
-        "HOME" to 0x4A,
     )
 
     /** Trả về (keycode, canGõĐược). canGõĐược=false nghĩa là ký tự này chưa hỗ trợ. */

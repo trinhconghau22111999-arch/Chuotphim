@@ -37,6 +37,13 @@ object HidDescriptor {
     // sendConsumerControl() ở HidManager tự tách bitmask 16-bit này thành đúng
     // 2 byte khi gửi report, xem giải thích chi tiết ở đó.
     const val CONSUMER_PLAY_PAUSE: Int = 0x100
+    // Home/Back HỆ THỐNG — khác hoàn toàn phím Esc/Home của bàn phím thường.
+    // Đây là 2 usage "Application Control" chuẩn mà remote Bluetooth thật (Android
+    // TV/Google TV) dùng để về Home / lùi lại: Android map thẳng usage này vào hành
+    // động hệ thống bất kể app nào đang mở, không phụ thuộc app có lắng nghe phím
+    // Esc/Home hay không (đây chính là lý do bản cũ "lúc được lúc không").
+    const val CONSUMER_AC_HOME: Int = 0x200  // bit 9
+    const val CONSUMER_AC_BACK: Int = 0x400  // bit 10
 
     val DESCRIPTOR: ByteArray = byteArrayOf(
         // ---- Keyboard (Report ID 1) ----
@@ -110,7 +117,7 @@ object HidDescriptor {
         0x15, 0x00,             //   Logical Minimum (0)
         0x25, 0x01,             //   Logical Maximum (1)
         0x75, 0x01,             //   Report Size (1)
-        0x95.toByte(), 0x09,    //   Report Count (9) -> 9 nút thật
+        0x95.toByte(), 0x0B,    //   Report Count (11) -> 11 nút thật
         0x09, 0xE9.toByte(),    //   Usage (Volume Increment)
         0x09, 0xEA.toByte(),    //   Usage (Volume Decrement)
         0x09, 0xE2.toByte(),    //   Usage (Mute)
@@ -120,10 +127,12 @@ object HidDescriptor {
         0x09, 0xB4.toByte(),    //   Usage (Rewind)
         0x09, 0xB3.toByte(),    //   Usage (Fast Forward)
         0x09, 0xCD.toByte(),    //   Usage (Play/Pause)
-        0x81.toByte(), 0x02,    //   Input (Data,Var,Abs) -> 9 bit thật
+        0x0A, 0x23, 0x02,       //   Usage (AC Home)  -- usage 2 byte (0x0223)
+        0x0A, 0x24, 0x02,       //   Usage (AC Back)  -- usage 2 byte (0x0224)
+        0x81.toByte(), 0x02,    //   Input (Data,Var,Abs) -> 11 bit thật
         0x95.toByte(), 0x01,    //   Report Count (1)
-        0x75, 0x07,             //   Report Size (7)
-        0x81.toByte(), 0x01,    //   Input (Constant) -> 7 bit đệm, đủ tròn 2 byte
+        0x75, 0x05,             //   Report Size (5)
+        0x81.toByte(), 0x01,    //   Input (Constant) -> 5 bit đệm, đủ tròn 2 byte
         0xC0.toByte()           // End Collection
     )
 }

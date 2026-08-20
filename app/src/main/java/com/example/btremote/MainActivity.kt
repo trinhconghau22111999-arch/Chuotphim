@@ -9,7 +9,6 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.speech.SpeechRecognizer
@@ -27,6 +26,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 
 /**
@@ -422,10 +423,13 @@ class MainActivity : AppCompatActivity() {
             setOnLongClickListener { showUnpairNoticeDialog { showBondedDevicesDialogInternal() }; true }
         }
         findViewById<MaterialButton>(R.id.btnHome).setOnClickListener {
-            hidManager.sendSpecialKey("HOME")
+            hidManager.sendHome()
             syncInput.reset()
         }
-        findViewById<MaterialButton>(R.id.btnBack).setOnClickListener { hidManager.sendSpecialKey("ESC") }
+        findViewById<MaterialButton>(R.id.btnBack).setOnClickListener {
+            hidManager.sendBack()
+            syncInput.reset()
+        }
         btnOpenKeyboard.setOnClickListener { toggleVirtualKeyboard() }
     }
 
@@ -475,17 +479,24 @@ class MainActivity : AppCompatActivity() {
         imm.showSoftInput(syncInputField, InputMethodManager.SHOW_FORCED)
     }
 
-    /** Theo dõi chiều cao bàn phím ảo hệ thống để tự dựng lại layout khi nó hiện/ẩn. */
+    /** Theo dõi bàn phím ảo hệ thống bằng WindowInsetsCompat (API insets chuẩn của
+     *  Android) — KHÔNG còn tự đo chênh lệch chiều cao màn hình bằng tay như bản
+     *  cũ. Bản cũ dùng getWindowVisibleDisplayFrame() để suy ra chiều cao bàn
+     *  phím, nhưng windowSoftInputMode="adjustResize" (khai trong Manifest) đã tự
+     *  co cửa sổ lại TRƯỚC KHI đo -> phép trừ ra gần như bằng 0 -> app tưởng bàn
+     *  phím chưa mở dù nó đang che ngay trên các hàng nút, và vì cách adjustResize
+     *  co cửa sổ không đồng nhất giữa các máy/bản Android nên lỗi lúc có lúc không.
+     *  Cách mới: hỏi thẳng hệ thống "bàn phím có đang hiện không" (isVisible) và
+     *  "còn bao nhiêu px chưa được adjustResize tự trừ" (imeHeight) rồi tự bù nốt
+     *  phần còn thiếu bằng padding — luôn đúng bất kể adjustResize có hoạt động
+     *  đúng trên máy đó hay không (nếu adjustResize đã lo hết, imeHeight = 0,
+     *  không đẩy dư; nếu adjustResize không co được, imeHeight chính là phần còn
+     *  thiếu, tự bù đủ để đẩy các hàng nút lên trên bàn phím). */
     private fun setupKeyboardAutoLayout() {
         applyLayoutState(keyboardVisible = false)
-        val rootView = mainColumn.rootView
-        rootView.viewTreeObserver.addOnGlobalLayoutListener {
-            val visibleFrame = Rect()
-            rootView.getWindowVisibleDisplayFrame(visibleFrame)
-            val screenHeight = rootView.height
-            if (screenHeight <= 0) return@addOnGlobalLayoutListener
-            val keypadHeight = screenHeight - visibleFrame.bottom
-            val visibleNow = keypadHeight > screenHeight * 0.15
+        ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { view, insets ->
+            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val visibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
             // Bỏ qua lần đọc sai ngay sau khi TỰ mở bàn phím (bàn phím ảo thật chưa
             // kịp trượt lên trong vài khung hình đầu).
             val justOpenedManually = isKeyboardVisible &&
@@ -493,7 +504,10 @@ class MainActivity : AppCompatActivity() {
             if (visibleNow != isKeyboardVisible && !(!visibleNow && justOpenedManually)) {
                 applyLayoutState(visibleNow)
             }
+            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, imeHeight)
+            insets
         }
+        ViewCompat.requestApplyInsets(rootContainer)
     }
 
     private fun pasteClipboard() {

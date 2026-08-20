@@ -203,6 +203,13 @@ class HidManager(private val context: Context) {
     fun sendFastForward() = sendConsumerControl(HidDescriptor.CONSUMER_FAST_FORWARD)
     fun sendPlayPause() = sendConsumerControl(HidDescriptor.CONSUMER_PLAY_PAUSE)
 
+    /** Home/Back hệ thống — gửi qua Consumer Control (AC Home / AC Back) giống hệt
+     *  remote Bluetooth thật, thay vì phím Esc/Home của bàn phím thường (KeyMapper
+     *  cũ) vốn chỉ có tác dụng với 1 số app có ô nhập liệu, không phải hành động
+     *  Home/Back hệ thống -> đây là lý do bản cũ "lúc được lúc không". */
+    fun sendHome() = sendConsumerControl(HidDescriptor.CONSUMER_AC_HOME)
+    fun sendBack() = sendConsumerControl(HidDescriptor.CONSUMER_AC_BACK)
+
     /** Report Consumer Control giờ dài 2 byte (16 bit, xem HidDescriptor) nên bitmask
      *  cũng tách làm 2: byte0 = 8 bit thấp (các phím cũ), byte1 = bit cao nhất còn lại
      *  (hiện chỉ có Play/Pause ở bit thứ 9) — các hằng số CONSUMER_* vẫn giữ nguyên
