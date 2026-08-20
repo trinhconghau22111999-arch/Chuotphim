@@ -163,6 +163,34 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    /** Quay lại từ đa nhiệm (chuyển app khác rồi mở lại, KHÔNG vuốt bỏ khỏi đa
+     *  nhiệm) không hề gọi lại onCreate() -> nếu hệ thống đã ngầm ngắt profile
+     *  HID lúc app chạy nền (thường gặp trên các máy có chế độ tiết kiệm pin
+     *  mạnh), app cũ đứng im vì không có chỗ nào tự phát hiện + đăng ký/kết nối
+     *  lại. Chỉ vuốt bỏ hẳn app (kill process -> onDestroy() -> mở lại chạy
+     *  onCreate() từ đầu) mới tự hoạt động lại được.
+     *  Sửa: mỗi lần quay lại foreground đều tự kiểm tra và tự đăng ký/kết nối
+     *  lại y hệt lúc mở app từ đầu, coi mọi lần quay lại là "vào lại từ đầu". */
+    override fun onResume() {
+        super.onResume()
+        if (wasRegisteredBefore()) recheckHidConnectionOnResume()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun recheckHidConnectionOnResume() {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        // Không tự bật Bluetooth hộ khi chỉ đang resume (tránh phiền/bất ngờ cho
+        // người dùng) — chỉ tự hồi phục nếu Bluetooth vẫn đang bật sẵn.
+        if (adapter == null || !adapter.isEnabled) return
+        if (!hidManager.isRegistered) {
+            // Proxy HID đã mất do hệ thống ngắt lúc chạy nền -> đăng ký lại từ đầu,
+            // y hệt luồng ensureBluetoothEnabledThenRegister() lúc mở app.
+            hidManager.start()
+        } else if (!hidManager.isConnected) {
+            hidManager.autoReconnectLastDevice()
+        }
+    }
+
     private fun startProximityConnectorIfNeeded() {
         // Chỉ cần tạo nếu có >1 thiết bị đã pair — 1 thiết bị thì không có gì để fallback sang.
         if (hidManager.bondedDevices().size <= 1) return

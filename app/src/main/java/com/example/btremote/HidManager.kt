@@ -30,6 +30,11 @@ class HidManager(private val context: Context) {
     private var pendingIntentionalDisconnectAddress: String? = null
     val isConnected: Boolean get() = connectedDevice != null
     val currentConnectedAddress: String? get() = connectedDevice?.address
+    // true nếu app còn giữ proxy HID hợp lệ với hệ thống (đã registerApp thành
+    // công và chưa bị huỷ). Khi quay lại từ đa nhiệm, nếu hệ thống đã ngầm ngắt
+    // profile lúc chạy nền (onServiceDisconnected -> hidDevice = null), giá trị
+    // này về false -> MainActivity biết cần đăng ký lại từ đầu (xem onResume()).
+    val isRegistered: Boolean get() = hidDevice != null
     var listener: Listener? = null
 
     private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
