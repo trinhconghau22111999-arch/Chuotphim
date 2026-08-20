@@ -675,13 +675,35 @@ class MainActivity : AppCompatActivity() {
         isKeyboardVisible = keyboardVisible
         mainColumn.removeAllViews()
 
-        // LUÔN gỡ syncInputBar khỏi cha hiện tại trước (dù đang ở mainColumn hay
-        // rootContainer) rồi mới gắn lại đúng chỗ bên dưới theo từng chế độ. Nếu
-        // không gỡ tay, addView() ở 1 view đã có cha sẵn sẽ ném
+        // LUÔN gỡ syncInputBar/topBar khỏi cha hiện tại trước (dù đang ở mainColumn
+        // hay rootContainer) rồi mới gắn lại đúng chỗ bên dưới theo từng chế độ.
+        // Nếu không gỡ tay, addView() ở 1 view đã có cha sẵn sẽ ném
         // IllegalStateException ("The specified child already has a parent").
         (syncInputBar.parent as? android.view.ViewGroup)?.removeView(syncInputBar)
+        (topBar.parent as? android.view.ViewGroup)?.removeView(topBar)
 
         val fillRemaining = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+
+        // topBar (dòng trạng thái kết nối) KHÔNG còn là con của mainColumn nữa —
+        // trước đây nó nằm CHUNG hàng với trackpad (weight=1) trong LinearLayout
+        // dọc, nên mỗi lần dòng trạng thái đổi độ dài (1 dòng <-> 3 dòng, ẩn/hiện)
+        // là trackpad phải co giãn bù lại theo, khiến trackpad + 3 hàng nút cảm
+        // giác "nhảy"/xê dịch theo nội dung phía trên.
+        // Sửa: gắn topBar làm banner NỔI ĐÈ riêng lên đỉnh rootContainer (index 1,
+        // ngay sau mainColumn — vẫn nằm DƯỚI 2 nút tròn nổi và các overlay khác vì
+        // chúng khai báo sau trong XML nên luôn ở z-order cao hơn). Nhờ tách hẳn
+        // khỏi mainColumn, topBar đổi kích thước/nội dung thế nào cũng không còn
+        // ảnh hưởng gì tới trackpad hay 3 hàng nút — cả khối trackpad + rowNav +
+        // rowVolume + rowMedia giữ kích thước/vị trí CỐ ĐỊNH tuyệt đối, ghim đáy
+        // màn hình, không xê dịch dù nội dung trên (topBar) thay đổi thế nào.
+        rootContainer.addView(
+            topBar,
+            1,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply { gravity = android.view.Gravity.TOP }
+        )
+        topBar.visibility = if (fullscreenMode == FullscreenMode.NONE) View.VISIBLE else View.GONE
 
         when (fullscreenMode) {
             FullscreenMode.MOUSE -> {
@@ -709,7 +731,6 @@ class MainActivity : AppCompatActivity() {
                 trackpad.layoutParams = fillRemaining
                 mainColumn.addView(trackpad)
                 mainColumn.addView(divider)
-                mainColumn.addView(topBar)
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
