@@ -507,23 +507,14 @@ class MainActivity : AppCompatActivity() {
         imm.showSoftInput(syncInputField, InputMethodManager.SHOW_FORCED)
     }
 
-    /** Theo dõi bàn phím ảo hệ thống bằng WindowInsetsCompat (API insets chuẩn của
-     *  Android) — KHÔNG còn tự đo chênh lệch chiều cao màn hình bằng tay như bản
-     *  cũ. Bản cũ dùng getWindowVisibleDisplayFrame() để suy ra chiều cao bàn
-     *  phím, nhưng windowSoftInputMode="adjustResize" (khai trong Manifest) đã tự
-     *  co cửa sổ lại TRƯỚC KHI đo -> phép trừ ra gần như bằng 0 -> app tưởng bàn
-     *  phím chưa mở dù nó đang che ngay trên các hàng nút, và vì cách adjustResize
-     *  co cửa sổ không đồng nhất giữa các máy/bản Android nên lỗi lúc có lúc không.
-     *  Cách mới: hỏi thẳng hệ thống "bàn phím có đang hiện không" (isVisible) và
-     *  "còn bao nhiêu px chưa được adjustResize tự trừ" (imeHeight) rồi tự bù nốt
-     *  phần còn thiếu bằng padding — luôn đúng bất kể adjustResize có hoạt động
-     *  đúng trên máy đó hay không (nếu adjustResize đã lo hết, imeHeight = 0,
-     *  không đẩy dư; nếu adjustResize không co được, imeHeight chính là phần còn
-     *  thiếu, tự bù đủ để đẩy các hàng nút lên trên bàn phím). */
+    /** Theo dõi bàn phím ảo hệ thống bằng WindowInsetsCompat để biết lúc nào cần
+     *  hiện/ẩn ô "Đang gõ trên TV" — CHỈ để cập nhật UI, không đụng vào layout.
+     *  windowSoftInputMode="adjustNothing" (khai trong Manifest) đảm bảo cửa sổ
+     *  không tự co/pan lại: bàn phím ảo tự nổi lên trên cùng và đè lên các hàng
+     *  nút bên dưới, đúng kiểu overlay thông thường thay vì đẩy nội dung lên. */
     private fun setupKeyboardAutoLayout() {
         applyLayoutState(keyboardVisible = false)
-        ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { view, insets ->
-            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+        ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { _, insets ->
             val visibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
             // Bỏ qua lần đọc sai ngay sau khi TỰ mở bàn phím (bàn phím ảo thật chưa
             // kịp trượt lên trong vài khung hình đầu).
@@ -532,7 +523,6 @@ class MainActivity : AppCompatActivity() {
             if (visibleNow != isKeyboardVisible && !(!visibleNow && justOpenedManually)) {
                 applyLayoutState(visibleNow)
             }
-            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, imeHeight)
             insets
         }
         ViewCompat.requestApplyInsets(rootContainer)
