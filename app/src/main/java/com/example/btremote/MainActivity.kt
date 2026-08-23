@@ -26,6 +26,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 
@@ -80,6 +81,11 @@ class MainActivity : AppCompatActivity() {
     private var isImeActuallyVisible = false
     private var imeHeightPx = 0        // chiều cao bàn phím tính từ đáy màn hình
     private var rowsHeightPx = 0       // chiều cao 3 hàng nút tính từ đáy màn hình (cache)
+    // Từ khi bật edge-to-edge (setDecorFitsSystemWindows=false), rootContainer được padding
+    // đúng bằng inset thanh điều hướng hệ thống — bottomMargin của floatBar lại tính trong
+    // phạm vi ĐÃ trừ padding đó, nên phải trừ giá trị này khỏi imeHeightPx thì mới ra đúng
+    // khoảng cách "ngay trên bàn phím" (nếu không ô gõ sẽ bị đẩy lên cao hơn cần thiết).
+    private var systemBarsBottomPx = 0
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -124,6 +130,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashHandler.install(this)
         super.onCreate(savedInstanceState)
+        // Bắt buộc phải tắt "decor fits system windows" thì ViewCompat.setOnApplyWindowInsetsListener
+        // mới nhận được đúng WindowInsetsCompat.Type.ime() (chiều cao bàn phím ảo thật) khi
+        // windowSoftInputMode="adjustNothing" — thiếu dòng này là nguyên nhân khiến imeHeightPx
+        // luôn = 0 hoặc không cập nhật, làm ô gõ đồng bộ (floatBar) không bao giờ trồi lên đúng
+        // ngay trên bàn phím mà đứng lì ở vị trí cache cũ (vd tuột lên đầu màn hình).
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
 
         showLastCrashIfAny()
@@ -472,10 +484,19 @@ class MainActivity : AppCompatActivity() {
 
     /** Lắng nghe sự kiện bàn phím ảo hệ thống để cập nhật vị trí cửa sổ nổi. */
     private fun setupKeyboardListener() {
-        ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { _, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { view, insets ->
+            // decorFitsSystemWindows đã tắt (edge-to-edge) nên phải tự chừa chỗ cho status bar
+            // / thanh điều hướng hệ thống, nếu không nội dung sẽ bị đè lên bởi các thanh đó.
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            systemBarsBottomPx = systemBars.bottom
+
             val visibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
             isImeActuallyVisible = visibleNow
-            imeHeightPx = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            // Trừ đi phần padding đáy đã áp cho rootContainer ở trên, vì bottomMargin của
+            // floatBar được tính trong hệ toạ độ "trong padding", không phải từ mép màn hình.
+            imeHeightPx = (insets.getInsets(WindowInsetsCompat.Type.ime()).bottom - systemBarsBottomPx)
+                .coerceAtLeast(0)
 
             if (!visibleNow && isInputBarVisible && !voiceInput.isListening) {
                 // Bàn phím ảo đóng lại (người dùng vuốt xuống) mà không phải mic
