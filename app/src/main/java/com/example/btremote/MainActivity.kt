@@ -520,7 +520,10 @@ class MainActivity : AppCompatActivity() {
         if (fullscreenMode != FullscreenMode.NONE) return
         val rowNavLoc  = IntArray(2); rowNav.getLocationOnScreen(rowNavLoc)
         val rootLoc    = IntArray(2); rootContainer.getLocationOnScreen(rootLoc)
-        rowsHeightPx = (rootContainer.height - (rowNavLoc[1] - rootLoc[1])).coerceAtLeast(0)
+        // Trừ thêm 1 khoảng nhỏ để ô gõ hạ thấp xuống gần 3 hàng nút hơn, thay vì
+        // đứng khít ngay mép trên của rowNav.
+        val loweredByPx = (8 * resources.displayMetrics.density).toInt()
+        rowsHeightPx = (rootContainer.height - (rowNavLoc[1] - rootLoc[1]) - loweredByPx).coerceAtLeast(0)
         // Nếu đang hiện và không có bàn phím thật → cập nhật vị trí ngay
         if (isInputBarVisible && !isImeActuallyVisible) {
             floatBar.updateY(rowsHeightPx)
