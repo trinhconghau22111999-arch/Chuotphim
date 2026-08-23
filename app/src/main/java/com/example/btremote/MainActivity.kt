@@ -16,7 +16,6 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -36,6 +35,12 @@ import com.google.android.material.button.MaterialButton
  *  - MOUSE: chỉ còn trackpad, xoay ngang, chiếm toàn màn hình.
  *  - KEYBOARD: chỉ còn ô gõ đồng bộ, xoay ngang, chiếm toàn màn hình.
  * Bật/tắt MOUSE/KEYBOARD bằng cách nhấn đúp 1 trong 2 nút tròn nổi góc trên.
+ *
+ * Ô gõ đồng bộ ("Đang gõ trên TV") là cửa sổ nổi [FloatingSyncBar] hoàn toàn
+ * độc lập với layout chính — không cần addView/removeView phức tạp, EditText
+ * luôn attached nên focus/IME hoạt động đúng. Vị trí tự điều chỉnh:
+ *   - Bàn phím ảo đang mở  → ngay trên bàn phím
+ *   - Mic / không bàn phím → ngay trên 3 hàng nút
  */
 class MainActivity : AppCompatActivity() {
 
@@ -43,6 +48,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var voiceInput: VoiceInputController
     private lateinit var syncInput: SyncInputController
     private var proximityConnector: ProximityAutoConnector? = null
+
+    // Cửa sổ nổi ô gõ đồng bộ — thay thế hoàn toàn syncInputBar cũ trong XML
+    private lateinit var floatBar: FloatingSyncBar
 
     private lateinit var rootContainer: FrameLayout
     private lateinit var mainColumn: LinearLayout
@@ -54,8 +62,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var rowNav: LinearLayout
     private lateinit var rowVolume: LinearLayout
     private lateinit var rowMedia: LinearLayout
-    private lateinit var syncInputBar: LinearLayout
-    private lateinit var syncInputField: EditText
     private lateinit var btnMouseFullscreen: MaterialButton
     private lateinit var btnKeyboardFullscreen: MaterialButton
     private lateinit var btnVoiceInput: MaterialButton
@@ -65,17 +71,15 @@ class MainActivity : AppCompatActivity() {
 
     private enum class FullscreenMode { NONE, MOUSE, KEYBOARD }
     private var fullscreenMode = FullscreenMode.NONE
-    private var isKeyboardVisible = false
-    private var lastManualKeyboardOpenAt = 0L
+
+    // true khi floatBar đang nên hiện (bàn phím hoặc mic đang hoạt động)
+    private var isInputBarVisible = false
     private var voiceStartPos = 0
 
-    // Trạng thái bàn phím ảo HỆ THỐNG thật sự (khác với isKeyboardVisible ở trên,
-    // vốn chỉ có nghĩa "syncInputBar nên hiện" — true cả khi đang dùng mic, lúc đó
-    // không có bàn phím ảo nào hiện lên thật). Dùng để quyết định syncInputBar nên
-    // ghim ngay trên bàn phím ảo thật, hay ghim trên 3 hàng nút khi không có bàn
-    // phím thật nào che (vd đang gõ bằng giọng nói).
+    // Trạng thái bàn phím ảo hệ thống thật sự
     private var isImeActuallyVisible = false
-    private var imeInsetBottomPx = 0
+    private var imeHeightPx = 0        // chiều cao bàn phím tính từ đáy màn hình
+    private var rowsHeightPx = 0       // chiều cao 3 hàng nút tính từ đáy màn hình (cache)
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -85,11 +89,6 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.BLUETOOTH_SCAN
             )
         else
-            // Android 9-11 (API 28-30): BLUETOOTH_SCAN chưa có cờ "neverForLocation"
-            // (chỉ có từ Android 12) nên startDiscovery()/ACTION_FOUND cần thêm
-            // ACCESS_FINE_LOCATION mới trả kết quả quét — thiếu quyền này thì
-            // "Quét thiết bị mới" (ScanDevicesDialog) và fallback theo RSSI
-            // (ProximityAutoConnector) luôn ra danh sách rỗng dù không báo lỗi gì.
             arrayOf(
                 Manifest.permission.BLUETOOTH,
                 Manifest.permission.BLUETOOTH_ADMIN,
@@ -128,34 +127,39 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         showLastCrashIfAny()
-
         bindViews()
+
+
         hidManager = HidManager(this).also { it.listener = buildHidListener() }
         voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceStopped)
-        syncInput = SyncInputController(syncInputField, hidManager)
+
+        // Khởi tạo cửa sổ nổi ô gõ đồng bộ — add vào rootContainer một lần duy nhất
+        floatBar = FloatingSyncBar(
+            activity      = this,
+            rootContainer = rootContainer,
+            onPaste       = { pasteClipboard() },
+            onClear       = { syncInput.clearAll() }
+        )
+        syncInput = SyncInputController(floatBar.editText, hidManager)
 
         setupTrackpad()
         setupNavRow()
         setupVolumeRow()
         setupMediaRow()
-        setupSyncInputBar()
         setupFullscreenToggles()
-        setupKeyboardAutoLayout()
+        setupKeyboardListener()
         setupBackPressToExitFullscreen()
+        applyLayoutState()
 
         setHidRegisteredUi(registered = false)
-
-        // Nút đăng ký trên topBar (ẩn vì đã dùng overlay thay thế)
         btnRegisterHid.visibility = View.GONE
 
-        // Nút đăng ký trên overlay giữa màn hình
         btnRegisterHidOverlay.setOnClickListener {
             btnRegisterHidOverlay.isEnabled = false
             btnRegisterHidOverlay.text = "Đang đăng ký..."
             autoRegisterAndPromptBluetooth()
         }
 
-        // Nếu đã từng đăng ký thành công trước đó thì tự đăng ký lại
         if (wasRegisteredBefore()) {
             overlayUnregistered.visibility = View.GONE
             autoRegisterAndPromptBluetooth()
@@ -168,17 +172,10 @@ class MainActivity : AppCompatActivity() {
         proximityConnector?.stop()
         voiceInput.destroy()
         hidManager.unregister()
+        floatBar.hide()
         super.onDestroy()
     }
 
-    /** Quay lại từ đa nhiệm (chuyển app khác rồi mở lại, KHÔNG vuốt bỏ khỏi đa
-     *  nhiệm) không hề gọi lại onCreate() -> nếu hệ thống đã ngầm ngắt profile
-     *  HID lúc app chạy nền (thường gặp trên các máy có chế độ tiết kiệm pin
-     *  mạnh), app cũ đứng im vì không có chỗ nào tự phát hiện + đăng ký/kết nối
-     *  lại. Chỉ vuốt bỏ hẳn app (kill process -> onDestroy() -> mở lại chạy
-     *  onCreate() từ đầu) mới tự hoạt động lại được.
-     *  Sửa: mỗi lần quay lại foreground đều tự kiểm tra và tự đăng ký/kết nối
-     *  lại y hệt lúc mở app từ đầu, coi mọi lần quay lại là "vào lại từ đầu". */
     override fun onResume() {
         super.onResume()
         if (wasRegisteredBefore()) recheckHidConnectionOnResume()
@@ -187,12 +184,8 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("MissingPermission")
     private fun recheckHidConnectionOnResume() {
         val adapter = BluetoothAdapter.getDefaultAdapter()
-        // Không tự bật Bluetooth hộ khi chỉ đang resume (tránh phiền/bất ngờ cho
-        // người dùng) — chỉ tự hồi phục nếu Bluetooth vẫn đang bật sẵn.
         if (adapter == null || !adapter.isEnabled) return
         if (!hidManager.isRegistered) {
-            // Proxy HID đã mất do hệ thống ngắt lúc chạy nền -> đăng ký lại từ đầu,
-            // y hệt luồng ensureBluetoothEnabledThenRegister() lúc mở app.
             hidManager.start()
         } else if (!hidManager.isConnected) {
             hidManager.autoReconnectLastDevice()
@@ -200,7 +193,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startProximityConnectorIfNeeded() {
-        // Chỉ cần tạo nếu có >1 thiết bị đã pair — 1 thiết bị thì không có gì để fallback sang.
         if (hidManager.bondedDevices().size <= 1) return
         if (proximityConnector != null) return
         proximityConnector = ProximityAutoConnector(
@@ -216,11 +208,8 @@ class MainActivity : AppCompatActivity() {
                 toast("Đã nối lại được thiết bị gốc: $name")
             }
         )
-        // Không .start() ngay — bộ này chỉ kích hoạt (arm) khi thật sự có sự kiện rớt
-        // kết nối ngoài ý muốn, xem onConnectionStateChanged bên dưới.
     }
 
-    /** Hiện ngay lỗi của lần văng app gần nhất (nếu có) — chỉ hiện 1 lần rồi thôi. */
     private fun showLastCrashIfAny() {
         val trace = CrashHandler.consumeLastCrash(this) ?: return
         AlertDialog.Builder(this)
@@ -237,24 +226,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun bindViews() {
-        rootContainer = findViewById(R.id.rootContainer)
-        mainColumn = findViewById(R.id.mainColumn)
-        topBar = findViewById(R.id.topBar)
-        statusText = findViewById(R.id.statusText)
-        btnRegisterHid = findViewById(R.id.btnRegisterHid)
-        trackpad = findViewById(R.id.trackpad)
-        divider = findViewById(R.id.divider)
-        rowNav = findViewById(R.id.rowNav)
-        rowVolume = findViewById(R.id.rowVolume)
-        rowMedia = findViewById(R.id.rowMedia)
-        syncInputBar = findViewById(R.id.syncInputBar)
-        syncInputField = findViewById(R.id.syncInput)
-        btnMouseFullscreen = findViewById(R.id.btnMouseFullscreen)
-        btnKeyboardFullscreen = findViewById(R.id.btnKeyboardFullscreen)
-        btnVoiceInput = findViewById(R.id.btnVoiceInput)
-        btnOpenKeyboard = findViewById(R.id.btnOpenKeyboard)
-        overlayUnregistered = findViewById(R.id.overlayUnregistered)
-        btnRegisterHidOverlay = findViewById(R.id.btnRegisterHidOverlay)
+        rootContainer        = findViewById(R.id.rootContainer)
+        mainColumn           = findViewById(R.id.mainColumn)
+        topBar               = findViewById(R.id.topBar)
+        statusText           = findViewById(R.id.statusText)
+        btnRegisterHid       = findViewById(R.id.btnRegisterHid)
+        trackpad             = findViewById(R.id.trackpad)
+        divider              = findViewById(R.id.divider)
+        rowNav               = findViewById(R.id.rowNav)
+        rowVolume            = findViewById(R.id.rowVolume)
+        rowMedia             = findViewById(R.id.rowMedia)
+        btnMouseFullscreen   = findViewById(R.id.btnMouseFullscreen)
+        btnKeyboardFullscreen= findViewById(R.id.btnKeyboardFullscreen)
+        btnVoiceInput        = findViewById(R.id.btnVoiceInput)
+        btnOpenKeyboard      = findViewById(R.id.btnOpenKeyboard)
+        overlayUnregistered  = findViewById(R.id.overlayUnregistered)
+        btnRegisterHidOverlay= findViewById(R.id.btnRegisterHidOverlay)
+        // Không còn bind syncInputBar / syncInput từ XML nữa
     }
 
     // ---------- Đăng ký HID + kết nối thiết bị ----------
@@ -270,9 +258,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onUnregistered() = runOnUiThread {
-            // Không làm gì nếu đã đăng ký thành công trước đó — callback này fire
-            // cả khi app đang thoát bình thường (onDestroy → unregister), không
-            // nên hiện overlay hay reset UI vì nó sẽ flash xấu và gây nhầm lẫn.
             if (!wasRegisteredBefore()) {
                 setHidRegisteredUi(registered = false)
                 overlayUnregistered.visibility = View.VISIBLE
@@ -281,15 +266,10 @@ class MainActivity : AppCompatActivity() {
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, connected: Boolean, wasIntentional: Boolean) = runOnUiThread {
             setHidRegisteredUi(registered = true)
-            // Khi kết nối được thiết bị = chắc chắn đã registered thành công
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = if (connected) "Đã kết nối tới: ${safeName(device)}"
                 else "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
-
-            // Rớt kết nối NGOÀI Ý MUỐN (ra xa/mất tín hiệu, không phải do tự chọn thiết
-            // bị khác) -> kích hoạt fallback: thử nối lại thiết bị này, rồi mới tìm
-            // thiết bị gần nhất khác nếu không nối lại được.
             if (!connected && device != null && !wasIntentional) {
                 proximityConnector?.onDisconnected(device)
             }
@@ -299,7 +279,6 @@ class MainActivity : AppCompatActivity() {
             resetRegisterButton()
             toast(message)
         }
-
     }
 
     private fun autoRegisterAndPromptBluetooth() {
@@ -309,9 +288,6 @@ class MainActivity : AppCompatActivity() {
         if (missing.isEmpty()) {
             ensureBluetoothEnabledThenRegister()
         } else if (Manifest.permission.ACCESS_FINE_LOCATION in missing) {
-            // Chỉ xảy ra trên Android 9-11 (xem requiredPermissions). Giải thích trước
-            // khi bật hộp thoại quyền hệ thống, vì người dùng dễ thắc mắc/từ chối khi
-            // thấy "app điều khiển TV qua Bluetooth" lại đòi quyền Vị trí.
             AlertDialog.Builder(this)
                 .setTitle("Cần quyền Vị trí để quét Bluetooth")
                 .setMessage(
@@ -324,9 +300,7 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton("Tiếp tục") { _, _ ->
                     startupPermissionLauncher.launch(missing.toTypedArray())
                 }
-                .setNegativeButton("Để sau") { _, _ ->
-                    resetRegisterButton()
-                }
+                .setNegativeButton("Để sau") { _, _ -> resetRegisterButton() }
                 .show()
         } else {
             startupPermissionLauncher.launch(missing.toTypedArray())
@@ -347,13 +321,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setHidRegisteredUi(registered: Boolean) {
         statusText.visibility = if (registered) View.VISIBLE else View.GONE
-        // btnRegisterHid ẩn vĩnh viễn — dùng overlayUnregistered thay thế
         btnRegisterHid.visibility = View.GONE
-        // Khi đã đăng ký: ẩn overlay. Khi mất đăng ký: chỉ hiện overlay nếu chưa
-        // từng đăng ký thành công (tránh hiện lại overlay khi app đang thoát)
-        if (registered) {
-            overlayUnregistered.visibility = View.GONE
-        }
+        if (registered) overlayUnregistered.visibility = View.GONE
     }
 
     private fun resetRegisterButton() {
@@ -361,20 +330,11 @@ class MainActivity : AppCompatActivity() {
         btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
         btnRegisterHidOverlay.isEnabled = true
         btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
-        // Hiện lại overlay nếu chưa đăng ký thành công lần nào
-        if (!wasRegisteredBefore()) {
-            overlayUnregistered.visibility = View.VISIBLE
-        }
+        if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
     }
 
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialog() {
-        // Trước khi cho chọn thiết bị: nếu điện thoại này TỪNG ghép nối Bluetooth
-        // với thiết bị nhận (TV/đầu thu) theo cách thông thường (ngoài app, ví dụ
-        // qua Cài đặt hệ thống hoặc app điều khiển khác) từ trước, liên kết cũ đó
-        // có thể xung đột với kiểu ghép nối HID mà app này dùng. Cảnh báo 1 lần
-        // duy nhất, nhắc xoá (hủy ghép nối) thiết bị đó trong Cài đặt Bluetooth
-        // của điện thoại rồi mới quay lại ghép nối từ trong app.
         if (!hasShownUnpairNotice()) {
             markUnpairNoticeShown()
             showUnpairNoticeDialog { showBondedDevicesDialogInternal() }
@@ -383,9 +343,6 @@ class MainActivity : AppCompatActivity() {
         showBondedDevicesDialogInternal()
     }
 
-    /** Hộp thoại nhắc xoá ghép nối Bluetooth cũ trước khi kết nối lại từ trong app —
-     *  dùng cả cho lần hiện tự động đầu tiên lẫn khi người dùng chủ động xem lại
-     *  (giữ nhấn nút "Chọn thiết bị"). */
     private fun showUnpairNoticeDialog(onContinue: () -> Unit) {
         AlertDialog.Builder(this)
             .setTitle("Lưu ý trước khi kết nối")
@@ -409,7 +366,6 @@ class MainActivity : AppCompatActivity() {
             .apply()
     }
 
-
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialogInternal() {
         val bonded = hidManager.bondedDevices().toList()
@@ -419,7 +375,7 @@ class MainActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(title)
             .setItems(items) { _, which ->
-                proximityConnector?.disarm() // user tự chọn -> huỷ mọi fallback tự động đang chạy dở
+                proximityConnector?.disarm()
                 if (which < bonded.size) hidManager.connectTo(bonded[which])
                 else openScanDialog()
             }
@@ -430,7 +386,7 @@ class MainActivity : AppCompatActivity() {
         val dialog = ScanDevicesDialog()
         dialog.callback = object : ScanDevicesDialog.Callback {
             override fun onDeviceSelected(device: BluetoothDevice) {
-                proximityConnector?.disarm() // user tự chọn -> huỷ mọi fallback tự động đang chạy dở
+                proximityConnector?.disarm()
                 hidManager.connectTo(device)
             }
         }
@@ -446,25 +402,21 @@ class MainActivity : AppCompatActivity() {
     // ---------- Trackpad + 3 hàng nút ----------
 
     private fun setupTrackpad() {
-        trackpad.onMove = { dx, dy -> hidManager.sendMouseMove(dx, dy); syncInput.reset() }
-        trackpad.onClick = { rightButton -> hidManager.sendMouseClick(rightButton); syncInput.reset() }
+        trackpad.onMove  = { dx, dy -> hidManager.sendMouseMove(dx, dy); syncInput.reset() }
+        trackpad.onClick  = { rightButton -> hidManager.sendMouseClick(rightButton); syncInput.reset() }
         trackpad.onScroll = { dy -> hidManager.sendMouseScroll(dy); syncInput.reset() }
     }
 
     private fun setupNavRow() {
         findViewById<MaterialButton>(R.id.btnPickDevice).apply {
             setOnClickListener { showBondedDevicesDialog() }
-            // Giữ nhấn để xem lại lưu ý "xoá ghép nối cũ" bất cứ lúc nào, kể cả sau
-            // khi đã hiện 1 lần rồi (phòng khi người dùng bỏ lỡ hoặc quên).
             setOnLongClickListener { showUnpairNoticeDialog { showBondedDevicesDialogInternal() }; true }
         }
         findViewById<MaterialButton>(R.id.btnHome).setOnClickListener {
-            hidManager.sendHome()
-            syncInput.reset()
+            hidManager.sendHome(); syncInput.reset()
         }
         findViewById<MaterialButton>(R.id.btnBack).setOnClickListener {
-            hidManager.sendBack()
-            syncInput.reset()
+            hidManager.sendBack(); syncInput.reset()
         }
         btnOpenKeyboard.setOnClickListener { toggleVirtualKeyboard() }
     }
@@ -487,95 +439,82 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnFastForward).setOnClickListener { hidManager.sendFastForward() }
     }
 
-    // ---------- Bàn phím ảo + thanh gõ đồng bộ ----------
+    // ---------- Cửa sổ nổi ô gõ đồng bộ ----------
 
-    private fun setupSyncInputBar() {
-        findViewById<MaterialButton>(R.id.btnPasteClipboard).setOnClickListener { pasteClipboard() }
-        findViewById<MaterialButton>(R.id.btnClearSyncInput).setOnClickListener { syncInput.clearAll() }
-    }
-
+    /** Bật/tắt bàn phím ảo. Cửa sổ nổi hiện/ẩn theo. */
     private fun toggleVirtualKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        if (isKeyboardVisible) {
-            imm.hideSoftInputFromWindow(syncInputField.windowToken, 0)
+        if (isInputBarVisible && isImeActuallyVisible) {
+            // Đang mở bàn phím → đóng lại
+            imm.hideSoftInputFromWindow(floatBar.editText.windowToken, 0)
             return
         }
-        lastManualKeyboardOpenAt = System.currentTimeMillis()
-        // BUG CŨ: kiểm tra "syncInputBar.parent == null" để quyết định có cần dựng
-        // lại layout hay không — nhưng syncInputBar nằm trực tiếp trong FrameLayout
-        // gốc (xem activity_main.xml), KHÔNG phải con của mainColumn, nên parent
-        // của nó không bao giờ null. Điều kiện luôn sai -> applyLayoutState() không
-        // bao giờ chạy -> ô nhập vẫn ở trạng thái GONE -> requestFocus() thất bại
-        // âm thầm -> bàn phím không mở, màn hình như đứng hình (giống app bị văng).
-        // Sửa: luôn dựng lại layout ở đây, không cần điều kiện.
-        applyLayoutState(keyboardVisible = true)
-        syncInputField.requestFocus()
-        // SHOW_FORCED thay vì SHOW_IMPLICIT: tránh bị hệ thống âm thầm bỏ qua nếu
-        // người dùng từng tự đóng bàn phím trước đó.
-        imm.showSoftInput(syncInputField, InputMethodManager.SHOW_FORCED)
+        showFloatBar()
+        floatBar.editText.requestFocus()
+        imm.showSoftInput(floatBar.editText, InputMethodManager.SHOW_FORCED)
     }
 
-    /** Theo dõi bàn phím ảo hệ thống bằng WindowInsetsCompat để biết lúc nào cần
-     *  hiện/ẩn ô "Đang gõ trên TV" — CHỈ để cập nhật UI, không đụng vào layout.
-     *  windowSoftInputMode="adjustNothing" (khai trong Manifest) đảm bảo cửa sổ
-     *  không tự co/pan lại: bàn phím ảo tự nổi lên trên cùng và đè lên các hàng
-     *  nút bên dưới, đúng kiểu overlay thông thường thay vì đẩy nội dung lên. */
-    private fun setupKeyboardAutoLayout() {
-        applyLayoutState(keyboardVisible = false)
+    /** Hiện cửa sổ nổi ở vị trí phù hợp. */
+    private fun showFloatBar() {
+        isInputBarVisible = true
+        if (fullscreenMode == FullscreenMode.MOUSE) return  // ẩn khi chuột toàn màn hình
+        val offset = if (isImeActuallyVisible) imeHeightPx else rowsHeightPx
+        floatBar.show(offset)
+    }
+
+    /** Ẩn cửa sổ nổi và ẩn bàn phím ảo. */
+    private fun hideFloatBar() {
+        isInputBarVisible = false
+        floatBar.hide()
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(floatBar.editText.windowToken, 0)
+    }
+
+    /** Lắng nghe sự kiện bàn phím ảo hệ thống để cập nhật vị trí cửa sổ nổi. */
+    private fun setupKeyboardListener() {
         ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { _, insets ->
             val visibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
             isImeActuallyVisible = visibleNow
-            imeInsetBottomPx = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            // Bỏ qua lần đọc sai ngay sau khi TỰ mở bàn phím (bàn phím ảo thật chưa
-            // kịp trượt lên trong vài khung hình đầu).
-            val justOpenedManually = isKeyboardVisible &&
-                System.currentTimeMillis() - lastManualKeyboardOpenAt < 600
-            if (visibleNow != isKeyboardVisible && !(!visibleNow && justOpenedManually)) {
-                applyLayoutState(visibleNow)
-            } else {
-                // Layout tổng thể không đổi (vẫn đang hiện/ẩn syncInputBar như cũ)
-                // nhưng độ cao bàn phím ảo vừa đổi (đang trượt lên/xuống, xoay màn
-                // hình...) -> chỉ cần định vị lại syncInputBar, không cần dựng lại
-                // toàn bộ layout.
-                updateSyncInputBarPosition()
+            imeHeightPx = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+
+            if (!visibleNow && isInputBarVisible && !voiceInput.isListening) {
+                // Bàn phím ảo đóng lại (người dùng vuốt xuống) mà không phải mic
+                // → ẩn cửa sổ nổi luôn
+                isInputBarVisible = false
+                floatBar.hide()
+            } else if (isInputBarVisible) {
+                // Cập nhật vị trí: trên bàn phím hoặc trên 3 hàng nút
+                updateFloatBarPosition()
             }
             insets
         }
         ViewCompat.requestApplyInsets(rootContainer)
+
+        // Cache chiều cao 3 hàng nút sau khi layout xong
+        rowNav.post { cacheRowsHeight() }
     }
 
-    /** Ghim syncInputBar ("Đang gõ trên TV") vào đúng chỗ tuỳ có bàn phím ảo THẬT
-     *  đang hiện hay không:
-     *  - Có bàn phím ảo thật đang hiện (đang gõ tay) -> ghim ngay phía trên nó.
-     *  - Không có bàn phím ảo thật nào che (vd đang nhập bằng giọng nói qua mic)
-     *    -> ghim ngay phía trên trọn khối 3 hàng nút (rowNav/rowVolume/rowMedia),
-     *    tránh đè lên hàng nút cuối hoặc lấn xuống thanh điều hướng hệ thống như
-     *    trước đây.
-     */
-    private fun updateSyncInputBarPosition() {
+    /** Đo chiều cao 3 hàng nút (tính từ đáy rootContainer) và cache lại. */
+    private fun cacheRowsHeight() {
         if (fullscreenMode != FullscreenMode.NONE) return
-        val params = syncInputBar.layoutParams as? FrameLayout.LayoutParams ?: return
-
-        if (isImeActuallyVisible) {
-            // Bàn phím ảo đang hiện: ghim syncInputBar ngay trên bàn phím.
-            params.bottomMargin = imeInsetBottomPx
-            syncInputBar.layoutParams = params
-            return
+        val rowNavLoc  = IntArray(2); rowNav.getLocationOnScreen(rowNavLoc)
+        val rootLoc    = IntArray(2); rootContainer.getLocationOnScreen(rootLoc)
+        rowsHeightPx = (rootContainer.height - (rowNavLoc[1] - rootLoc[1])).coerceAtLeast(0)
+        // Nếu đang hiện và không có bàn phím thật → cập nhật vị trí ngay
+        if (isInputBarVisible && !isImeActuallyVisible) {
+            floatBar.updateY(rowsHeightPx)
         }
+    }
 
-        // Không có bàn phím thật -> đo vị trí thật của rowNav (hàng nút trên cùng
-        // trong khối 3 hàng nút) sau khi layout đã ổn định, rồi ghim syncInputBar
-        // ngay phía trên đó.
-        rowNav.post {
-            if (fullscreenMode != FullscreenMode.NONE || isImeActuallyVisible) return@post
-            val rowNavLoc = IntArray(2)
-            rowNav.getLocationOnScreen(rowNavLoc)
-            val rootLoc = IntArray(2)
-            rootContainer.getLocationOnScreen(rootLoc)
-            val newBottomMargin = (rootContainer.height - (rowNavLoc[1] - rootLoc[1])).coerceAtLeast(0)
-            val p = syncInputBar.layoutParams as? FrameLayout.LayoutParams ?: return@post
-            p.bottomMargin = newBottomMargin
-            syncInputBar.layoutParams = p
+    /** Cập nhật vị trí Y của cửa sổ nổi theo trạng thái hiện tại. */
+    private fun updateFloatBarPosition() {
+        if (!isInputBarVisible) return
+        if (fullscreenMode == FullscreenMode.MOUSE) return
+        if (isImeActuallyVisible) {
+            floatBar.updateY(imeHeightPx)
+        } else {
+            // Đo lại rowsHeight rồi cập nhật
+            rowNav.post { cacheRowsHeight() }
         }
     }
 
@@ -586,11 +525,8 @@ class MainActivity : AppCompatActivity() {
             toast("Clipboard trống, chưa copy văn bản nào")
             return
         }
-        // syncInputBar không phải con của mainColumn nên parent không bao giờ null
-        // (xem giải thích chi tiết ở toggleVirtualKeyboard) -> luôn dựng lại layout,
-        // không dùng điều kiện chết đó.
-        applyLayoutState(keyboardVisible = true)
-        syncInputField.requestFocus()
+        showFloatBar()
+        floatBar.editText.requestFocus()
         syncInput.insertText(text)
     }
 
@@ -615,24 +551,21 @@ class MainActivity : AppCompatActivity() {
             toast("Máy này không hỗ trợ nhận diện giọng nói")
             return
         }
-        // Cùng lý do như pasteClipboard()/toggleVirtualKeyboard(): điều kiện parent==null
-        // luôn sai nên luôn gọi thẳng, không kiểm tra.
-        applyLayoutState(keyboardVisible = true)
-        syncInputField.requestFocus()
-        // Chèn khoảng trắng trước khi nghe câu mới, tránh dính liền vào chữ đã có
-        // (xem ensureTrailingSpace() trong SyncInputController).
+        showFloatBar()
+        floatBar.editText.requestFocus()
         syncInput.ensureTrailingSpace()
         voiceStartPos = syncInput.cursorPosition()
         voiceInput.start()
         updateVoiceButtonVisualState(listening = true)
     }
 
-    // Kết quả tạm là toàn bộ câu tính từ lúc bắt đầu nói -> luôn thay từ voiceStartPos tới hết.
     private fun onVoicePartialText(text: String) = syncInput.replaceFrom(voiceStartPos, text)
 
     private fun onVoiceStopped(sentEnter: Boolean) {
         updateVoiceButtonVisualState(listening = false)
         if (sentEnter) hidManager.sendSpecialKey("ENTER")
+        // Sau khi mic dừng mà bàn phím ảo không hiện → cửa sổ nổi vẫn ở trên 3 hàng nút
+        // (không ẩn: người dùng có thể muốn xem/sửa kết quả)
     }
 
     private fun updateVoiceButtonVisualState(listening: Boolean) {
@@ -649,7 +582,6 @@ class MainActivity : AppCompatActivity() {
         setupDoubleTapToggle(btnKeyboardFullscreen, FullscreenMode.KEYBOARD)
     }
 
-    // Chỉ nhận NHẤN ĐÚP: 2 nút này nằm sát vùng trackpad, nhấn 1 chạm dễ trúng nhầm lúc lướt ngón tay.
     @SuppressLint("ClickableViewAccessibility")
     private fun setupDoubleTapToggle(button: MaterialButton, mode: FullscreenMode) {
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -665,15 +597,11 @@ class MainActivity : AppCompatActivity() {
         val turningOn = fullscreenMode != mode
         fullscreenMode = if (fullscreenMode == mode) FullscreenMode.NONE else mode
         applyFullscreenMode()
-
         val label = if (mode == FullscreenMode.MOUSE) "chuột" else "bàn phím"
-        if (turningOn) {
-            // Thông báo "đã bật" quan trọng hơn (báo cách tắt lại) nên dùng luôn mức
-            // LENGTH_LONG (~3,5s) có sẵn của hệ thống thay vì SHORT (~2s) mặc định.
+        if (turningOn)
             Toast.makeText(this, "Đã bật chế độ $label toàn màn hình — nhấn đúp lại để tắt", Toast.LENGTH_LONG).show()
-        } else {
+        else
             toast("Đã tắt chế độ $label toàn màn hình")
-        }
     }
 
     private fun applyFullscreenMode() {
@@ -685,21 +613,26 @@ class MainActivity : AppCompatActivity() {
         else
             ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
 
-        if (fullscreenMode == FullscreenMode.KEYBOARD) lastManualKeyboardOpenAt = System.currentTimeMillis()
-        applyLayoutState(isKeyboardVisible)
+        applyLayoutState()
 
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        if (fullscreenMode == FullscreenMode.KEYBOARD) {
-            syncInputField.requestFocus()
-            imm.showSoftInput(syncInputField, InputMethodManager.SHOW_FORCED)
-        } else {
-            imm.hideSoftInputFromWindow(syncInputField.windowToken, 0)
+        when (fullscreenMode) {
+            FullscreenMode.KEYBOARD -> {
+                showFloatBar()
+                floatBar.editText.requestFocus()
+                imm.showSoftInput(floatBar.editText, InputMethodManager.SHOW_FORCED)
+            }
+            FullscreenMode.MOUSE -> {
+                floatBar.hide()   // ẩn khi chuột toàn màn hình
+                imm.hideSoftInputFromWindow(floatBar.editText.windowToken, 0)
+            }
+            FullscreenMode.NONE -> {
+                imm.hideSoftInputFromWindow(floatBar.editText.windowToken, 0)
+                if (!isInputBarVisible) floatBar.hide()
+            }
         }
     }
 
-    // Bấm phím Back của hệ thống khi đang ở chế độ toàn màn hình (chuột/bàn phím,
-    // xoay ngang) thì thoát chế độ đó, xoay dọc về màn hình bình thường — thay vì
-    // thoát hẳn app như hành vi Back mặc định.
     private fun setupBackPressToExitFullscreen() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -720,36 +653,16 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    // ---------- Dựng lại layout theo chế độ hiện tại ----------
+    // ---------- Layout chính (không còn liên quan syncInputBar nữa) ----------
 
-    private fun applyLayoutState(keyboardVisible: Boolean) {
-        isKeyboardVisible = keyboardVisible
+    private fun applyLayoutState() {
         mainColumn.removeAllViews()
-
-        // LUÔN gỡ syncInputBar/topBar khỏi cha hiện tại trước (dù đang ở mainColumn
-        // hay rootContainer) rồi mới gắn lại đúng chỗ bên dưới theo từng chế độ.
-        // Nếu không gỡ tay, addView() ở 1 view đã có cha sẵn sẽ ném
-        // IllegalStateException ("The specified child already has a parent").
-        (syncInputBar.parent as? android.view.ViewGroup)?.removeView(syncInputBar)
         (topBar.parent as? android.view.ViewGroup)?.removeView(topBar)
 
         val fillRemaining = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
 
-        // topBar (dòng trạng thái kết nối) KHÔNG còn là con của mainColumn nữa —
-        // trước đây nó nằm CHUNG hàng với trackpad (weight=1) trong LinearLayout
-        // dọc, nên mỗi lần dòng trạng thái đổi độ dài (1 dòng <-> 3 dòng, ẩn/hiện)
-        // là trackpad phải co giãn bù lại theo, khiến trackpad + 3 hàng nút cảm
-        // giác "nhảy"/xê dịch theo nội dung phía trên.
-        // Sửa: gắn topBar làm banner NỔI ĐÈ riêng lên đỉnh rootContainer (index 1,
-        // ngay sau mainColumn — vẫn nằm DƯỚI 2 nút tròn nổi và các overlay khác vì
-        // chúng khai báo sau trong XML nên luôn ở z-order cao hơn). Nhờ tách hẳn
-        // khỏi mainColumn, topBar đổi kích thước/nội dung thế nào cũng không còn
-        // ảnh hưởng gì tới trackpad hay 3 hàng nút — cả khối trackpad + rowNav +
-        // rowVolume + rowMedia giữ kích thước/vị trí CỐ ĐỊNH tuyệt đối, ghim đáy
-        // màn hình, không xê dịch dù nội dung trên (topBar) thay đổi thế nào.
         rootContainer.addView(
-            topBar,
-            1,
+            topBar, 1,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply { gravity = android.view.Gravity.TOP }
@@ -760,23 +673,9 @@ class MainActivity : AppCompatActivity() {
             FullscreenMode.MOUSE -> {
                 trackpad.layoutParams = fillRemaining
                 mainColumn.addView(trackpad)
-                // syncInputBar đã bị gỡ khỏi cha ở trên -> không gắn lại đâu cả,
-                // coi như ẩn hẳn trong lúc chuột toàn màn hình.
-                syncInputBar.visibility = View.GONE
             }
             FullscreenMode.KEYBOARD -> {
-                // Chế độ bàn phím toàn màn hình: syncInputBar là view DUY NHẤT hiện ra,
-                // không nằm trong mainColumn (đang rỗng) -> vẫn cần gắn thẳng vào
-                // rootContainer với FrameLayout.LayoutParams, ghim đáy màn hình.
-                rootContainer.addView(
-                    syncInputBar,
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { gravity = android.view.Gravity.BOTTOM }
-                )
-                syncInputBar.visibility = View.VISIBLE
-                syncInputField.layoutParams =
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                // Chế độ bàn phím toàn màn hình: layout trống, cửa sổ nổi tự hiện
             }
             FullscreenMode.NONE -> {
                 trackpad.layoutParams = fillRemaining
@@ -785,49 +684,17 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
                 mainColumn.addView(rowMedia)
-                // syncInputBar LUÔN ghim cố định vào rootContainer (FrameLayout,
-                // gravity=bottom) — TÁCH RỜI hoàn toàn khỏi mainColumn, không bao
-                // giờ chèn vào bên trong LinearLayout dọc nữa. Nhờ vậy trackpad
-                // (weight=1) và toàn bộ mainColumn giữ nguyên kích thước gốc, không
-                // bị co lại nhường chỗ khi mở bàn phím — bàn phím ảo (và
-                // syncInputBar) chỉ nổi đè lên trên như overlay bình thường, đúng ý
-                // muốn "bàn phím nổi lên trên, không đẩy/co gì cả".
-                //
-                // Đặt bottomMargin ĐÚNG NGAY KHI add view (dựa vào trạng thái bàn
-                // phím ảo đã biết), tránh hiện tượng thanh nhảy/nháy từ đáy màn hình
-                // lên đúng chỗ sau 1 khung hình:
-                //  - Bàn phím ảo đang hiện (isImeActuallyVisible=true):
-                //      ghim ngay trên bàn phím (bottomMargin = imeInsetBottomPx).
-                //  - Đang dùng mic / bàn phím ảo chưa hiện:
-                //      ghim ngay trên khối 3 hàng nút (updateSyncInputBarPosition
-                //      sẽ đo chính xác sau khi layout ổn định).
-                val initialBottomMargin = if (isImeActuallyVisible) imeInsetBottomPx else 0
-                rootContainer.addView(
-                    syncInputBar,
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
-                    ).apply {
-                        gravity = android.view.Gravity.BOTTOM
-                        bottomMargin = initialBottomMargin
-                    }
-                )
-                syncInputField.layoutParams =
-                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                syncInputBar.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
-                // Định vị lại để đo chính xác (nhất là trường hợp mic — cần đo
-                // vị trí rowNav sau khi layout đã ổn định).
-                updateSyncInputBarPosition()
+                // Sau khi layout ổn định, đo lại chiều cao 3 hàng nút
+                rowNav.post { cacheRowsHeight() }
             }
         }
     }
 
     private fun toast(message: String) = Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
 
-    /** Kiểm tra xem người dùng đã từng đăng ký HID thành công chưa (lưu qua SharedPreferences). */
     private fun wasRegisteredBefore(): Boolean =
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_HID_REGISTERED, false)
 
-    /** Lưu trạng thái đăng ký HID vào SharedPreferences. */
     private fun saveRegisteredState(registered: Boolean) {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
             .putBoolean(KEY_HID_REGISTERED, registered)

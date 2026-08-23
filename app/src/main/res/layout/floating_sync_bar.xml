@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout cho cửa sổ nổi ô gõ đồng bộ — dùng bởi FloatingSyncBar (WindowManager) -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/floatSyncRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@color/bg_sync_bar"
+    android:paddingHorizontal="8dp"
+    android:paddingVertical="6dp"
+    android:gravity="center_vertical"
+    android:elevation="8dp">
+
+    <EditText
+        android:id="@+id/floatSyncInput"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:minHeight="44dp"
+        android:gravity="top|start"
+        android:background="@android:color/transparent"
+        android:textColor="@color/text_on_surface"
+        android:textColorHint="@color/text_hint"
+        android:textSize="16sp"
+        android:hint="Đang gõ trên TV — có thể dán văn bản có dấu vào đây"
+        android:inputType="text"
+        android:importantForAutofill="no"
+        android:maxLines="1" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/floatBtnPaste"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:minWidth="0dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:textSize="0sp"
+        app:cornerRadius="20dp"
+        app:icon="@drawable/ic_paste"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="18dp"
+        android:backgroundTint="@color/sync_bar_btn"
+        android:text=""
+        android:contentDescription="Dán văn bản từ điện thoại" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/floatBtnClear"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginStart="4dp"
+        android:minWidth="0dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:textSize="0sp"
+        app:cornerRadius="20dp"
+        app:icon="@drawable/ic_clear"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="16dp"
+        android:backgroundTint="@color/sync_bar_btn"
+        android:text=""
+        android:contentDescription="Xoá toàn bộ chữ (cả trên máy đang điều khiển)" />
+
+</LinearLayout>
