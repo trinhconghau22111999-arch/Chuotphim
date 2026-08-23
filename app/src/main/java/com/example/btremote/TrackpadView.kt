@@ -28,6 +28,17 @@ class TrackpadView @JvmOverloads constructor(
     var onClick: ((rightButton: Boolean) -> Unit)? = null
     var onScroll: ((dy: Int) -> Unit)? = null
 
+    /** Khoảng cách (px) cần né ở đỉnh cho 2 góc-trên của khung ngắm, để không bị đè bởi
+     *  topBar (topBar giờ là lớp phủ riêng, không xếp tuần tự phía trên trackpad nữa nên
+     *  trackpad thực chất trải dài từ đỉnh màn hình). MainActivity cập nhật giá trị này
+     *  mỗi khi chiều cao topBar đổi (thông báo dài/ngắn khác nhau). */
+    var topInsetPx: Int = 0
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
     private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
     private var hintDismissed = prefs.getBoolean(PREF_HINT_DISMISSED, false)
 
@@ -98,7 +109,8 @@ class TrackpadView @JvmOverloads constructor(
     /** 4 viền góc kiểu khung ngắm ở 4 góc trackpad. Mọi kích thước (độ dài cạnh góc,
      *  khoảng cách lề, độ dày nét) đều tính theo % chiều nhỏ nhất của view -> co dãn
      *  đúng theo độ lớn trackpad thực tế trên từng máy/mỗi lần xoay màn hình.
-     *  2 góc trên được hạ xuống thêm topOffset để tránh vùng 2 nút tròn nổi (44dp + 8dp margin). */
+     *  2 góc trên được hạ xuống thêm [topInsetPx] (chiều cao topBar thực tế + khoảng hở)
+     *  để luôn nằm rõ bên dưới khối thông báo, dù thông báo dài hay ngắn. */
     private fun drawCornerBrackets(canvas: Canvas) {
         val shortSide = minOf(width, height).toFloat()
         if (shortSide <= 0f) return
@@ -108,9 +120,7 @@ class TrackpadView @JvmOverloads constructor(
 
         val w = width.toFloat()
         val h = height.toFloat()
-        // 2 nút tròn nổi: 44dp + margin 8dp = 52dp, đổi sang px
-        val density = resources.displayMetrics.density
-        val topOffset = 56 * density  // 56dp đủ chỗ cho nút tròn
+        val topOffset = topInsetPx.toFloat()
 
         // Trên-trái (hạ xuống topOffset)
         cornerPath.reset()

@@ -159,6 +159,7 @@ class MainActivity : AppCompatActivity() {
         setupVolumeRow()
         setupMediaRow()
         setupFullscreenToggles()
+        setupTrackpadTopInset()
         setupKeyboardListener()
         setupBackPressToExitFullscreen()
         applyLayoutState()
@@ -606,6 +607,23 @@ class MainActivity : AppCompatActivity() {
         setupDoubleTapToggle(btnKeyboardFullscreen, FullscreenMode.KEYBOARD)
     }
 
+    // ---------- Khung ngắm góc-trên của trackpad: né topBar ----------
+
+    /** topBar là lớp phủ riêng (không xếp tuần tự phía trên trackpad), nên phải tự đo
+     *  chiều cao thật của nó rồi báo cho TrackpadView né ra — nếu không, 2 góc-trên của
+     *  khung ngắm sẽ bị topBar đè lên mỗi khi thông báo dài hơn 1 dòng. */
+    private fun setupTrackpadTopInset() {
+        topBar.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
+            if (bottom - top != oldBottom - oldTop) updateTrackpadTopInset()
+        }
+        topBar.post { updateTrackpadTopInset() }
+    }
+
+    private fun updateTrackpadTopInset() {
+        val gapPx = (12 * resources.displayMetrics.density).toInt()
+        trackpad.topInsetPx = if (topBar.visibility == View.VISIBLE) topBar.height + gapPx else gapPx
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun setupDoubleTapToggle(button: MaterialButton, mode: FullscreenMode) {
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -692,6 +710,7 @@ class MainActivity : AppCompatActivity() {
             ).apply { gravity = android.view.Gravity.TOP }
         )
         topBar.visibility = if (fullscreenMode == FullscreenMode.NONE) View.VISIBLE else View.GONE
+        updateTrackpadTopInset()
 
         when (fullscreenMode) {
             FullscreenMode.MOUSE -> {
