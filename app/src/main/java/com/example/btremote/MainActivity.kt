@@ -69,6 +69,14 @@ class MainActivity : AppCompatActivity() {
     private var lastManualKeyboardOpenAt = 0L
     private var voiceStartPos = 0
 
+    // Trạng thái bàn phím ảo HỆ THỐNG thật sự (khác với isKeyboardVisible ở trên,
+    // vốn chỉ có nghĩa "syncInputBar nên hiện" — true cả khi đang dùng mic, lúc đó
+    // không có bàn phím ảo nào hiện lên thật). Dùng để quyết định syncInputBar nên
+    // ghim ngay trên bàn phím ảo thật, hay ghim trên 3 hàng nút khi không có bàn
+    // phím thật nào che (vd đang gõ bằng giọng nói).
+    private var isImeActuallyVisible = false
+    private var imeInsetBottomPx = 0
+
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             arrayOf(
@@ -516,16 +524,58 @@ class MainActivity : AppCompatActivity() {
         applyLayoutState(keyboardVisible = false)
         ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { _, insets ->
             val visibleNow = insets.isVisible(WindowInsetsCompat.Type.ime())
+            isImeActuallyVisible = visibleNow
+            imeInsetBottomPx = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             // Bỏ qua lần đọc sai ngay sau khi TỰ mở bàn phím (bàn phím ảo thật chưa
             // kịp trượt lên trong vài khung hình đầu).
             val justOpenedManually = isKeyboardVisible &&
                 System.currentTimeMillis() - lastManualKeyboardOpenAt < 600
             if (visibleNow != isKeyboardVisible && !(!visibleNow && justOpenedManually)) {
                 applyLayoutState(visibleNow)
+            } else {
+                // Layout tổng thể không đổi (vẫn đang hiện/ẩn syncInputBar như cũ)
+                // nhưng độ cao bàn phím ảo vừa đổi (đang trượt lên/xuống, xoay màn
+                // hình...) -> chỉ cần định vị lại syncInputBar, không cần dựng lại
+                // toàn bộ layout.
+                updateSyncInputBarPosition()
             }
             insets
         }
         ViewCompat.requestApplyInsets(rootContainer)
+    }
+
+    /** Ghim syncInputBar ("Đang gõ trên TV") vào đúng chỗ tuỳ có bàn phím ảo THẬT
+     *  đang hiện hay không:
+     *  - Có bàn phím ảo thật đang hiện (đang gõ tay) -> ghim ngay phía trên nó.
+     *  - Không có bàn phím ảo thật nào che (vd đang nhập bằng giọng nói qua mic)
+     *    -> ghim ngay phía trên trọn khối 3 hàng nút (rowNav/rowVolume/rowMedia),
+     *    tránh đè lên hàng nút cuối hoặc lấn xuống thanh điều hướng hệ thống như
+     *    trước đây.
+     */
+    private fun updateSyncInputBarPosition() {
+        if (fullscreenMode != FullscreenMode.NONE) return
+        val params = syncInputBar.layoutParams as? FrameLayout.LayoutParams ?: return
+
+        if (isImeActuallyVisible) {
+            params.bottomMargin = imeInsetBottomPx
+            syncInputBar.layoutParams = params
+            return
+        }
+
+        // Không có bàn phím thật -> đo vị trí thật của rowNav (hàng nút trên cùng
+        // trong khối 3 hàng nút) sau khi layout đã ổn định, rồi ghim syncInputBar
+        // ngay phía trên đó.
+        rowNav.post {
+            if (fullscreenMode != FullscreenMode.NONE || isImeActuallyVisible) return@post
+            val rowNavLoc = IntArray(2)
+            rowNav.getLocationOnScreen(rowNavLoc)
+            val rootLoc = IntArray(2)
+            rootContainer.getLocationOnScreen(rootLoc)
+            val newBottomMargin = (rootContainer.height - (rowNavLoc[1] - rootLoc[1])).coerceAtLeast(0)
+            val p = syncInputBar.layoutParams as? FrameLayout.LayoutParams ?: return@post
+            p.bottomMargin = newBottomMargin
+            syncInputBar.layoutParams = p
+        }
     }
 
     private fun pasteClipboard() {
@@ -750,6 +800,10 @@ class MainActivity : AppCompatActivity() {
                 syncInputField.layoutParams =
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 syncInputBar.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
+                // Định vị ngay theo trạng thái bàn phím ảo thật đã biết hiện tại
+                // (tránh nháy 1 khung hình ở vị trí ghim đáy cũ trước khi có kết
+                // quả đo chính xác từ rowNav.post ở trên).
+                updateSyncInputBarPosition()
             }
         }
     }
