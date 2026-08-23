@@ -557,8 +557,14 @@ class MainActivity : AppCompatActivity() {
         val params = syncInputBar.layoutParams as? FrameLayout.LayoutParams ?: return
 
         if (isImeActuallyVisible) {
+            // Bàn phím ảo đang hiện: ghim syncInputBar ngay trên bàn phím.
+            // Nếu trước đó đang INVISIBLE (vừa mở bàn phím, IME chưa kịp lên)
+            // thì đây là lúc an toàn để hiện ra — đúng vị trí, không nháy.
             params.bottomMargin = imeInsetBottomPx
             syncInputBar.layoutParams = params
+            if (isKeyboardVisible && syncInputBar.visibility == View.INVISIBLE) {
+                syncInputBar.visibility = View.VISIBLE
+            }
             return
         }
 
@@ -791,18 +797,40 @@ class MainActivity : AppCompatActivity() {
                 // bị co lại nhường chỗ khi mở bàn phím — bàn phím ảo (và
                 // syncInputBar) chỉ nổi đè lên trên như overlay bình thường, đúng ý
                 // muốn "bàn phím nổi lên trên, không đẩy/co gì cả".
+                //
+                // Đặt bottomMargin ĐÚNG NGAY KHI add view (dựa vào trạng thái bàn
+                // phím ảo đã biết), tránh hiện tượng thanh nhảy/nháy từ đáy màn hình
+                // lên đúng chỗ sau 1 khung hình:
+                //  - Bàn phím ảo đang hiện (isImeActuallyVisible=true):
+                //      ghim ngay trên bàn phím (bottomMargin = imeInsetBottomPx).
+                //  - Đang dùng mic / bàn phím ảo chưa hiện:
+                //      ghim ngay trên khối 3 hàng nút (updateSyncInputBarPosition
+                //      sẽ đo chính xác sau khi layout ổn định).
+                val initialBottomMargin = if (isImeActuallyVisible) imeInsetBottomPx else 0
                 rootContainer.addView(
                     syncInputBar,
                     FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
-                    ).apply { gravity = android.view.Gravity.BOTTOM }
+                    ).apply {
+                        gravity = android.view.Gravity.BOTTOM
+                        bottomMargin = initialBottomMargin
+                    }
                 )
                 syncInputField.layoutParams =
                     LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                syncInputBar.visibility = if (keyboardVisible) View.VISIBLE else View.GONE
-                // Định vị ngay theo trạng thái bàn phím ảo thật đã biết hiện tại
-                // (tránh nháy 1 khung hình ở vị trí ghim đáy cũ trước khi có kết
-                // quả đo chính xác từ rowNav.post ở trên).
+                // Khi bàn phím vừa được mở nhưng IME chưa trượt lên màn hình:
+                // ẩn tạm syncInputBar (sẽ hiện lại ngay khi IME xuất hiện qua
+                // setupKeyboardAutoLayout → updateSyncInputBarPosition), tránh
+                // nháy 1 khung hình ở đáy màn hình trước khi biết chiều cao bàn phím.
+                val justOpenedKeyboard = keyboardVisible && !isImeActuallyVisible &&
+                    !voiceInput.isListening
+                syncInputBar.visibility = when {
+                    !keyboardVisible           -> View.GONE
+                    justOpenedKeyboard         -> View.INVISIBLE   // giữ chỗ nhưng không hiện
+                    else                       -> View.VISIBLE
+                }
+                // Định vị lại để đo chính xác (nhất là trường hợp mic — cần đo
+                // vị trí rowNav sau khi layout đã ổn định).
                 updateSyncInputBarPosition()
             }
         }
