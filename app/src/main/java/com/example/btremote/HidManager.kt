@@ -222,6 +222,8 @@ class HidManager(private val context: Context) {
     fun sendDpadDown() = sendSpecialKey("DOWN")
     fun sendDpadLeft() = sendSpecialKey("LEFT")
     fun sendDpadRight() = sendSpecialKey("RIGHT")
+    /** OK/Chọn — dùng ENTER, đúng chuẩn khi điều hướng menu TV bằng bàn phím. */
+    fun sendDpadOk() = sendSpecialKey("ENTER")
 
     /** Report Consumer Control giờ dài 2 byte (16 bit, xem HidDescriptor) nên bitmask
      *  cũng tách làm 2: byte0 = 8 bit thấp (các phím cũ), byte1 = bit cao nhất còn lại

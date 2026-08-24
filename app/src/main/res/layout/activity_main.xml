@@ -188,6 +188,13 @@
                 android:contentDescription="Xuống" />
 
             <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDpadOk"
+                style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
+                android:text="OK"
+                android:contentDescription="Chọn" />
+
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDpadLeft"
                 style="@style/RemoteKeyIcon"
                 android:layout_height="match_parent"

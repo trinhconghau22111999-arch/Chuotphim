@@ -457,6 +457,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupDpadRow() {
         findViewById<MaterialButton>(R.id.btnDpadUp).setOnClickListener { hidManager.sendDpadUp() }
         findViewById<MaterialButton>(R.id.btnDpadDown).setOnClickListener { hidManager.sendDpadDown() }
+        findViewById<MaterialButton>(R.id.btnDpadOk).setOnClickListener { hidManager.sendDpadOk() }
         findViewById<MaterialButton>(R.id.btnDpadLeft).setOnClickListener { hidManager.sendDpadLeft() }
         findViewById<MaterialButton>(R.id.btnDpadRight).setOnClickListener { hidManager.sendDpadRight() }
     }
