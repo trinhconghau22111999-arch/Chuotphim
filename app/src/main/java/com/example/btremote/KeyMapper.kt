@@ -15,6 +15,12 @@ object KeyMapper {
     val SPECIAL: Map<String, Int> = mapOf(
         "ENTER" to 0x28,
         "BACKSPACE" to 0x2A,
+        // 4 phím mũi tên (D-pad) — usage chuẩn bàn phím, giống hệt cách 1 bàn phím
+        // vật lý cắm vào TV vẫn điều hướng được menu (lên/xuống/trái/phải).
+        "UP" to 0x52,
+        "DOWN" to 0x51,
+        "LEFT" to 0x50,
+        "RIGHT" to 0x4F,
     )
 
     /** Trả về (keycode, canGõĐược). canGõĐược=false nghĩa là ký tự này chưa hỗ trợ. */

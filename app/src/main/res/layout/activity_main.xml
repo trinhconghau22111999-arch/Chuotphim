@@ -65,7 +65,7 @@
         <View
             android:id="@+id/divider"
             android:layout_width="match_parent"
-            android:layout_height="2dp"
+            android:layout_height="1dp"
             android:background="@color/bg_divider" />
 
         <!-- Hàng điều hướng: Thiết bị / Home / Back / Bàn phím -->
@@ -160,6 +160,46 @@
                 app:iconSize="16dp"
                 app:iconTint="@color/text_primary"
                 android:contentDescription="Nhập liệu bằng giọng nói" />
+
+        </LinearLayout>
+
+        <!-- Hàng D-pad: Lên / Xuống / Trái / Phải — như phím cứng điều hướng trên remote thật -->
+        <LinearLayout
+            android:id="@+id/rowDpad"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:background="@color/bg_row"
+            android:paddingHorizontal="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDpadUp"
+                style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
+                android:text="▲"
+                android:contentDescription="Lên" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDpadDown"
+                style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
+                android:text="▼"
+                android:contentDescription="Xuống" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDpadLeft"
+                style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
+                android:text="◀"
+                android:contentDescription="Trái" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDpadRight"
+                style="@style/RemoteKeyIcon"
+                android:layout_height="match_parent"
+                android:text="▶"
+                android:contentDescription="Phải" />
 
         </LinearLayout>
 

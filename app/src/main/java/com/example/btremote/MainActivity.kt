@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var divider: View
     private lateinit var rowNav: LinearLayout
     private lateinit var rowVolume: LinearLayout
+    private lateinit var rowDpad: LinearLayout
     private lateinit var rowMedia: LinearLayout
     private lateinit var btnMouseFullscreen: MaterialButton
     private lateinit var btnKeyboardFullscreen: MaterialButton
@@ -162,6 +163,7 @@ class MainActivity : AppCompatActivity() {
         setupTrackpad()
         setupNavRow()
         setupVolumeRow()
+        setupDpadRow()
         setupMediaRow()
         setupFullscreenToggles()
         setupTrackpadTopInset()
@@ -253,6 +255,7 @@ class MainActivity : AppCompatActivity() {
         divider              = findViewById(R.id.divider)
         rowNav               = findViewById(R.id.rowNav)
         rowVolume            = findViewById(R.id.rowVolume)
+        rowDpad              = findViewById(R.id.rowDpad)
         rowMedia             = findViewById(R.id.rowMedia)
         btnMouseFullscreen   = findViewById(R.id.btnMouseFullscreen)
         btnKeyboardFullscreen= findViewById(R.id.btnKeyboardFullscreen)
@@ -447,6 +450,15 @@ class MainActivity : AppCompatActivity() {
         findViewById<MaterialButton>(R.id.btnVolumeDown).setOnClickListener { hidManager.sendVolumeDown() }
         findViewById<MaterialButton>(R.id.btnVolumeUp).setOnClickListener { hidManager.sendVolumeUp() }
         btnVoiceInput.setOnClickListener { toggleVoiceInput() }
+    }
+
+    /** Hàng D-pad: 4 phím Lên/Xuống/Trái/Phải, chức năng như phím cứng điều hướng
+     *  trên remote thật (gửi HID keyboard arrow key, xem HidManager.sendDpad*()). */
+    private fun setupDpadRow() {
+        findViewById<MaterialButton>(R.id.btnDpadUp).setOnClickListener { hidManager.sendDpadUp() }
+        findViewById<MaterialButton>(R.id.btnDpadDown).setOnClickListener { hidManager.sendDpadDown() }
+        findViewById<MaterialButton>(R.id.btnDpadLeft).setOnClickListener { hidManager.sendDpadLeft() }
+        findViewById<MaterialButton>(R.id.btnDpadRight).setOnClickListener { hidManager.sendDpadRight() }
     }
 
     private fun setupMediaRow() {
@@ -741,8 +753,9 @@ class MainActivity : AppCompatActivity() {
                 mainColumn.addView(divider)
                 mainColumn.addView(rowNav)
                 mainColumn.addView(rowVolume)
+                mainColumn.addView(rowDpad)
                 mainColumn.addView(rowMedia)
-                // Sau khi layout ổn định, đo lại chiều cao 3 hàng nút
+                // Sau khi layout ổn định, đo lại chiều cao 4 hàng nút
                 rowNav.post { cacheRowsHeight() }
             }
         }

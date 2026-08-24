@@ -10,7 +10,7 @@
     <color name="bg_root">#000000</color>
     <color name="bg_top_bar">#212121</color>
     <color name="bg_row">#1B1B1B</color>
-    <color name="bg_divider">#C800FF</color>
+    <color name="bg_divider">#444444</color>
     <color name="bg_sync_bar">#2A2A2A</color>
     <color name="key_default">#616161</color>
     <color name="key_danger">#F44336</color>
