@@ -4,8 +4,11 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.BroadcastReceiver
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
@@ -49,6 +52,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var voiceInput: VoiceInputController
     private lateinit var syncInput: SyncInputController
     private var proximityConnector: ProximityAutoConnector? = null
+
+    // ---- "Reset kết nối" trước khi connectTo() một thiết bị ----
+    // Nếu điện thoại từng ghép nối Bluetooth THƯỜNG (không phải HID) với thiết bị
+    // đích trước khi app đăng ký vai trò "bàn phím + chuột" -> connectTo() sẽ
+    // không hoạt động (hệ điều hành giữ nguyên kiểu kết nối cũ). Cách khắc phục:
+    // tắt Bluetooth hẳn, "khởi động lại" HidManager (huỷ đăng ký cũ, tạo lại từ
+    // đầu — KHÔNG đóng/mở lại app, chỉ reset phần logic Bluetooth), bật Bluetooth
+    // lại, đăng ký HID lại, rồi mới connect — làm lại toàn bộ chuỗi này mỗi lần
+    // người dùng bấm chọn 1 thiết bị để nối kết (xem reconnectWithReset()).
+    private var pendingConnectDevice: BluetoothDevice? = null
+    private var btStateReceiver: BroadcastReceiver? = null
+    private val resetTimeoutHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var resetTimeoutRunnable: Runnable? = null
 
     // Cửa sổ nổi ô gõ đồng bộ — thay thế hoàn toàn syncInputBar cũ trong XML
     private lateinit var floatBar: FloatingSyncBar
@@ -193,6 +209,8 @@ class MainActivity : AppCompatActivity() {
         voiceInput.destroy()
         hidManager.unregister()
         floatBar.hide()
+        unregisterBtStateReceiver()
+        resetTimeoutRunnable?.let { resetTimeoutHandler.removeCallbacks(it) }
         super.onDestroy()
     }
 
@@ -274,7 +292,17 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
-            hidManager.autoReconnectLastDevice()
+            // Nếu vừa reset Bluetooth để connect tới 1 thiết bị cụ thể (xem
+            // reconnectWithReset()) thì ưu tiên connect thiết bị đó, thay vì tự
+            // động nối lại thiết bị cũ như bình thường.
+            val target = pendingConnectDevice
+            if (target != null) {
+                pendingConnectDevice = null
+                resetTimeoutRunnable?.let { resetTimeoutHandler.removeCallbacks(it) }
+                hidManager.connectTo(target)
+            } else {
+                hidManager.autoReconnectLastDevice()
+            }
             startProximityConnectorIfNeeded()
         }
 
@@ -397,7 +425,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(title)
             .setItems(items) { _, which ->
                 proximityConnector?.disarm()
-                if (which < bonded.size) hidManager.connectTo(bonded[which])
+                if (which < bonded.size) reconnectWithReset(bonded[which])
                 else openScanDialog()
             }
             .show()
@@ -408,10 +436,101 @@ class MainActivity : AppCompatActivity() {
         dialog.callback = object : ScanDevicesDialog.Callback {
             override fun onDeviceSelected(device: BluetoothDevice) {
                 proximityConnector?.disarm()
-                hidManager.connectTo(device)
+                reconnectWithReset(device)
             }
         }
         dialog.show(supportFragmentManager, "scan_devices")
+    }
+
+    // ---------- Reset Bluetooth + đăng ký lại HID trước khi connect ----------
+
+    /**
+     * Tắt Bluetooth -> "khởi động lại" HidManager (huỷ đăng ký HID cũ, tạo instance
+     * mới) -> bật Bluetooth lại -> đăng ký HID lại -> connect tới [device]. Đây là
+     * cách duy nhất tránh được lỗi "không connect được" khi điện thoại từng ghép
+     * nối Bluetooth thường với thiết bị đích trước khi app đăng ký vai trò
+     * "bàn phím + chuột" — hệ điều hành giữ nguyên kiểu kết nối cũ nên phải tắt/bật
+     * lại Bluetooth thì mới áp dụng đúng vai trò HID. KHÔNG đóng/mở lại app hay
+     * Activity — chỉ reset phần logic Bluetooth/HidManager, giao diện giữ nguyên.
+     */
+    @SuppressLint("MissingPermission")
+    private fun reconnectWithReset(device: BluetoothDevice) {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        if (adapter == null) {
+            toast("Thiết bị này không có Bluetooth")
+            return
+        }
+        unregisterBtStateReceiver() // nếu đang có 1 lượt reset khác dở dang, huỷ nó trước
+        pendingConnectDevice = device
+        statusText.visibility = View.VISIBLE
+        statusText.text = "Đang khởi động lại Bluetooth để kết nối tới ${safeName(device)}..."
+
+        val receiver = object : BroadcastReceiver() {
+            @SuppressLint("MissingPermission")
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action != BluetoothAdapter.ACTION_STATE_CHANGED) return
+                when (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1)) {
+                    BluetoothAdapter.STATE_OFF -> {
+                        // Bluetooth vừa tắt hẳn -> reset HidManager rồi bật lại Bluetooth
+                        resetHidManagerInstance()
+                        try { adapter.enable() } catch (e: SecurityException) {
+                            unregisterBtStateReceiver()
+                            pendingConnectDevice = null
+                            toast("Thiếu quyền Bluetooth: ${e.message}")
+                        }
+                    }
+                    BluetoothAdapter.STATE_ON -> {
+                        // Bluetooth vừa bật lại -> đăng ký HID lại, connectTo() sẽ tự
+                        // chạy trong onRegistered() ở trên (pendingConnectDevice).
+                        unregisterBtStateReceiver()
+                        hidManager.start()
+                    }
+                }
+            }
+        }
+        btStateReceiver = receiver
+        registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+
+        // Timeout an toàn: nếu vì lý do gì đó không nhận được broadcast (một số máy/ROM
+        // giới hạn việc app tự bật/tắt Bluetooth), vẫn cố kết nối bình thường sau vài giây
+        // thay vì treo mãi ở trạng thái "đang khởi động lại".
+        resetTimeoutRunnable?.let { resetTimeoutHandler.removeCallbacks(it) }
+        val timeoutRunnable = Runnable {
+            if (pendingConnectDevice?.address == device.address) {
+                unregisterBtStateReceiver()
+                pendingConnectDevice = null
+                if (!hidManager.isRegistered) hidManager.start() else hidManager.connectTo(device)
+            }
+        }
+        resetTimeoutRunnable = timeoutRunnable
+        resetTimeoutHandler.postDelayed(timeoutRunnable, 12000L)
+
+        try {
+            adapter.disable()
+        } catch (e: SecurityException) {
+            unregisterBtStateReceiver()
+            pendingConnectDevice = null
+            toast("Thiếu quyền Bluetooth: ${e.message}")
+        }
+    }
+
+    /** Huỷ đăng ký HidManager hiện tại và tạo instance mới — reset trạng thái
+     *  Bluetooth/HID mà không đụng gì tới giao diện đang mở. */
+    private fun resetHidManagerInstance() {
+        // proximityConnector giữ tham chiếu CỐ ĐỊNH tới hidManager cũ — phải huỷ và để
+        // nó tự tạo lại (startProximityConnectorIfNeeded() sẽ gọi lại sau khi đăng ký
+        // HID xong), nếu không nó sẽ tiếp tục thao tác nhầm trên instance cũ đã ngừng.
+        proximityConnector?.stop()
+        proximityConnector = null
+        hidManager.listener = null
+        hidManager.unregister()
+        hidManager = HidManager(this).also { it.listener = buildHidListener() }
+    }
+
+    private fun unregisterBtStateReceiver() {
+        val current = btStateReceiver ?: return
+        btStateReceiver = null
+        try { unregisterReceiver(current) } catch (_: Exception) {}
     }
 
     @SuppressLint("MissingPermission")
