@@ -39,6 +39,16 @@ class TrackpadView @JvmOverloads constructor(
             invalidate()
         }
 
+    /** Tương tự [topInsetPx] nhưng cho 2 góc-dưới: khoảng cách (px) cần né thêm phía
+     *  đáy để không bị ô gõ đồng bộ nổi (FloatingSyncBar, "Đang gõ trên TV...") đè lên
+     *  khi nó đang hiện ngay phía trên 3 hàng nút. */
+    var bottomInsetPx: Int = 0
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
     private val prefs = context.getSharedPreferences("bt_remote_prefs", Context.MODE_PRIVATE)
     private var hintDismissed = prefs.getBoolean(PREF_HINT_DISMISSED, false)
 
@@ -121,6 +131,7 @@ class TrackpadView @JvmOverloads constructor(
         val w = width.toFloat()
         val h = height.toFloat()
         val topOffset = topInsetPx.toFloat()
+        val bottomOffset = bottomInsetPx.toFloat()
 
         // Trên-trái (hạ xuống topOffset)
         cornerPath.reset()
@@ -136,18 +147,18 @@ class TrackpadView @JvmOverloads constructor(
         cornerPath.lineTo(w - margin, topOffset + cornerLen)
         canvas.drawPath(cornerPath, cornerPaint)
 
-        // Dưới-trái
+        // Dưới-trái (nâng lên bottomOffset)
         cornerPath.reset()
-        cornerPath.moveTo(margin, h - margin - cornerLen)
-        cornerPath.lineTo(margin, h - margin)
-        cornerPath.lineTo(margin + cornerLen, h - margin)
+        cornerPath.moveTo(margin, h - margin - bottomOffset - cornerLen)
+        cornerPath.lineTo(margin, h - margin - bottomOffset)
+        cornerPath.lineTo(margin + cornerLen, h - margin - bottomOffset)
         canvas.drawPath(cornerPath, cornerPaint)
 
-        // Dưới-phải
+        // Dưới-phải (nâng lên bottomOffset)
         cornerPath.reset()
-        cornerPath.moveTo(w - margin - cornerLen, h - margin)
-        cornerPath.lineTo(w - margin, h - margin)
-        cornerPath.lineTo(w - margin, h - margin - cornerLen)
+        cornerPath.moveTo(w - margin - cornerLen, h - margin - bottomOffset)
+        cornerPath.lineTo(w - margin, h - margin - bottomOffset)
+        cornerPath.lineTo(w - margin, h - margin - bottomOffset - cornerLen)
         canvas.drawPath(cornerPath, cornerPaint)
     }
 

@@ -86,6 +86,10 @@ class MainActivity : AppCompatActivity() {
     // phạm vi ĐÃ trừ padding đó, nên phải trừ giá trị này khỏi imeHeightPx thì mới ra đúng
     // khoảng cách "ngay trên bàn phím" (nếu không ô gõ sẽ bị đẩy lên cao hơn cần thiết).
     private var systemBarsBottomPx = 0
+    // Mép trên của floatBar (px, tính từ đáy rootContainer) lần cập nhật gần nhất từ
+    // FloatingSyncBar.onLayoutChanged — dùng để tính lại bottomInsetPx của trackpad mỗi
+    // khi rowsHeightPx đổi (vd xoay màn hình / đổi chế độ) mà không cần đợi floatBar tự bắn lại.
+    private var floatBarTopFromBottomPx = 0
 
     private val requiredPermissions: Array<String>
         get() = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
@@ -153,6 +157,7 @@ class MainActivity : AppCompatActivity() {
             onClear       = { syncInput.clearAll() }
         )
         syncInput = SyncInputController(floatBar.editText, hidManager)
+        floatBar.onLayoutChanged = { topFromBottomPx -> updateTrackpadBottomInset(topFromBottomPx) }
 
         setupTrackpad()
         setupNavRow()
@@ -529,6 +534,16 @@ class MainActivity : AppCompatActivity() {
         if (isInputBarVisible && !isImeActuallyVisible) {
             floatBar.updateY(rowsHeightPx)
         }
+        updateTrackpadBottomInset(floatBarTopFromBottomPx)
+    }
+
+    /** [topFromBottomPx]: mép trên của floatBar tính từ đáy rootContainer. Trackpad có
+     *  đáy riêng của nó ngay TRÊN 3 hàng nút (cách đáy rootContainer đúng [rowsHeightPx]),
+     *  nên phần floatBar "ăn" vào vùng trackpad = topFromBottomPx - rowsHeightPx (nếu > 0). */
+    private fun updateTrackpadBottomInset(topFromBottomPx: Int) {
+        floatBarTopFromBottomPx = topFromBottomPx
+        val gapPx = (8 * resources.displayMetrics.density).toInt()
+        trackpad.bottomInsetPx = (topFromBottomPx - rowsHeightPx + gapPx).coerceAtLeast(0)
     }
 
     /** Cập nhật vị trí Y của cửa sổ nổi theo trạng thái hiện tại. */
