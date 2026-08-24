@@ -10,6 +10,8 @@ import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.util.Log
 import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @SuppressLint("MissingPermission")
 class HidManager(private val context: Context) {
@@ -120,6 +122,8 @@ class HidManager(private val context: Context) {
         } catch (e: Exception) {
             Log.w(TAG, "unregisterApp lỗi (bỏ qua vì đang thoát app)", e)
         }
+        // Huỷ hết report gõ phím còn đang chờ trong hàng đợi (nếu có) khi app thoát.
+        keySender.shutdownNow()
     }
 
     /** Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong danh sách bonded devices. */
@@ -244,28 +248,56 @@ class HidManager(private val context: Context) {
     /** true = tự chuyển tiếng Việt có dấu sang Telex trước khi gõ (mặc định bật). */
     var vietnameseTelexEnabled = true
 
-    /** Gõ 1 chuỗi văn bản, gửi từng ký tự nối tiếp. */
+    // Gửi report bàn phím qua 1 thread nền RIÊNG, xử lý tuần tự (FIFO) — thay vì bắn
+    // hết report của cả chuỗi dán/gõ liên tiếp không nghỉ trên main thread. Bluetooth
+    // HID bên nhận (TV) cần một khoảng nghỉ nhỏ giữa các report để nhận diện đúng
+    // từng lần nhấn/nhả phím; gửi dồn dập không độ trễ là lý do TV rớt/lẫn chữ khi
+    // dán đoạn văn bản dài (paste). Dùng 1 thread duy nhất để vẫn giữ đúng thứ tự
+    // BACKSPACE rồi mới tới ký tự mới (xem SyncInputController.sendDiff).
+    private val keySender: ExecutorService = Executors.newSingleThreadExecutor { r ->
+        Thread(r, "HidKeySender").apply { isDaemon = true }
+    }
+
+    /** Gõ 1 chuỗi văn bản, gửi từng ký tự nối tiếp (chạy nền, có nghỉ giữa các phím). */
     fun typeText(text: String) {
         val toSend = if (vietnameseTelexEnabled) VietnameseTelex.toTelex(text) else text
-        for (c in toSend) {
-            val mapped = KeyMapper.charToKeycode(c) ?: continue
-            sendKeyPress(mapped.first, mapped.second)
+        keySender.execute {
+            for (c in toSend) {
+                val mapped = KeyMapper.charToKeycode(c) ?: continue
+                sendKeyPressPaced(mapped.first, mapped.second)
+            }
         }
     }
 
     fun sendSpecialKey(name: String) {
         val code = KeyMapper.SPECIAL[name] ?: return
-        sendKeyPress(code, false)
+        keySender.execute { sendKeyPressPaced(code, false) }
     }
 
-    private fun sendKeyPress(keycode: Int, shift: Boolean) {
+    /** Gửi 1 lần nhấn+nhả phím, có nghỉ giữa các bước — PHẢI gọi từ [keySender] để giữ
+     *  đúng thứ tự và không nghẽn main thread khi gõ/dán chuỗi dài. */
+    private fun sendKeyPressPaced(keycode: Int, shift: Boolean) {
         val device = connectedDevice ?: return
         val modifier = if (shift) KeyMapper.MOD_SHIFT else 0
         // report: [modifier, reserved, key1..key6]
         val down = byteArrayOf(modifier.toByte(), 0, keycode.toByte(), 0, 0, 0, 0, 0)
         val up = byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0)
         safeSendReport(device, HidDescriptor.ID_KEYBOARD.toInt(), down)
+        if (!sleepPaced(KEY_HOLD_MS)) return
         safeSendReport(device, HidDescriptor.ID_KEYBOARD.toInt(), up)
+        sleepPaced(KEY_GAP_MS)
+    }
+
+    /** true nếu ngủ trọn vẹn, false nếu bị interrupt (vd app đang thoát) — dừng luôn
+     *  phần còn lại thay vì cố gửi tiếp report dở dang. */
+    private fun sleepPaced(ms: Long): Boolean {
+        return try {
+            Thread.sleep(ms)
+            true
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            false
+        }
     }
 
     /** Gửi report an toàn: thiết bị có thể vừa mất kết nối/mất quyền giữa lúc gõ liên
@@ -281,5 +313,11 @@ class HidManager(private val context: Context) {
     companion object {
         private const val TAG = "HidManager"
         private const val PREF_LAST_DEVICE = "last_connected_device_address"
+
+        // Khoảng nghỉ giữa lúc "nhấn" và "nhả" 1 phím, và giữa phím này với phím kế
+        // tiếp. Giá trị nhỏ (mili-giây) nhưng đủ để TV không bị dồn report — tương tự
+        // tốc độ gõ tay bình thường, không gây cảm giác chậm khi dán cả đoạn dài.
+        private const val KEY_HOLD_MS = 8L
+        private const val KEY_GAP_MS = 12L
     }
 }
