@@ -10,7 +10,7 @@
     <color name="bg_root">#FFFFFF</color>
     <color name="bg_top_bar">#F0F0F0</color>
     <color name="bg_row">#E8E8E8</color>
-    <color name="bg_divider">#CCCCCC</color>
+    <color name="bg_divider">#C800FF</color>
     <color name="bg_sync_bar">#ECECEC</color>
     <!-- Nút vẫn nền xám vừa (không đổi theo theme) để chữ/icon trắng trên nút
          luôn đủ tương phản dù nền màn hình đang sáng hay tối. -->

@@ -65,7 +65,7 @@
         <View
             android:id="@+id/divider"
             android:layout_width="match_parent"
-            android:layout_height="1dp"
+            android:layout_height="2dp"
             android:background="@color/bg_divider" />
 
         <!-- Hàng điều hướng: Thiết bị / Home / Back / Bàn phím -->
