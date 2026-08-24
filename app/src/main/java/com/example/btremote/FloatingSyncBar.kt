@@ -63,10 +63,21 @@ class FloatingSyncBar(
 
         root.addOnLayoutChangeListener { _, _, top, _, bottom, _, oldTop, _, oldBottom ->
             if (root.visibility == View.VISIBLE && (top != oldTop || bottom != oldBottom)) {
-                val bottomMargin = (root.layoutParams as FrameLayout.LayoutParams).bottomMargin
-                onLayoutChanged?.invoke(bottomMargin + root.height)
+                onLayoutChanged?.invoke(measureTopFromBottomPx())
             }
         }
+    }
+
+    /** Đo khoảng cách thật (px) từ đáy MÀN HÌNH lên mép trên của thanh, bằng toạ độ
+     *  tuyệt đối trên màn hình (getLocationOnScreen) — CÙNG hệ quy chiếu với cách
+     *  MainActivity đo rowsHeightPx, để 2 bên khớp nhau chính xác dù rootContainer có
+     *  đang được padding cho status bar / thanh điều hướng hay không. Dùng bottomMargin
+     *  + root.height (toạ độ trong padding box của rootContainer) sẽ bị lệch đúng bằng
+     *  phần padding đó. */
+    private fun measureTopFromBottomPx(): Int {
+        val rootLoc = IntArray(2); rootContainer.getLocationOnScreen(rootLoc)
+        val barLoc  = IntArray(2); root.getLocationOnScreen(barLoc)
+        return (rootContainer.height - (barLoc[1] - rootLoc[1])).coerceAtLeast(0)
     }
 
     /** Hiện ô gõ, ghim [bottomPx] px tính từ đáy. */
@@ -90,7 +101,8 @@ class FloatingSyncBar(
         if (lp.bottomMargin == bottomPx) return
         lp.bottomMargin = bottomPx
         root.layoutParams = lp
-        onLayoutChanged?.invoke(bottomPx + root.height)
+        // layoutParams mới chỉ có hiệu lực ở lần layout kế tiếp (bất đồng bộ) — không đọc
+        // toạ độ ngay ở đây vì sẽ vẫn là toạ độ CŨ; đợi addOnLayoutChangeListener tự bắn lại.
     }
 
     val isVisible get() = root.visibility == View.VISIBLE
