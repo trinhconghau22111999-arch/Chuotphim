@@ -126,6 +126,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Launcher xin phép discoverable — hệ thống tự hiện hộp thoại "Cho phép X giây?"
+    // Sau khi user đồng ý, Bluetooth của phone sẽ hiện với TV trong vài giây để TV
+    // tìm thấy và tự kết nối vào (HID profile: TV/PC luôn là bên connect, phone lắng nghe).
+    private val discoverableLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { /* Không cần xử lý kết quả — TV sẽ tự kết nối khi tìm thấy phone */ }
+
     private val recordAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -274,7 +281,13 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
+            // Thử tự kết nối lại thiết bị cũ trước (nếu đã từng kết nối)
             hidManager.autoReconnectLastDevice()
+            // Đồng thời bật discoverable để TV/PC tìm thấy phone và TỰ KẾT NỐI VÀO:
+            // HID profile hoạt động theo chiều TV→Phone (TV connect vào phone), không phải
+            // phone chủ động connect ra. Nếu chỉ gọi hidDevice.connect() mà không
+            // discoverable, TV không thấy phone → kết nối thất bại im lặng.
+            makeDiscoverable()
             startProximityConnectorIfNeeded()
         }
 
@@ -352,6 +365,24 @@ class MainActivity : AppCompatActivity() {
         btnRegisterHidOverlay.isEnabled = true
         btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
         if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
+    }
+
+    /** Bật chế độ discoverable 120 giây để TV/PC tìm thấy phone qua Bluetooth và tự kết nối vào.
+     *  HID Bluetooth hoạt động theo chiều THIẾT BỊ ĐIỀU KHIỂN (TV/PC) connect VÀO phone —
+     *  phone không thể chủ động connect ra (chỉ có thể gợi ý qua hidDevice.connect() nhưng
+     *  TV có thể từ chối). Discoverable là bước bắt buộc để lần đầu pair hoặc kết nối lại
+     *  khi TV không còn nhớ profile cũ. */
+    @SuppressLint("MissingPermission")
+    private fun makeDiscoverable() {
+        try {
+            val intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120)
+            }
+            discoverableLauncher.launch(intent)
+        } catch (e: Exception) {
+            // Bỏ qua nếu hệ thống không cho (máy cũ / quyền bị từ chối) — kết nối
+            // vẫn có thể hoạt động nếu TV đã nhớ profile trước đó.
+        }
     }
 
     @SuppressLint("MissingPermission")
