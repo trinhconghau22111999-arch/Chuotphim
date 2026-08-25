@@ -133,6 +133,10 @@ class MainActivity : AppCompatActivity() {
         if (granted) beginVoiceListening() else toast("Cần cấp quyền Micro để nhập liệu bằng giọng nói")
     }
 
+    private val discoverableLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { /* TV sẽ tự kết nối vào phone sau khi tìm thấy và pair */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashHandler.install(this)
         super.onCreate(savedInstanceState)
@@ -275,9 +279,14 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
-            // Thử tự kết nối lại thiết bị cũ trước (nếu đã từng kết nối)
-            hidManager.autoReconnectLastDevice()
-startProximityConnectorIfNeeded()
+            // Thử kết nối lại thiết bị đã pair trước (nếu có) — TV tự connect vào phone.
+            val reconnected = hidManager.autoReconnectLastDevice()
+            if (!reconnected) {
+                // Chưa từng pair với TV nào → bật discoverable để TV tìm thấy phone.
+                // Hộp thoại chỉ hiện 1 lần này — sau khi pair xong TV tự kết nối lại.
+                requestDiscoverable()
+            }
+            startProximityConnectorIfNeeded()
         }
 
         override fun onUnregistered() = runOnUiThread {
@@ -354,6 +363,19 @@ startProximityConnectorIfNeeded()
         btnRegisterHidOverlay.isEnabled = true
         btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
         if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
+    }
+
+    /** Bật discoverable 300 giây để TV/PC tìm thấy phone lần đầu pair.
+     *  Vào BT Settings TV → Quét → thấy tên điện thoại → bấm Kết nối. */
+    private fun requestDiscoverable() {
+        statusText.text = "Chưa kết nối — Vào Cài đặt Bluetooth TV → Quét thiết bị → chọn tên điện thoại này."
+        try {
+            discoverableLauncher.launch(
+                Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                }
+            )
+        } catch (_: Exception) {}
     }
 
     @SuppressLint("MissingPermission")
