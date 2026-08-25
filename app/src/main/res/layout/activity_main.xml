@@ -26,11 +26,15 @@
             android:layout_height="wrap_content"
             android:background="@color/bg_top_bar">
 
-            <!-- padding 56dp 2 bên: chừa chỗ cho 2 nút tròn nổi (44dp + margin 8dp) -->
+            <!-- padding 56dp 2 bên: chừa chỗ cho 2 nút tròn nổi (44dp + margin 8dp).
+                 gravity="center": canh GIỮA cả ngang lẫn dọc trong hàng - trước đây không có
+                 gravity nên chữ bị dạt về mép trái theo mặc định của TextView, nhìn lệch hẳn so
+                 với phần khoảng trống chừa đều 2 bên cho 2 nút tròn nổi. -->
             <TextView
                 android:id="@+id/statusText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
                 android:paddingStart="56dp"
@@ -39,20 +43,14 @@
                 android:text="Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
                 android:visibility="gone" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRegisterHid"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="56dp"
-                android:layout_marginEnd="56dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:textAllCaps="false"
-                android:textColor="@color/key_danger"
-                android:text="Đăng ký làm bàn phím và chuột" />
+            <!-- ĐÃ XOÁ HẲN: nút "btnRegisterHid" từng nằm ở đây - KHÔNG hề được
+                 MainActivity.kt gọi tới (không findViewById, không set listener nào cả), luôn
+                 hiện tĩnh vô điều kiện nên đè chồng lên statusText phía trên mỗi khi statusText
+                 cũng đang hiện - đúng như ảnh chụp màn hình cho thấy: chữ "Chưa kết nối" và nút
+                 "Đăng ký làm bàn phím và chuột" chồng lên nhau. Nút ĐĂNG KÝ THẬT SỰ hoạt động là
+                 "btnRegisterHidOverlay" (trong khối overlayUnregistered riêng, che toàn màn hình
+                 khi CHƯA đăng ký HID) - nút này vẫn giữ nguyên, không bị ảnh hưởng gì bởi việc
+                 xoá nút rác ở trên. -->
 
         </FrameLayout>
 
