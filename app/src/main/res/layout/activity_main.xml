@@ -50,7 +50,7 @@
                 android:paddingStart="56dp"
                 android:paddingEnd="56dp"
                 android:textColor="@color/key_danger"
-                android:text="Chưa kết nối. Cần đủ 2 điều kiện: (1) điện thoại và TV/Laptop CHƯA từng ghép nối/lưu thiết bị với nhau trước đó, (2) phải dò và kết nối TỪ PHÍA TV/Laptop (không kết nối được bằng cách bấm từ điện thoại)."
+                android:text="Chưa kết nối. Cần đủ 2 điều kiện: (1) điện thoại và TV/Laptop CHƯA từng ghép nối/lưu thiết bị với nhau trước đó, (2) phải dò và kết nối TỪ PHÍA TV/Laptop (không sử dụng được nếu kết nối bằng điện thoại)."
                 android:visibility="gone" />
 
             <!-- ĐÃ XOÁ HẲN: nút "btnRegisterHid" từng nằm ở đây - KHÔNG hề được

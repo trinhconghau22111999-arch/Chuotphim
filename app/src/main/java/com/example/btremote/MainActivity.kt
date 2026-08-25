@@ -262,7 +262,7 @@ class MainActivity : AppCompatActivity() {
                 "1. Bấm \"Đăng ký làm bàn phím và chuột\" rồi cấp quyền Bluetooth khi được hỏi.\n\n" +
                 "2. Trên TV/PC: vào Cài đặt Bluetooth → Thêm thiết bị → tìm tên \"BT Remote\" → " +
                 "ghép nối như ghép 1 con chuột Bluetooth bình thường.\n" +
-                "QUAN TRỌNG: phải dò và ghép nối TỪ PHÍA TV/PC, không bấm kết nối từ điện thoại.\n\n" +
+                "QUAN TRỌNG: phải dò và ghép nối TỪ PHÍA TV/PC - không sử dụng được nếu kết nối bằng điện thoại.\n\n" +
                 "3. Quay lại app, bấm nút ⚙️ (góc trái hàng nút dưới cùng) để chọn đúng thiết bị " +
                 "TV/PC vừa ghép nối. Lần mở sau app tự kết nối lại, không cần chọn lại nữa.\n\n" +
                 "4. Dùng ngay:\n" +
@@ -306,7 +306,7 @@ class MainActivity : AppCompatActivity() {
         statusText.setTextColor(ContextCompat.getColor(this, R.color.key_danger))
         statusText.text = "Chưa kết nối. Cần đủ 2 điều kiện: (1) điện thoại và TV/Laptop CHƯA " +
             "từng ghép nối/lưu thiết bị với nhau trước đó, (2) phải dò và kết nối TỪ PHÍA " +
-            "TV/Laptop (không kết nối được bằng cách bấm từ điện thoại)."
+            "TV/Laptop (không sử dụng được nếu kết nối bằng điện thoại)."
     }
 
     /** Hiện trạng thái ĐÃ kết nối: giữ nguyên màu chữ mặc định (text_on_surface) như trước đây,
