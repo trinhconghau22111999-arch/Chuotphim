@@ -192,6 +192,8 @@
                 style="@style/RemoteKeyIcon"
                 android:layout_height="match_parent"
                 android:text="OK"
+                android:textSize="14sp"
+                android:maxLines="1"
                 android:contentDescription="Chọn" />
 
             <com.google.android.material.button.MaterialButton

@@ -389,35 +389,9 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialog() {
-        if (!hasShownUnpairNotice()) {
-            markUnpairNoticeShown()
-            showUnpairNoticeDialog { showBondedDevicesDialogInternal() }
-            return
-        }
+        // ĐÃ BỎ hộp thoại "Lưu ý trước khi kết nối" theo yêu cầu - mở thẳng danh sách thiết bị
+        // đã ghép nối, không còn cảnh báo chặn trước nữa.
         showBondedDevicesDialogInternal()
-    }
-
-    private fun showUnpairNoticeDialog(onContinue: () -> Unit) {
-        AlertDialog.Builder(this)
-            .setTitle("Lưu ý trước khi kết nối")
-            .setMessage(
-                "Nếu điện thoại này đã từng ghép nối Bluetooth với TV/Đầu thu trước đây, " +
-                    "hãy vào cài đặt Bluetooth của thiết bị đó chọn hủy ghép nối rồi quay lại " +
-                    "đây kết nối từ trong app.\n\n" +
-                    "Bỏ qua bước này có thể khiến app không hoạt động."
-            )
-            .setPositiveButton("Đã hiểu, tiếp tục") { _, _ -> onContinue() }
-            .setCancelable(false)
-            .show()
-    }
-
-    private fun hasShownUnpairNotice(): Boolean =
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).getBoolean(KEY_UNPAIR_NOTICE_SHOWN, false)
-
-    private fun markUnpairNoticeShown() {
-        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
-            .putBoolean(KEY_UNPAIR_NOTICE_SHOWN, true)
-            .apply()
     }
 
     @SuppressLint("MissingPermission")
@@ -555,7 +529,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupNavRow() {
         findViewById<MaterialButton>(R.id.btnPickDevice).apply {
             setOnClickListener { showBondedDevicesDialog() }
-            setOnLongClickListener { showUnpairNoticeDialog { showBondedDevicesDialogInternal() }; true }
         }
         findViewById<MaterialButton>(R.id.btnHome).setOnClickListener {
             hidManager.sendHome(); syncInput.reset()
@@ -899,7 +872,6 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val PREFS_NAME = "btremote_prefs"
-        private const val KEY_UNPAIR_NOTICE_SHOWN = "unpair_notice_shown"
         private const val KEY_HID_REGISTERED = "hid_registered"
     }
 }
