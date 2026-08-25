@@ -20,20 +20,30 @@
         android:orientation="vertical"
         android:background="@color/bg_root">
 
+        <!-- minHeight=60dp: 2 nút tròn nổi góc trên (btnMouseFullscreen/btnKeyboardFullscreen,
+             44dp + margin 8dp mỗi bên = 60dp) được đặt NGOÀI FrameLayout này (xem cuối file) nên
+             tự thân topBar không "biết" chúng cao bao nhiêu - trước đây topBar chỉ cao đúng bằng
+             nội dung statusText bên trong (wrap_content), THẤP HƠN 60dp, khiến 2 icon bị lòi hẳn
+             ra dưới đáy thanh xám thay vì nằm gọn trong đó. Đặt minHeight khớp đúng 60dp để thanh
+             xám luôn bao trọn cả 2 icon dù statusText đang hiện hay ẩn. -->
         <FrameLayout
             android:id="@+id/topBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="60dp"
             android:background="@color/bg_top_bar">
 
             <!-- padding 56dp 2 bên: chừa chỗ cho 2 nút tròn nổi (44dp + margin 8dp).
-                 gravity="center": canh GIỮA cả ngang lẫn dọc trong hàng - trước đây không có
-                 gravity nên chữ bị dạt về mép trái theo mặc định của TextView, nhìn lệch hẳn so
-                 với phần khoảng trống chừa đều 2 bên cho 2 nút tròn nổi. -->
+                 gravity="center": canh GIỮA chữ theo chiều NGANG trong TextView.
+                 layout_gravity="center_vertical": canh GIỮA cả TextView theo chiều DỌC trong
+                 topBar (topBar giờ cao 60dp - xem minHeight ở trên - trong khi statusText vẫn
+                 wrap_content nên tự nó thấp hơn 60dp; thiếu layout_gravity này thì TextView bị
+                 dạt lên sát mép TRÊN của topBar thay vì nằm giữa). -->
             <TextView
                 android:id="@+id/statusText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
                 android:gravity="center"
                 android:paddingTop="8dp"
                 android:paddingBottom="8dp"
