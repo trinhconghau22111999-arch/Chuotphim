@@ -120,13 +120,24 @@ class TrackpadView @JvmOverloads constructor(
      *  khoảng cách lề, độ dày nét) đều tính theo % chiều nhỏ nhất của view -> co dãn
      *  đúng theo độ lớn trackpad thực tế trên từng máy/mỗi lần xoay màn hình.
      *  2 góc trên được hạ xuống thêm [topInsetPx] (chiều cao topBar thực tế + khoảng hở)
-     *  để luôn nằm rõ bên dưới khối thông báo, dù thông báo dài hay ngắn. */
+     *  để luôn nằm rõ bên dưới khối thông báo, dù thông báo dài hay ngắn.
+     *
+     *  Ở MÀN HÌNH NGANG: margin ngang (marginX) tính theo % chiều nhỏ nhất (là chiều CAO
+     *  lúc này) nên rất nhỏ, không đủ né 2 nút tròn nổi chuột/bàn phím (44dp + margin 8dp
+     *  = ~52dp, cố định vị trí top|start/top|end trong activity_main.xml, KHÔNG đổi). Cộng
+     *  thêm landscapeExtraMarginPx vào marginX (chỉ khi ngang) để 2 góc-trái dịch vào phải
+     *  và 2 góc-phải dịch vào trái, thoát khỏi vùng 2 nút đó - không ảnh hưởng margin dọc
+     *  hay chiều dài cạnh góc. */
     private fun drawCornerBrackets(canvas: Canvas) {
         val shortSide = minOf(width, height).toFloat()
         if (shortSide <= 0f) return
         val cornerLen = shortSide * 0.10f
-        val margin = shortSide * 0.05f
+        val marginY = shortSide * 0.05f
         cornerPaint.strokeWidth = (shortSide * 0.012f).coerceAtLeast(3f)
+
+        val isLandscape = width > height
+        val landscapeExtraMarginPx = if (isLandscape) 44f * resources.displayMetrics.density else 0f
+        val marginX = marginY + landscapeExtraMarginPx
 
         val w = width.toFloat()
         val h = height.toFloat()
@@ -135,30 +146,30 @@ class TrackpadView @JvmOverloads constructor(
 
         // Trên-trái (hạ xuống topOffset)
         cornerPath.reset()
-        cornerPath.moveTo(margin, topOffset + cornerLen)
-        cornerPath.lineTo(margin, topOffset)
-        cornerPath.lineTo(margin + cornerLen, topOffset)
+        cornerPath.moveTo(marginX, topOffset + cornerLen)
+        cornerPath.lineTo(marginX, topOffset)
+        cornerPath.lineTo(marginX + cornerLen, topOffset)
         canvas.drawPath(cornerPath, cornerPaint)
 
         // Trên-phải (hạ xuống topOffset)
         cornerPath.reset()
-        cornerPath.moveTo(w - margin - cornerLen, topOffset)
-        cornerPath.lineTo(w - margin, topOffset)
-        cornerPath.lineTo(w - margin, topOffset + cornerLen)
+        cornerPath.moveTo(w - marginX - cornerLen, topOffset)
+        cornerPath.lineTo(w - marginX, topOffset)
+        cornerPath.lineTo(w - marginX, topOffset + cornerLen)
         canvas.drawPath(cornerPath, cornerPaint)
 
         // Dưới-trái (nâng lên bottomOffset)
         cornerPath.reset()
-        cornerPath.moveTo(margin, h - margin - bottomOffset - cornerLen)
-        cornerPath.lineTo(margin, h - margin - bottomOffset)
-        cornerPath.lineTo(margin + cornerLen, h - margin - bottomOffset)
+        cornerPath.moveTo(marginX, h - marginY - bottomOffset - cornerLen)
+        cornerPath.lineTo(marginX, h - marginY - bottomOffset)
+        cornerPath.lineTo(marginX + cornerLen, h - marginY - bottomOffset)
         canvas.drawPath(cornerPath, cornerPaint)
 
         // Dưới-phải (nâng lên bottomOffset)
         cornerPath.reset()
-        cornerPath.moveTo(w - margin - cornerLen, h - margin - bottomOffset)
-        cornerPath.lineTo(w - margin, h - margin - bottomOffset)
-        cornerPath.lineTo(w - margin, h - margin - bottomOffset - cornerLen)
+        cornerPath.moveTo(w - marginX - cornerLen, h - marginY - bottomOffset)
+        cornerPath.lineTo(w - marginX, h - marginY - bottomOffset)
+        cornerPath.lineTo(w - marginX, h - marginY - bottomOffset - cornerLen)
         canvas.drawPath(cornerPath, cornerPaint)
     }
 
