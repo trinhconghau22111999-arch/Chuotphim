@@ -260,7 +260,8 @@ class MainActivity : AppCompatActivity() {
                 "Biến điện thoại thành chuột + bàn phím Bluetooth thật cho TV/PC - máy bị điều " +
                 "khiển không cần cài app hay driver gì thêm.\n\n" +
                 "1. Bấm \"Đăng ký làm bàn phím và chuột\" rồi cấp quyền Bluetooth khi được hỏi.\n\n" +
-                "2. Trên TV/PC: vào Cài đặt Bluetooth, chọn Thêm thiết bị, tìm tên \"BT Remote\" " +
+                "2. Trên TV/PC: vào Cài đặt Bluetooth, chọn Thêm thiết bị, tìm đúng tên thiết " +
+                "bị này (chính là tên Bluetooth đang đặt trên điện thoại bạn) " +
                 "rồi ghép nối như ghép 1 con chuột Bluetooth bình thường.\n" +
                 "QUAN TRỌNG: phải dò và ghép nối TỪ PHÍA TV/PC - không sử dụng được nếu kết nối bằng điện thoại.\n\n" +
                 "3. Quay lại app, bấm nút ⚙️ (góc trái hàng nút ĐẦU TIÊN, ngay dưới trackpad) để " +

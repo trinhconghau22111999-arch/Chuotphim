@@ -40,8 +40,9 @@ Hoặc build thẳng và cài vào điện thoại đang cắm USB (đã bật U
 
 1. Mở app trên điện thoại → bấm **"1. Đăng ký làm bàn phím + chuột
    Bluetooth"** → cấp quyền Bluetooth khi được hỏi.
-2. Trên TV/PC: vào Cài đặt Bluetooth → Add device / Pair device → tìm tên
-   **"BT Remote"** → pair như pair chuột Bluetooth bình thường.
+2. Trên TV/PC: vào Cài đặt Bluetooth → Add device / Pair device → tìm đúng
+   **tên thiết bị này** (chính là tên Bluetooth đang đặt trên điện thoại bạn,
+   KHÔNG cố định là "BT Remote") → pair như pair chuột Bluetooth bình thường.
    *(Một số máy sẽ hiện mã PIN xác nhận — đồng ý trên cả 2 bên nếu được hỏi.)*
 3. Quay lại app, bấm **"Chọn thiết bị"** → chọn tên TV/PC vừa pair.
    *(Từ lần mở app sau, app tự nhớ và kết nối lại thiết bị này ngay khi
