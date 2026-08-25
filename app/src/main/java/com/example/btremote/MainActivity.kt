@@ -278,7 +278,7 @@ class MainActivity : AppCompatActivity() {
             setHidRegisteredUi(registered = true)
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
-            statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
+            statusText.text = "Chưa kết nối"
             // Thử kết nối lại thiết bị đã pair trước (nếu có) — TV tự connect vào phone.
             val reconnected = hidManager.autoReconnectLastDevice()
             if (!reconnected) {
@@ -301,7 +301,7 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             statusText.text = if (connected) "Đã kết nối tới: ${safeName(device)}"
-                else "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
+                else "Chưa kết nối"
             if (!connected && device != null && !wasIntentional) {
                 proximityConnector?.onDisconnected(device)
             }
@@ -368,7 +368,7 @@ class MainActivity : AppCompatActivity() {
     /** Bật discoverable 300 giây để TV/PC tìm thấy phone lần đầu pair.
      *  Vào BT Settings TV → Quét → thấy tên điện thoại → bấm Kết nối. */
     private fun requestDiscoverable() {
-        statusText.text = "Chưa kết nối — Vào Cài đặt Bluetooth TV → Quét thiết bị → chọn tên điện thoại này."
+        statusText.text = "Chưa kết nối"
         try {
             discoverableLauncher.launch(
                 Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
