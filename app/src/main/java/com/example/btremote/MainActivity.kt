@@ -149,6 +149,7 @@ class MainActivity : AppCompatActivity() {
 
         showLastCrashIfAny()
         bindViews()
+        showFirstLaunchTutorialIfNeeded()
 
         hidManager = HidManager(this).also { it.listener = buildHidListener() }
         voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceStopped)
@@ -246,6 +247,37 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** Hướng dẫn sử dụng - CHỈ hiện đúng 1 LẦN DUY NHẤT ở lần mở app đầu tiên sau khi cài (đánh
+     *  dấu đã hiện qua SharedPreferences, key KEY_TUTORIAL_SHOWN) - những lần mở sau không còn
+     *  hiện lại nữa, kể cả sau khi tắt/mở lại app hay khởi động lại máy (khác với 1 biến chỉ
+     *  sống trong RAM, sẽ hiện lại mỗi lần app bị hệ thống kill rồi mở lại). */
+    private fun showFirstLaunchTutorialIfNeeded() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        if (prefs.getBoolean(KEY_TUTORIAL_SHOWN, false)) return
+        AlertDialog.Builder(this)
+            .setTitle("Hướng dẫn sử dụng")
+            .setMessage(
+                "Biến điện thoại thành chuột + bàn phím Bluetooth thật cho TV/PC - máy bị điều " +
+                "khiển không cần cài app hay driver gì thêm.\n\n" +
+                "1. Bấm \"Đăng ký làm bàn phím và chuột\" rồi cấp quyền Bluetooth khi được hỏi.\n\n" +
+                "2. Trên TV/PC: vào Cài đặt Bluetooth → Thêm thiết bị → tìm tên \"BT Remote\" → " +
+                "ghép nối như ghép 1 con chuột Bluetooth bình thường.\n" +
+                "QUAN TRỌNG: phải dò và ghép nối TỪ PHÍA TV/PC, không bấm kết nối từ điện thoại.\n\n" +
+                "3. Quay lại app, bấm nút ⚙️ (góc trái hàng nút dưới cùng) để chọn đúng thiết bị " +
+                "TV/PC vừa ghép nối. Lần mở sau app tự kết nối lại, không cần chọn lại nữa.\n\n" +
+                "4. Dùng ngay:\n" +
+                "• Trackpad (vùng trống ở giữa): kéo 1 ngón để di chuyển con trỏ, chạm nhẹ = " +
+                "click trái, giữ lâu = click phải, kéo 2 ngón theo chiều dọc = cuộn trang.\n" +
+                "• Hàng nút dưới cùng: Home/Back, mở bàn phím ảo để gõ chữ, tắt màn hình (chỉ " +
+                "TV), chỉnh âm lượng, điều khiển phát nhạc/video (trước/tiếp/tua lùi/tua tới)."
+            )
+            .setPositiveButton("Đã hiểu") { _, _ ->
+                prefs.edit().putBoolean(KEY_TUTORIAL_SHOWN, true).apply()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
     private fun bindViews() {
         rootContainer        = findViewById(R.id.rootContainer)
         mainColumn           = findViewById(R.id.mainColumn)
@@ -267,12 +299,29 @@ class MainActivity : AppCompatActivity() {
 
     // ---------- Đăng ký HID + kết nối thiết bị ----------
 
+    /** Hiện trạng thái CHƯA kết nối: chữ màu ĐỎ (key_danger) + giải thích rõ 2 điều kiện bắt
+     *  buộc để kết nối được (theo yêu cầu) - trước đây chỉ ghi mỗi "Chưa kết nối", không nói vì
+     *  sao/cần làm gì, khiến người dùng không biết phải làm sao khi kẹt ở trạng thái này. */
+    private fun setStatusDisconnected() {
+        statusText.setTextColor(ContextCompat.getColor(this, R.color.key_danger))
+        statusText.text = "Chưa kết nối. Cần đủ 2 điều kiện: (1) điện thoại và TV/Laptop CHƯA " +
+            "từng ghép nối/lưu thiết bị với nhau trước đó, (2) phải dò và kết nối TỪ PHÍA " +
+            "TV/Laptop (không kết nối được bằng cách bấm từ điện thoại)."
+    }
+
+    /** Hiện trạng thái ĐÃ kết nối: giữ nguyên màu chữ mặc định (text_on_surface) như trước đây,
+     *  chỉ đổi màu ở trạng thái CHƯA kết nối (xem setStatusDisconnected()). */
+    private fun setStatusConnected(device: BluetoothDevice?) {
+        statusText.setTextColor(ContextCompat.getColor(this, R.color.text_on_surface))
+        statusText.text = "Đã kết nối tới: ${safeName(device)}"
+    }
+
     private fun buildHidListener() = object : HidManager.Listener {
         override fun onRegistered() = runOnUiThread {
             setHidRegisteredUi(registered = true)
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
-            statusText.text = "Chưa kết nối"
+            setStatusDisconnected()
             // Thử kết nối lại thiết bị đã pair trước (nếu có) — TV tự connect vào phone.
             val reconnected = hidManager.autoReconnectLastDevice()
             if (!reconnected) {
@@ -294,8 +343,7 @@ class MainActivity : AppCompatActivity() {
             setHidRegisteredUi(registered = true)
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
-            statusText.text = if (connected) "Đã kết nối tới: ${safeName(device)}"
-                else "Chưa kết nối"
+            if (connected) setStatusConnected(device) else setStatusDisconnected()
             if (!connected && device != null && !wasIntentional) {
                 proximityConnector?.onDisconnected(device)
             }
@@ -357,15 +405,35 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Bật discoverable 300 giây để TV/PC tìm thấy phone lần đầu pair.
-     *  Vào BT Settings TV → Quét → thấy tên điện thoại → bấm Kết nối. */
+     *  Vào BT Settings TV → Quét → thấy tên điện thoại → bấm Kết nối.
+     *
+     *  Hộp thoại "Cho phép hiển thị công khai trong 300 giây..." NGAY SAU hàm này là hộp thoại
+     *  CỦA HỆ THỐNG ANDROID (ACTION_REQUEST_DISCOVERABLE) - app không tự vẽ ra nên KHÔNG thể
+     *  sửa chữ trong đó được (Android tự hiện đúng ngôn ngữ máy đang đặt). Để người dùng hiểu rõ
+     *  chuyện gì sắp xảy ra TRƯỚC khi hộp thoại hệ thống đó hiện lên, thêm 1 hộp thoại CỦA APP
+     *  (100% tiếng Việt, app tự vẽ nên sửa được) giải thích trước, bấm "Đồng ý" rồi mới gọi tiếp
+     *  qua hộp thoại hệ thống như cũ. */
     private fun requestDiscoverable() {
-        try {
-            discoverableLauncher.launch(
-                Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                    putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
-                }
+        AlertDialog.Builder(this)
+            .setTitle("Cho phép TV/Laptop tìm thấy điện thoại")
+            .setMessage(
+                "Ở bước tiếp theo, Android sẽ hỏi xác nhận cho phép điện thoại này hiển thị " +
+                "công khai qua Bluetooth trong 300 giây (5 phút) để TV/Laptop có thể dò thấy và " +
+                "ghép nối. Bấm \"Đồng ý\" bên dưới để tiếp tục, sau đó xác nhận thêm 1 lần nữa ở " +
+                "hộp thoại của hệ thống."
             )
-        } catch (_: Exception) {}
+            .setPositiveButton("Đồng ý") { _, _ ->
+                try {
+                    discoverableLauncher.launch(
+                        Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
+                            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
+                        }
+                    )
+                } catch (_: Exception) {}
+            }
+            .setNegativeButton("Huỷ", null)
+            .setCancelable(true)
+            .show()
     }
 
     @SuppressLint("MissingPermission")
@@ -745,6 +813,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "btremote_prefs"
         private const val KEY_HID_REGISTERED = "hid_registered"
+        private const val KEY_TUTORIAL_SHOWN = "tutorial_shown"
     }
 }
 
