@@ -221,6 +221,11 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun recheckHidConnectionOnResume() {
+        // Đang giữa chừng reconnectWithReset() (vừa tắt/bật lại Bluetooth để connect
+        // 1 thiết bị cụ thể) -> để nguyên, tránh gọi chồng start()/autoReconnectLastDevice()
+        // trong lúc adapter còn đang chuyển trạng thái (vd user vừa chuyển app đi rồi
+        // quay lại đúng lúc này), có thể gây kết nối nhầm thiết bị khác pendingConnectDevice.
+        if (pendingConnectDevice != null) return
         val adapter = BluetoothAdapter.getDefaultAdapter()
         if (adapter == null || !adapter.isEnabled) return
         if (!hidManager.isRegistered) {

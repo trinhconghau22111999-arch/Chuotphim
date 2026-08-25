@@ -8,6 +8,25 @@ object KeyMapper {
 
     const val MOD_SHIFT: Int = 0x02
 
+    /** Một số ký tự Unicode "đẹp" hay gặp khi dán từ Word/Notes/trang web (dấu ngoặc
+     *  kép cong, gạch ngang dài, dấu ba chấm, khoảng trắng không ngắt dòng...) không
+     *  có phím HID tương ứng trực tiếp -> nếu không quy đổi sẽ bị charToKeycode() bỏ
+     *  qua âm thầm, gây mất chữ y hệt lỗi dấu ngoặc trước đây. Quy về ASCII gần nhất. */
+    fun normalizePunctuation(text: String): String {
+        val sb = StringBuilder(text.length)
+        for (c in text) {
+            when (c) {
+                '\u201C', '\u201D', '\u201E', '\u201F' -> sb.append('"')   // “ ” „ ‟
+                '\u2018', '\u2019', '\u201A', '\u201B' -> sb.append('\'') // ‘ ’ ‚ ‛
+                '\u2013', '\u2014', '\u2212' -> sb.append('-')            // – — −
+                '\u2026' -> sb.append("...")                              // …
+                '\u00A0' -> sb.append(' ')                                // khoảng trắng không ngắt dòng
+                else -> sb.append(c)
+            }
+        }
+        return sb.toString()
+    }
+
     // Phím đặc biệt dùng cho các nút cứng — chỉ còn ENTER/BACKSPACE (qua
     // SyncInputController). HOME/ESC đã bỏ khỏi đây: 2 nút Home/Back giờ gửi qua
     // Consumer Control (AC Home/AC Back trong HidDescriptor) thay vì phím bàn phím

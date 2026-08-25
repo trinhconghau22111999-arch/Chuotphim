@@ -25,11 +25,16 @@ class HidManager(private val context: Context) {
         fun onError(message: String)
     }
 
-    private var hidDevice: BluetoothHidDevice? = null
-    private var connectedDevice: BluetoothDevice? = null
+    // @Volatile: được ghi từ thread callback Binder của hệ thống (hidCallback,
+    // serviceListener) nhưng đọc từ nhiều thread khác (UI thread khi gửi report
+    // chuột/media, và thread nền keySender khi gõ phím) — không đánh dấu volatile
+    // thì 1 thread có thể đọc giá trị cũ do JIT/CPU cache, dù hiếm khi gây lỗi rõ
+    // rệt trên thực tế vẫn nên đảm bảo đúng theo mô hình bộ nhớ của Java/Kotlin.
+    @Volatile private var hidDevice: BluetoothHidDevice? = null
+    @Volatile private var connectedDevice: BluetoothDevice? = null
     // Địa chỉ thiết bị mà app vừa chủ động gọi disconnect() (vì user chọn thiết bị
     // khác) — dùng để phân biệt với trường hợp thiết bị tự rớt vì ra xa.
-    private var pendingIntentionalDisconnectAddress: String? = null
+    @Volatile private var pendingIntentionalDisconnectAddress: String? = null
     val isConnected: Boolean get() = connectedDevice != null
     val currentConnectedAddress: String? get() = connectedDevice?.address
     // true nếu app còn giữ proxy HID hợp lệ với hệ thống (đã registerApp thành
@@ -162,21 +167,24 @@ class HidManager(private val context: Context) {
 
     // ---------- Gửi report chuột ----------
 
-    private var mouseButtons = 0
-
     fun sendMouseMove(dx: Int, dy: Int) {
-        sendMouseReport(mouseButtons, dx, dy, 0)
+        sendMouseReport(0, dx, dy, 0)
     }
 
     fun sendMouseClick(rightButton: Boolean) {
         val bit = if (rightButton) 0x02 else 0x01
-        // nhấn xuống rồi nhả ra, giả lập 1 click hoàn chỉnh
-        sendMouseReport(bit, 0, 0, 0)
-        sendMouseReport(0, 0, 0, 0)
+        // Nhấn xuống rồi nhả ra qua keySender (giống bàn phím) thay vì bắn liền 2
+        // report không nghỉ trên main thread — cùng lý do đã sửa cho bàn phím: TV
+        // cần 1 khoảng nghỉ nhỏ mới nhận diện đúng nhấn/nhả, tránh thỉnh thoảng bị
+        // "lì chuột" (nhả không tới nơi, coi như đang giữ chuột).
+        safeExecuteKeySender {
+            sendMouseReport(bit, 0, 0, 0)
+            if (sleepPaced(KEY_HOLD_MS)) sendMouseReport(0, 0, 0, 0)
+        }
     }
 
     fun sendMouseScroll(wheel: Int) {
-        sendMouseReport(mouseButtons, 0, 0, wheel)
+        sendMouseReport(0, 0, 0, wheel)
     }
 
     private fun sendMouseReport(buttons: Int, dx: Int, dy: Int, wheel: Int) {
@@ -238,9 +246,13 @@ class HidManager(private val context: Context) {
         val device = connectedDevice ?: return
         val byte0 = (bitmask and 0xFF).toByte()
         val byte1 = ((bitmask shr 8) and 0xFF).toByte()
-        // Nhấn xuống rồi nhả ra ngay, giống cách gửi report bàn phím/chuột ở trên.
-        safeSendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(byte0, byte1))
-        safeSendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0, 0))
+        // Nhấn xuống rồi nhả ra ngay qua keySender (có nghỉ nhỏ giữa 2 report) — cùng
+        // lý do đã sửa cho bàn phím/chuột, tránh trường hợp hiếm gặp TV bỏ lỡ report
+        // "nhả" khi 2 report tới quá sát nhau.
+        safeExecuteKeySender {
+            safeSendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(byte0, byte1))
+            if (sleepPaced(KEY_HOLD_MS)) safeSendReport(device, HidDescriptor.ID_CONSUMER.toInt(), byteArrayOf(0, 0))
+        }
     }
 
     // ---------- Gửi report bàn phím ----------
@@ -260,8 +272,9 @@ class HidManager(private val context: Context) {
 
     /** Gõ 1 chuỗi văn bản, gửi từng ký tự nối tiếp (chạy nền, có nghỉ giữa các phím). */
     fun typeText(text: String) {
-        val toSend = if (vietnameseTelexEnabled) VietnameseTelex.toTelex(text) else text
-        keySender.execute {
+        val normalized = KeyMapper.normalizePunctuation(text)
+        val toSend = if (vietnameseTelexEnabled) VietnameseTelex.toTelex(normalized) else normalized
+        safeExecuteKeySender {
             for (c in toSend) {
                 val mapped = KeyMapper.charToKeycode(c) ?: continue
                 sendKeyPressPaced(mapped.first, mapped.second)
@@ -271,7 +284,19 @@ class HidManager(private val context: Context) {
 
     fun sendSpecialKey(name: String) {
         val code = KeyMapper.SPECIAL[name] ?: return
-        keySender.execute { sendKeyPressPaced(code, false) }
+        safeExecuteKeySender { sendKeyPressPaced(code, false) }
+    }
+
+    /** Đưa việc vào hàng đợi [keySender] — bọc try/catch vì ExecutorService đã bị
+     *  shutdownNow() (xem unregister()) sẽ ném RejectedExecutionException nếu còn ai
+     *  gọi vào sau đó; phòng hờ trường hợp hiếm 1 HidManager cũ vẫn còn được gọi tới
+     *  đúng lúc đang bị thay bằng instance mới (xem MainActivity.resetHidManagerInstance). */
+    private fun safeExecuteKeySender(action: () -> Unit) {
+        try {
+            keySender.execute(action)
+        } catch (e: java.util.concurrent.RejectedExecutionException) {
+            Log.w(TAG, "keySender đã đóng, bỏ qua report này", e)
+        }
     }
 
     /** Gửi 1 lần nhấn+nhả phím, có nghỉ giữa các bước — PHẢI gọi từ [keySender] để giữ
