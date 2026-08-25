@@ -57,7 +57,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var mainColumn: LinearLayout
     private lateinit var topBar: FrameLayout
     private lateinit var statusText: TextView
-    private lateinit var btnRegisterHid: MaterialButton
     private lateinit var trackpad: TrackpadView
     private lateinit var divider: View
     private lateinit var rowNav: LinearLayout
@@ -151,7 +150,6 @@ class MainActivity : AppCompatActivity() {
         showLastCrashIfAny()
         bindViews()
 
-
         hidManager = HidManager(this).also { it.listener = buildHidListener() }
         voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceStopped)
 
@@ -177,8 +175,6 @@ class MainActivity : AppCompatActivity() {
         applyLayoutState()
 
         setHidRegisteredUi(registered = false)
-        btnRegisterHid.visibility = View.GONE
-
         btnRegisterHidOverlay.setOnClickListener {
             btnRegisterHidOverlay.isEnabled = false
             btnRegisterHidOverlay.text = "Đang đăng ký..."
@@ -255,7 +251,6 @@ class MainActivity : AppCompatActivity() {
         mainColumn           = findViewById(R.id.mainColumn)
         topBar               = findViewById(R.id.topBar)
         statusText           = findViewById(R.id.statusText)
-        btnRegisterHid       = findViewById(R.id.btnRegisterHid)
         trackpad             = findViewById(R.id.trackpad)
         divider              = findViewById(R.id.divider)
         rowNav               = findViewById(R.id.rowNav)
@@ -268,7 +263,6 @@ class MainActivity : AppCompatActivity() {
         btnOpenKeyboard      = findViewById(R.id.btnOpenKeyboard)
         overlayUnregistered  = findViewById(R.id.overlayUnregistered)
         btnRegisterHidOverlay= findViewById(R.id.btnRegisterHidOverlay)
-        // Không còn bind syncInputBar / syncInput từ XML nữa
     }
 
     // ---------- Đăng ký HID + kết nối thiết bị ----------
@@ -353,13 +347,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun setHidRegisteredUi(registered: Boolean) {
         statusText.visibility = if (registered) View.VISIBLE else View.GONE
-        btnRegisterHid.visibility = View.GONE
         if (registered) overlayUnregistered.visibility = View.GONE
     }
 
     private fun resetRegisterButton() {
-        btnRegisterHid.isEnabled = true
-        btnRegisterHid.text = "Đăng ký làm bàn phím và chuột"
         btnRegisterHidOverlay.isEnabled = true
         btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
         if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
@@ -368,7 +359,6 @@ class MainActivity : AppCompatActivity() {
     /** Bật discoverable 300 giây để TV/PC tìm thấy phone lần đầu pair.
      *  Vào BT Settings TV → Quét → thấy tên điện thoại → bấm Kết nối. */
     private fun requestDiscoverable() {
-        statusText.text = "Chưa kết nối"
         try {
             discoverableLauncher.launch(
                 Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
@@ -380,13 +370,6 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialog() {
-        // ĐÃ BỎ hộp thoại "Lưu ý trước khi kết nối" theo yêu cầu - mở thẳng danh sách thiết bị
-        // đã ghép nối, không còn cảnh báo chặn trước nữa.
-        showBondedDevicesDialogInternal()
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun showBondedDevicesDialogInternal() {
         val bonded = hidManager.bondedDevices().toList()
         val scanLabel = "🔍  Quét thiết bị mới…"
         val items = (bonded.map { safeName(it) } + scanLabel).toTypedArray()
@@ -490,14 +473,6 @@ class MainActivity : AppCompatActivity() {
         floatBar.show(offset)
     }
 
-    /** Ẩn cửa sổ nổi và ẩn bàn phím ảo. */
-    private fun hideFloatBar() {
-        isInputBarVisible = false
-        floatBar.hide()
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(floatBar.editText.windowToken, 0)
-    }
-
     /** Lắng nghe sự kiện bàn phím ảo hệ thống để cập nhật vị trí cửa sổ nổi. */
     private fun setupKeyboardListener() {
         ViewCompat.setOnApplyWindowInsetsListener(rootContainer) { view, insets ->
@@ -536,11 +511,6 @@ class MainActivity : AppCompatActivity() {
         if (fullscreenMode != FullscreenMode.NONE) return
         val rowNavLoc  = IntArray(2); rowNav.getLocationOnScreen(rowNavLoc)
         val rootLoc    = IntArray(2); rootContainer.getLocationOnScreen(rootLoc)
-        // FIX: TRƯỚC ĐÂY trừ thêm 8dp (loweredByPx) ở đây để "cho ô gõ gần hàng nút hơn" -
-        // nhưng làm vậy khiến ô gõ bị hạ THẤP HƠN mép trên của rowNav đúng 8dp, tức là ĐÈ LẤN
-        // vào hàng nút đầu tiên (Home/Back/gear/bàn phím) thay vì đứng ngay phía trên nó. Bỏ
-        // hẳn phần trừ này - ô gõ giờ đứng khít đúng mép trên rowNav, không còn chồng lên hàng
-        // nút nữa.
         rowsHeightPx = (rootContainer.height - (rowNavLoc[1] - rootLoc[1])).coerceAtLeast(0)
         // Nếu đang hiện và không có bàn phím thật → cập nhật vị trí ngay
         if (isInputBarVisible && !isImeActuallyVisible) {
@@ -777,3 +747,4 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_HID_REGISTERED = "hid_registered"
     }
 }
+
