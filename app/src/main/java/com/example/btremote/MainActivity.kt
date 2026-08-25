@@ -126,12 +126,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Launcher xin phép discoverable — hệ thống tự hiện hộp thoại "Cho phép X giây?"
-    // Sau khi user đồng ý, Bluetooth của phone sẽ hiện với TV trong vài giây để TV
-    // tìm thấy và tự kết nối vào (HID profile: TV/PC luôn là bên connect, phone lắng nghe).
-    private val discoverableLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { /* Không cần xử lý kết quả — TV sẽ tự kết nối khi tìm thấy phone */ }
 
     private val recordAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -367,21 +361,20 @@ class MainActivity : AppCompatActivity() {
         if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
     }
 
-    /** Bật chế độ discoverable 120 giây để TV/PC tìm thấy phone qua Bluetooth và tự kết nối vào.
-     *  HID Bluetooth hoạt động theo chiều THIẾT BỊ ĐIỀU KHIỂN (TV/PC) connect VÀO phone —
-     *  phone không thể chủ động connect ra (chỉ có thể gợi ý qua hidDevice.connect() nhưng
-     *  TV có thể từ chối). Discoverable là bước bắt buộc để lần đầu pair hoặc kết nối lại
-     *  khi TV không còn nhớ profile cũ. */
+    /** Bật chế độ discoverable NGẦM (không hỏi user) để TV/PC tìm thấy phone và tự kết nối.
+     *  Dùng setScanMode() trực tiếp thay vì ACTION_REQUEST_DISCOVERABLE (cái đó hiện hộp
+     *  thoại hỏi "Cho phép 120 giây?" — gây phiền, không cần thiết).
+     *  Quyền BLUETOOTH_ADVERTISE (Android 12+) / BLUETOOTH_ADMIN (Android ≤11) đã có
+     *  trong Manifest nên không cần xin thêm. */
     @SuppressLint("MissingPermission")
     private fun makeDiscoverable() {
         try {
-            val intent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120)
-            }
-            discoverableLauncher.launch(intent)
+            val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
+            @Suppress("DEPRECATION")
+            adapter.setScanMode(BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE)
         } catch (e: Exception) {
-            // Bỏ qua nếu hệ thống không cho (máy cũ / quyền bị từ chối) — kết nối
-            // vẫn có thể hoạt động nếu TV đã nhớ profile trước đó.
+            // Bỏ qua — một số ROM tùy chỉnh chặn setScanMode không phải system app;
+            // kết nối vẫn có thể hoạt động nếu TV đã nhớ profile trước đó.
         }
     }
 
