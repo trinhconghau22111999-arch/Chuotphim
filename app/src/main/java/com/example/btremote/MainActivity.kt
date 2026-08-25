@@ -277,12 +277,7 @@ class MainActivity : AppCompatActivity() {
             statusText.text = "Chưa kết nối thiết bị nào — Hãy nhấn phím ⚙️ bên dưới để chọn thiết bị nối kết."
             // Thử tự kết nối lại thiết bị cũ trước (nếu đã từng kết nối)
             hidManager.autoReconnectLastDevice()
-            // Đồng thời bật discoverable để TV/PC tìm thấy phone và TỰ KẾT NỐI VÀO:
-            // HID profile hoạt động theo chiều TV→Phone (TV connect vào phone), không phải
-            // phone chủ động connect ra. Nếu chỉ gọi hidDevice.connect() mà không
-            // discoverable, TV không thấy phone → kết nối thất bại im lặng.
-            makeDiscoverable()
-            startProximityConnectorIfNeeded()
+startProximityConnectorIfNeeded()
         }
 
         override fun onUnregistered() = runOnUiThread {
@@ -359,23 +354,6 @@ class MainActivity : AppCompatActivity() {
         btnRegisterHidOverlay.isEnabled = true
         btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
         if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
-    }
-
-    /** Bật chế độ discoverable NGẦM (không hỏi user) để TV/PC tìm thấy phone và tự kết nối.
-     *  Dùng setScanMode() trực tiếp thay vì ACTION_REQUEST_DISCOVERABLE (cái đó hiện hộp
-     *  thoại hỏi "Cho phép 120 giây?" — gây phiền, không cần thiết).
-     *  Quyền BLUETOOTH_ADVERTISE (Android 12+) / BLUETOOTH_ADMIN (Android ≤11) đã có
-     *  trong Manifest nên không cần xin thêm. */
-    @SuppressLint("MissingPermission")
-    private fun makeDiscoverable() {
-        try {
-            val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
-            @Suppress("DEPRECATION")
-            adapter.setScanMode(BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE)
-        } catch (e: Exception) {
-            // Bỏ qua — một số ROM tùy chỉnh chặn setScanMode không phải system app;
-            // kết nối vẫn có thể hoạt động nếu TV đã nhớ profile trước đó.
-        }
     }
 
     @SuppressLint("MissingPermission")
