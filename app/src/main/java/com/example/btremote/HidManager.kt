@@ -159,10 +159,14 @@ class HidManager(private val context: Context) {
      * phải vào "Chọn thiết bị" chọn lại mỗi lần mở app. Nếu chưa từng kết nối lần nào,
      * hoặc thiết bị đó không còn pair nữa, hàm này không làm gì cả (im lặng bỏ qua).
      */
-    fun autoReconnectLastDevice() {
-        val address = prefs.getString(PREF_LAST_DEVICE, null) ?: return
-        val device = bondedDevices().firstOrNull { it.address == address } ?: return
+    /** Tự kết nối lại thiết bị đã kết nối gần nhất.
+     *  Trả về true nếu tìm thấy thiết bị đã pair và đang thử kết nối,
+     *  false nếu chưa từng pair với thiết bị nào (cần bật discoverable để pair lần đầu). */
+    fun autoReconnectLastDevice(): Boolean {
+        val address = prefs.getString(PREF_LAST_DEVICE, null) ?: return false
+        val device = bondedDevices().firstOrNull { it.address == address } ?: return false
         connectTo(device)
+        return true
     }
 
     // ---------- Gửi report chuột ----------
