@@ -198,6 +198,21 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    /** Gọi ĐÚNG LÚC người dùng CHỦ ĐỘNG rời app (bấm Home, chuyển app khác qua Recents...) - hệ
+     *  thống KHÔNG gọi hàm này cho các trường hợp app tự bị che tạm bởi chính nó (hộp thoại xin
+     *  quyền hệ thống, kéo thanh thông báo, cuộc gọi đến...), nên đây là đúng chỗ để phân biệt
+     *  "người dùng bấm Home muốn thoát app" với "app chỉ tạm bị che khuất".
+     *
+     *  THEO YÊU CẦU: bấm Back hay Home đều phải THOÁT HẲN app, mở lại app SAU ĐÓ phải tải lại từ
+     *  đầu - không phân biệt 2 cách thoát này nữa (trước đây Back thì finish() hẳn, còn Home thì
+     *  mặc định chỉ đưa Activity xuống nền, KHÔNG finish() - khiến 2 nút xử lý khác nhau). Gọi
+     *  finish() ở đây để bấm Home cũng finish() Activity y hệt Back, đảm bảo lần mở app SAU LUÔN
+     *  chạy lại onCreate() từ đầu dù có đa nhiệm (không vuốt tắt) hay không. */
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        finish()
+    }
+
     override fun onResume() {
         super.onResume()
         if (wasRegisteredBefore()) recheckHidConnectionOnResume()
