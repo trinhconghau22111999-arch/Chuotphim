@@ -749,23 +749,8 @@ class MainActivity : AppCompatActivity() {
                     fullscreenMode = FullscreenMode.NONE
                     applyFullscreenMode()
                 } else {
-                    // FIX (theo yêu cầu người dùng): TRƯỚC ĐÂY ở đây tự tắt callback này
-                    // (isEnabled = false) rồi gọi lại onBackPressedDispatcher.onBackPressed() ->
-                    // không còn callback nào khác chặn nữa nên RƠI VỀ hành vi MẶC ĐỊNH của hệ
-                    // thống, mà với activity gốc/duy nhất của app (không có back stack) mặc định
-                    // là finish() - HUỶ HẲN Activity. onDestroy() lại unregister() HID (ngắt kết
-                    // nối Bluetooth) - nên mỗi lần bấm Back thoát app, lần mở lại SAU đó luôn phải
-                    // đăng ký/kết nối lại từ đầu, y hệt lỗi "tải lại app từ đầu" người dùng phản
-                    // ánh (dù KHÔNG hề vuốt tắt khỏi đa nhiệm). Bấm Home thì KHÔNG bị (Home chỉ
-                    // đưa Activity xuống nền, không finish()) - 2 hành vi đang KHÁC NHAU dù người
-                    // dùng coi cả 2 là "thoát app" như nhau.
-                    //
-                    // Giờ đổi thành moveTaskToBack(true) - đưa app xuống nền GIỐNG HỆT bấm Home,
-                    // KHÔNG finish() Activity nữa - onResume()/recheckHidConnectionOnResume() đã
-                    // có sẵn logic chỉ kết nối lại NẾU CẦN (không tải lại toàn bộ nếu vẫn còn đăng
-                    // ký) nên mở lại app sau khi Back sẽ tức thì, giữ nguyên trạng thái, không còn
-                    // "tải lại từ đầu" nữa - dù có đa nhiệm (không vuốt tắt) hay không.
-                    moveTaskToBack(true)
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
                 }
             }
         })
