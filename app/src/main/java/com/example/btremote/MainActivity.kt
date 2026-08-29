@@ -118,6 +118,7 @@ class MainActivity : AppCompatActivity() {
     private val enableBluetoothLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        expectingSystemActivityResult = false
         if (result.resultCode == RESULT_OK) hidManager.start()
         else {
             resetRegisterButton()
@@ -134,7 +135,21 @@ class MainActivity : AppCompatActivity() {
 
     private val discoverableLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { /* TV sẽ tự kết nối vào phone sau khi tìm thấy và pair */ }
+    ) { /* TV sẽ tự kết nối vào phone sau khi tìm thấy và pair */
+        expectingSystemActivityResult = false
+    }
+
+    /** LỖI ĐÃ SỬA ("app bị lỗi out liên tục"): [onUserLeaveHint] (Back/Home thoát hẳn app - xem
+     *  giải thích ở đó) KHÔNG CHỈ gọi khi người dùng THẬT SỰ bấm Home/Back - nó còn tự động gọi
+     *  MỖI KHI app khởi chạy 1 Activity CỦA APP KHÁC (system) qua [enableBluetoothLauncher]
+     *  (hộp thoại "Cho phép bật Bluetooth?") hay [discoverableLauncher] (hộp thoại "Cho phép
+     *  hiển thị công khai?") - vì xét theo Android, đó CŨNG là 1 kiểu "rời khỏi app" (dù chỉ
+     *  tạm thời, chờ hộp thoại hệ thống trả kết quả về). TRƯỚC ĐÂY app finish() NGAY LẬP TỨC
+     *  ngay khi 2 hộp thoại hệ thống đó vừa hiện lên - người dùng CHƯA KỊP bấm gì cả app đã tự
+     *  đóng, tưởng như "lỗi out liên tục" mỗi lần cần bật Bluetooth. Cờ này bật lên NGAY TRƯỚC
+     *  lúc gọi các launcher đó, tắt đi khi có kết quả trả về - [onUserLeaveHint] chỉ finish()
+     *  khi cờ này ĐANG TẮT (nghĩa là chắc chắn không phải do chính app tự mở hộp thoại hệ thống). */
+    private var expectingSystemActivityResult = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         CrashHandler.install(this)
@@ -210,6 +225,7 @@ class MainActivity : AppCompatActivity() {
      *  chạy lại onCreate() từ đầu dù có đa nhiệm (không vuốt tắt) hay không. */
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        if (expectingSystemActivityResult) return
         finish()
     }
 
@@ -407,7 +423,10 @@ class MainActivity : AppCompatActivity() {
             return
         }
         if (adapter.isEnabled) hidManager.start()
-        else enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        else {
+            expectingSystemActivityResult = true
+            enableBluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+        }
     }
 
     private fun setHidRegisteredUi(registered: Boolean) {
@@ -441,12 +460,15 @@ class MainActivity : AppCompatActivity() {
             )
             .setPositiveButton("Đồng ý") { _, _ ->
                 try {
+                    expectingSystemActivityResult = true
                     discoverableLauncher.launch(
                         Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
                             putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
                         }
                     )
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                    expectingSystemActivityResult = false
+                }
             }
             .setNegativeButton("Huỷ", null)
             .setCancelable(true)
