@@ -226,7 +226,15 @@ class MainActivity : AppCompatActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (expectingSystemActivityResult) return
-        finish()
+        // LỖI ĐÃ SỬA ("Back thoát ra vào lại KHÔNG khởi động lại, trong khi Home thì được"):
+        // finish() thường (dùng ở đây) và finish() gọi từ nhánh Back (xem
+        // setupBackPressToExitFullscreen bên dưới) TRƯỚC ĐÂY đi theo 2 đường code khác nhau -
+        // Back đi vòng qua onBackPressedDispatcher (tự tắt callback rồi gọi lại), có thể không
+        // dọn sạch task khỏi Recents giống hệt như finish() gọi trực tiếp ở đây. Đổi cả 2 nhánh
+        // dùng CHUNG đúng 1 hàm [finishAndRemoveTask] - hàm này CHẮC CHẮN dọn sạch task khỏi
+        // Recents (không chỉ finish() Activity đơn thuần, còn xoá cả task) - đảm bảo Home hay
+        // Back cũng cho kết quả GIỐNG HỆT NHAU: mở lại app sau đó LUÔN là 1 task/process mới.
+        finishAndRemoveTask()
     }
 
     override fun onResume() {
@@ -786,8 +794,12 @@ class MainActivity : AppCompatActivity() {
                     fullscreenMode = FullscreenMode.NONE
                     applyFullscreenMode()
                 } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
+                    // LỖI ĐÃ SỬA: trước đây gọi isEnabled=false rồi onBackPressedDispatcher.
+                    // onBackPressed() để "rơi" xuống hành vi Back mặc định - đường đi này có thể
+                    // không dọn sạch task khỏi Recents giống hệt onUserLeaveHint (Home), khiến
+                    // Back thoát ra vào lại KHÔNG khởi động lại từ đầu như Home. Gọi thẳng
+                    // finishAndRemoveTask() - CHẮC CHẮN cho kết quả giống hệt nhánh Home.
+                    finishAndRemoveTask()
                 }
             }
         })
