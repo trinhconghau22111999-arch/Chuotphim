@@ -108,6 +108,7 @@ class MainActivity : AppCompatActivity() {
     private val startupPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
+        expectingSystemActivityResult = false
         if (grants.values.all { it }) ensureBluetoothEnabledThenRegister()
         else {
             resetRegisterButton()
@@ -413,11 +414,13 @@ class MainActivity : AppCompatActivity() {
                 )
                 .setCancelable(false)
                 .setPositiveButton("Tiếp tục") { _, _ ->
+                    expectingSystemActivityResult = true
                     startupPermissionLauncher.launch(missing.toTypedArray())
                 }
                 .setNegativeButton("Để sau") { _, _ -> resetRegisterButton() }
                 .show()
         } else {
+            expectingSystemActivityResult = true
             startupPermissionLauncher.launch(missing.toTypedArray())
         }
     }
