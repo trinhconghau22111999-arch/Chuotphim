@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity() {
     private val recordAudioPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
+        expectingSystemActivityResult = false
         if (granted) beginVoiceListening() else toast("Cần cấp quyền Micro để nhập liệu bằng giọng nói")
     }
 
@@ -680,6 +681,7 @@ class MainActivity : AppCompatActivity() {
         val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
         if (!granted) {
+            expectingSystemActivityResult = true
             recordAudioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
             return
         }
