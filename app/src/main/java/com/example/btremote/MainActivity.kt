@@ -365,13 +365,12 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             setStatusDisconnected()
-            // Thử kết nối lại thiết bị đã pair trước (nếu có) — TV tự connect vào phone.
-            val reconnected = hidManager.autoReconnectLastDevice()
-            if (!reconnected) {
-                // Chưa từng pair với TV nào → bật discoverable để TV tìm thấy phone.
-                // Hộp thoại chỉ hiện 1 lần này — sau khi pair xong TV tự kết nối lại.
-                requestDiscoverable()
-            }
+            // Thử kết nối lại thiết bị đã pair gần nhất (nếu có) — TV tự connect vào phone.
+            hidManager.autoReconnectLastDevice()
+            // Luôn bật discoverable SAU KHI đăng ký HID xong — dù đã pair trước hay chưa:
+            // TV/PC cần tìm thấy phone qua Bluetooth mới connect được (HID hoạt động theo
+            // chiều TV→Phone). Nếu không discoverable, TV scan không thấy phone dù đã pair.
+            requestDiscoverable()
             startProximityConnectorIfNeeded()
         }
 
@@ -462,17 +461,19 @@ class MainActivity : AppCompatActivity() {
      *  (100% tiếng Việt, app tự vẽ nên sửa được) giải thích trước, bấm "Đồng ý" rồi mới gọi tiếp
      *  qua hộp thoại hệ thống như cũ. */
     private fun requestDiscoverable() {
+        // Set cờ NGAY TRƯỚC khi show dialog (không phải bên trong callback nút OK):
+        // onUserLeaveHint có thể fire giữa lúc dialog đang mở (vì dialog hệ thống kế tiếp
+        // khiến app "rời foreground") — nếu cờ chưa set thì app tự finish() ngay lúc đó.
+        expectingSystemActivityResult = true
         AlertDialog.Builder(this)
             .setTitle("Cho phép TV/Laptop tìm thấy điện thoại")
             .setMessage(
-                "Ở bước tiếp theo, Android sẽ hỏi xác nhận cho phép điện thoại này hiển thị " +
-                "công khai qua Bluetooth trong 300 giây (5 phút) để TV/Laptop có thể dò thấy và " +
-                "ghép nối. Bấm \"Đồng ý\" bên dưới để tiếp tục, sau đó xác nhận thêm 1 lần nữa ở " +
-                "hộp thoại của hệ thống."
+                "Tiếp theo Android sẽ hỏi xác nhận cho phép điện thoại hiển thị công khai " +
+                "qua Bluetooth trong 300 giây để TV/Laptop dò thấy và ghép nối. " +
+                "Bấm \"Đồng ý\" rồi xác nhận thêm 1 lần ở hộp thoại hệ thống."
             )
             .setPositiveButton("Đồng ý") { _, _ ->
                 try {
-                    expectingSystemActivityResult = true
                     discoverableLauncher.launch(
                         Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
                             putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
@@ -482,7 +483,13 @@ class MainActivity : AppCompatActivity() {
                     expectingSystemActivityResult = false
                 }
             }
-            .setNegativeButton("Huỷ", null)
+            .setNegativeButton("Huỷ") { _, _ ->
+                // Người dùng huỷ → bỏ cờ để onUserLeaveHint hoạt động bình thường trở lại
+                expectingSystemActivityResult = false
+            }
+            .setOnCancelListener {
+                expectingSystemActivityResult = false
+            }
             .setCancelable(true)
             .show()
     }
