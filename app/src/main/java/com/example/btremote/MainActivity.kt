@@ -166,7 +166,6 @@ class MainActivity : AppCompatActivity() {
 
         showLastCrashIfAny()
         bindViews()
-        showFirstLaunchTutorialIfNeeded()
 
         hidManager = HidManager(this).also { it.listener = buildHidListener() }
         voiceInput = VoiceInputController(this, ::onVoicePartialText, ::onVoiceStopped)
@@ -256,6 +255,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startProximityConnectorIfNeeded() {
+        // Đã khoá 1 thiết bị duy nhất -> không tự chuyển sang thiết bị khác.
+        if (hidManager.hasLockedDevice()) return
         if (hidManager.bondedDevices().size <= 1) return
         if (proximityConnector != null) return
         proximityConnector = ProximityAutoConnector(
@@ -285,39 +286,6 @@ class MainActivity : AppCompatActivity() {
                 toast("Đã copy log lỗi vào clipboard")
             }
             .setCancelable(true)
-            .show()
-    }
-
-    /** Hướng dẫn sử dụng - CHỈ hiện đúng 1 LẦN DUY NHẤT ở lần mở app đầu tiên sau khi cài (đánh
-     *  dấu đã hiện qua SharedPreferences, key KEY_TUTORIAL_SHOWN) - những lần mở sau không còn
-     *  hiện lại nữa, kể cả sau khi tắt/mở lại app hay khởi động lại máy (khác với 1 biến chỉ
-     *  sống trong RAM, sẽ hiện lại mỗi lần app bị hệ thống kill rồi mở lại). */
-    private fun showFirstLaunchTutorialIfNeeded() {
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        if (prefs.getBoolean(KEY_TUTORIAL_SHOWN, false)) return
-        AlertDialog.Builder(this)
-            .setTitle("Hướng dẫn sử dụng")
-            .setMessage(
-                "Biến điện thoại thành chuột + bàn phím Bluetooth thật cho TV/PC - máy bị điều " +
-                "khiển không cần cài app hay driver gì thêm.\n\n" +
-                "1. Bấm \"Đăng ký làm bàn phím và chuột\" rồi cấp quyền Bluetooth khi được hỏi.\n\n" +
-                "2. Trên TV/PC: vào Cài đặt Bluetooth, chọn Thêm thiết bị, tìm đúng tên thiết " +
-                "bị này (chính là tên Bluetooth đang đặt trên điện thoại bạn) " +
-                "rồi ghép nối như ghép 1 con chuột Bluetooth bình thường.\n" +
-                "QUAN TRỌNG: phải dò và ghép nối TỪ PHÍA TV/PC - không sử dụng được nếu kết nối bằng điện thoại.\n\n" +
-                "3. Quay lại app, bấm nút ⚙️ (góc trái hàng nút ĐẦU TIÊN, ngay dưới trackpad) để " +
-                "chọn đúng thiết bị " +
-                "TV/PC vừa ghép nối. Lần mở sau app tự kết nối lại, không cần chọn lại nữa.\n\n" +
-                "4. Dùng ngay:\n" +
-                "• Trackpad (vùng trống ở giữa): kéo 1 ngón để di chuyển con trỏ, chạm nhẹ = " +
-                "click trái, giữ lâu = click phải, kéo 2 ngón theo chiều dọc = cuộn trang.\n" +
-                "• Hàng nút dưới cùng: Home/Back, mở bàn phím ảo để gõ chữ, tắt màn hình (chỉ " +
-                "TV), chỉnh âm lượng, điều khiển phát nhạc/video (trước/tiếp/tua lùi/tua tới)."
-            )
-            .setPositiveButton("Đã hiểu") { _, _ ->
-                prefs.edit().putBoolean(KEY_TUTORIAL_SHOWN, true).apply()
-            }
-            .setCancelable(false)
             .show()
     }
 
@@ -365,12 +333,13 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             setStatusDisconnected()
-            // Thử kết nối lại thiết bị đã pair gần nhất (nếu có) — TV tự connect vào phone.
-            hidManager.autoReconnectLastDevice()
-            // Luôn bật discoverable SAU KHI đăng ký HID xong — dù đã pair trước hay chưa:
-            // TV/PC cần tìm thấy phone qua Bluetooth mới connect được (HID hoạt động theo
-            // chiều TV→Phone). Nếu không discoverable, TV scan không thấy phone dù đã pair.
-            requestDiscoverable()
+            // Mở lại app: tự nối lại IM LẶNG thiết bị đã từng kết nối HID gần nhất (lịch sử HID),
+            // nếu thiết bị đó đang trong tầm thì sẽ nối được ngay, không hiện hộp thoại nào.
+            val reconnecting = hidManager.autoReconnectLastDevice()
+            // CHỈ khi chưa có thiết bị nào từng kết nối HID (lần đầu dùng) mới cần bật discoverable
+            // để TV/PC dò thấy phone và pair. Hộp thoại "hiển thị công khai" là của hệ thống Android
+            // nên không thể tự động bấm Đồng ý -> tránh gọi khi đã có thiết bị cũ để nối lại.
+            if (!reconnecting) requestDiscoverable()
             startProximityConnectorIfNeeded()
         }
 
@@ -494,18 +463,30 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    /** Chỉ cho phép 1 thiết bị HID duy nhất. Chưa có thiết bị nào trong lịch sử -> cho quét/kết
+     *  nối thiết bị mới. Đã có 1 thiết bị trong lịch sử -> chỉ hiện chính thiết bị đó để nối
+     *  lại, KHÔNG còn mục quét thiết bị mới. */
     @SuppressLint("MissingPermission")
     private fun showBondedDevicesDialog() {
-        val bonded = hidManager.bondedDevices().toList()
-        val scanLabel = "🔍  Quét thiết bị mới…"
-        val items = (bonded.map { safeName(it) } + scanLabel).toTypedArray()
-        val title = if (hidManager.isConnected) "Chọn lại thiết bị để nối kết" else "Chọn thiết bị để nối kết"
+        val history = hidManager.connectionHistory()
+        if (history.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("Chưa có thiết bị nào trong lịch sử HID")
+                .setItems(arrayOf("🔍  Quét thiết bị mới…")) { _, _ ->
+                    proximityConnector?.disarm()
+                    openScanDialog()
+                }
+                .show()
+            return
+        }
+        val entry = history[0]
+        val label = if (hidManager.currentConnectedAddress == entry.address)
+            "${entry.name}  (đang kết nối)" else entry.name
         AlertDialog.Builder(this)
-            .setTitle(title)
-            .setItems(items) { _, which ->
+            .setTitle("Thiết bị HID đã kết nối")
+            .setItems(arrayOf(label)) { _, _ ->
                 proximityConnector?.disarm()
-                if (which < bonded.size) hidManager.connectTo(bonded[which])
-                else openScanDialog()
+                hidManager.connectToAddress(entry.address)
             }
             .show()
     }
@@ -876,7 +857,6 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "btremote_prefs"
         private const val KEY_HID_REGISTERED = "hid_registered"
-        private const val KEY_TUTORIAL_SHOWN = "tutorial_shown"
     }
 }
 

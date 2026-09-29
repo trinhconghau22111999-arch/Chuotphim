@@ -9,6 +9,8 @@ import android.bluetooth.BluetoothHidDeviceAppSdpSettings
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.util.Log
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -82,11 +84,18 @@ class HidManager(private val context: Context) {
             val wasIntentional = !connected && device != null &&
                 device.address == pendingIntentionalDisconnectAddress
             if (!connected) pendingIntentionalDisconnectAddress = null
+            // CHỈ cho phép 1 thiết bị duy nhất: nếu đã có thiết bị trong lịch sử HID mà thiết bị
+            // khác kết nối vào thì ngắt ngay, không báo "đã kết nối".
+            if (connected && device != null && !isAllowedDevice(device.address)) {
+                try { hidDevice?.disconnect(device) } catch (_: Exception) {}
+                return
+            }
             connectedDevice = if (connected) device else null
             if (connected && device != null) {
                 // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
                 // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
                 prefs.edit().putString(PREF_LAST_DEVICE, device.address).apply()
+                recordConnectionHistory(device)
             }
             listener?.onConnectionStateChanged(device, connected, wasIntentional)
         }
@@ -133,6 +142,10 @@ class HidManager(private val context: Context) {
 
     /** Yêu cầu kết nối tới 1 thiết bị đã pair (TV/PC) — gọi sau khi user chọn trong danh sách bonded devices. */
     fun connectTo(device: BluetoothDevice) {
+        if (!isAllowedDevice(device.address)) {
+            listener?.onError("Ứng dụng chỉ cho phép kết nối 1 thiết bị duy nhất đã có trong lịch sử HID")
+            return
+        }
         try {
             // Ngắt thiết bị đang kết nối (nếu có) trước khi connect thiết bị mới
             if (connectedDevice != null && connectedDevice?.address != device.address) {
@@ -140,6 +153,63 @@ class HidManager(private val context: Context) {
                 hidDevice?.disconnect(connectedDevice!!)
             }
             hidDevice?.connect(device)
+        } catch (e: Exception) {
+            listener?.onError("Không kết nối được tới thiết bị: ${e.message}")
+        }
+    }
+
+    /** 1 dòng trong lịch sử kết nối HID. */
+    data class HistoryEntry(val address: String, val name: String, val lastConnectedAt: Long)
+
+    /** Ghi thiết bị kết nối HID thành công vào lịch sử. Lịch sử CHỈ chứa tối đa 1 thiết bị:
+     *  thiết bị đầu tiên kết nối thành công. Sau đó thiết bị khác không được ghi thêm. */
+    @SuppressLint("MissingPermission")
+    private fun recordConnectionHistory(device: BluetoothDevice) {
+        val existing = connectionHistory()
+        if (existing.isNotEmpty() && existing[0].address != device.address) return
+        val name = try { device.name ?: device.address } catch (e: SecurityException) { device.address }
+        val arr = JSONArray().put(
+            JSONObject().put("a", device.address).put("n", name).put("t", System.currentTimeMillis())
+        )
+        prefs.edit().putString(PREF_HISTORY, arr.toString()).apply()
+    }
+
+    /** Lịch sử HID (tối đa 1 thiết bị). Người dùng cũ chưa có lịch sử nhưng đã có thiết bị nối
+     *  gần nhất thì lấy thiết bị đó làm thiết bị duy nhất. */
+    @SuppressLint("MissingPermission")
+    fun connectionHistory(): List<HistoryEntry> {
+        val raw = prefs.getString(PREF_HISTORY, null)
+        if (raw != null) {
+            try {
+                val arr = JSONArray(raw)
+                if (arr.length() > 0) {
+                    val o = arr.getJSONObject(0)
+                    return listOf(HistoryEntry(o.getString("a"), o.optString("n", o.getString("a")), o.optLong("t", 0L)))
+                }
+            } catch (e: Exception) { /* rơi xuống nhánh migrate */ }
+        }
+        val last = prefs.getString(PREF_LAST_DEVICE, null) ?: return emptyList()
+        val name = try {
+            bondedDevices().firstOrNull { it.address == last }?.name ?: last
+        } catch (e: SecurityException) { last }
+        return listOf(HistoryEntry(last, name, 0L))
+    }
+
+    /** Có thiết bị HID duy nhất trong lịch sử -> bị khoá, không quét/kết nối thiết bị mới. */
+    fun hasLockedDevice(): Boolean = connectionHistory().isNotEmpty()
+
+    /** Chưa có thiết bị nào trong lịch sử, hoặc chính là thiết bị duy nhất đó. */
+    fun isAllowedDevice(address: String): Boolean {
+        val h = connectionHistory()
+        return h.isEmpty() || h[0].address == address
+    }
+
+    /** Kết nối lại tới 1 thiết bị trong lịch sử theo địa chỉ MAC. */
+    fun connectToAddress(address: String) {
+        try {
+            val device = BluetoothAdapter.getDefaultAdapter()?.getRemoteDevice(address)
+            if (device != null) connectTo(device)
+            else listener?.onError("Không tìm thấy thiết bị $address")
         } catch (e: Exception) {
             listener?.onError("Không kết nối được tới thiết bị: ${e.message}")
         }
@@ -163,8 +233,13 @@ class HidManager(private val context: Context) {
      *  Trả về true nếu tìm thấy thiết bị đã pair và đang thử kết nối,
      *  false nếu chưa từng pair với thiết bị nào (cần bật discoverable để pair lần đầu). */
     fun autoReconnectLastDevice(): Boolean {
-        val address = prefs.getString(PREF_LAST_DEVICE, null) ?: return false
-        val device = bondedDevices().firstOrNull { it.address == address } ?: return false
+        val bonded = bondedDevices()
+        // Ưu tiên thiết bị kết nối gần nhất, rồi lần lượt tới các thiết bị khác trong lịch sử HID.
+        val candidates = listOfNotNull(prefs.getString(PREF_LAST_DEVICE, null)) +
+            connectionHistory().map { it.address }
+        val device = candidates.firstNotNullOfOrNull { addr ->
+            bonded.firstOrNull { it.address == addr }
+        } ?: return false
         connectTo(device)
         return true
     }
@@ -342,6 +417,7 @@ class HidManager(private val context: Context) {
     companion object {
         private const val TAG = "HidManager"
         private const val PREF_LAST_DEVICE = "last_connected_device_address"
+        private const val PREF_HISTORY = "hid_connection_history"
 
         // Khoảng nghỉ giữa lúc "nhấn" và "nhả" 1 phím, và giữa phím này với phím kế
         // tiếp. Giá trị nhỏ (mili-giây) nhưng đủ để TV không bị dồn report — tương tự
