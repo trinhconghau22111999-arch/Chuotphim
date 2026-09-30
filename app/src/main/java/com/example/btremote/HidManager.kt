@@ -146,6 +146,40 @@ class HidManager(private val context: Context) {
         }
     }
 
+    // ---------- Tên hiển thị của điện thoại (tên Bluetooth) ----------
+
+    /** Tên Bluetooth của điện thoại lúc CHƯA đổi, lưu lại để trả về khi thoát app. */
+    private fun savedOriginalName(): String? = prefs.getString(PREF_ORIGINAL_NAME, null)
+
+    /** Đổi tên Bluetooth của điện thoại thành tên giống một phụ kiện (bàn phím/chuột) để TV
+     *  dễ nhận ra. Tên gốc được lưu lại và trả về ở [restoreAdapterName]. Trả về true nếu
+     *  hệ thống cho đổi (Android mới có thể từ chối setName với ứng dụng thường). */
+    fun applyAccessoryName(): Boolean {
+        val adapter = BluetoothAdapter.getDefaultAdapter() ?: return false
+        return try {
+            val current = adapter.name
+            if (current == ACCESSORY_NAME) return true
+            if (savedOriginalName() == null && current != null) {
+                prefs.edit().putString(PREF_ORIGINAL_NAME, current).apply()
+            }
+            adapter.setName(ACCESSORY_NAME)
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Không có quyền đổi tên Bluetooth", e)
+            false
+        }
+    }
+
+    /** Trả tên Bluetooth về như cũ (gọi khi thoát app). */
+    fun restoreAdapterName() {
+        val original = savedOriginalName() ?: return
+        try {
+            val adapter = BluetoothAdapter.getDefaultAdapter() ?: return
+            if (adapter.setName(original)) prefs.edit().remove(PREF_ORIGINAL_NAME).apply()
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Không có quyền trả tên Bluetooth", e)
+        }
+    }
+
     /** Bước 1: lấy proxy tới profile HID_DEVICE của hệ thống. */
     fun start() {
         val adapter = BluetoothAdapter.getDefaultAdapter()
@@ -181,6 +215,7 @@ class HidManager(private val context: Context) {
         } catch (e: Exception) {
             Log.w(TAG, "unregisterApp lỗi (bỏ qua vì đang thoát app)", e)
         }
+        restoreAdapterName()
         // Huỷ hết report gõ phím còn đang chờ trong hàng đợi (nếu có) khi app thoát.
         keySender.shutdownNow()
     }
@@ -463,6 +498,9 @@ class HidManager(private val context: Context) {
         private const val TAG = "HidManager"
         private const val PREF_LAST_DEVICE = "last_connected_device_address"
         private const val PREF_HISTORY = "hid_connection_history"
+        private const val PREF_ORIGINAL_NAME = "original_adapter_name"
+        /** Tên hiển thị khi TV quét/ghép nối. Ngắn, có chữ "Keyboard" để giống phụ kiện. */
+        private const val ACCESSORY_NAME = "BT Remote Keyboard"
 
         // Khoảng nghỉ giữa lúc "nhấn" và "nhả" 1 phím, và giữa phím này với phím kế
         // tiếp. Giá trị nhỏ (mili-giây) nhưng đủ để TV không bị dồn report — tương tự

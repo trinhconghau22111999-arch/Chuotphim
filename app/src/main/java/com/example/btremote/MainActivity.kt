@@ -326,6 +326,7 @@ class MainActivity : AppCompatActivity() {
             saveRegisteredState(true)
             overlayUnregistered.visibility = View.GONE
             setStatusDisconnected()
+            hidManager.applyAccessoryName()
             // Mở lại app: tự nối lại IM LẶNG thiết bị đã từng kết nối HID gần nhất (lịch sử HID),
             // nếu thiết bị đó đang trong tầm thì sẽ nối được ngay, không hiện hộp thoại nào.
             val reconnecting = hidManager.autoReconnectLastDevice()
