@@ -135,22 +135,15 @@ class MainActivity : AppCompatActivity() {
         if (granted) beginVoiceListening() else toast("Cần cấp quyền Micro để nhập liệu bằng giọng nói")
     }
 
-    private val discoverableLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { /* TV sẽ tự kết nối vào phone sau khi tìm thấy và pair */
-        expectingSystemActivityResult = false
-    }
-
     /** LỖI ĐÃ SỬA ("app bị lỗi out liên tục"): [onUserLeaveHint] (Back/Home thoát hẳn app - xem
      *  giải thích ở đó) KHÔNG CHỈ gọi khi người dùng THẬT SỰ bấm Home/Back - nó còn tự động gọi
      *  MỖI KHI app khởi chạy 1 Activity CỦA APP KHÁC (system) qua [enableBluetoothLauncher]
-     *  (hộp thoại "Cho phép bật Bluetooth?") hay [discoverableLauncher] (hộp thoại "Cho phép
-     *  hiển thị công khai?") - vì xét theo Android, đó CŨNG là 1 kiểu "rời khỏi app" (dù chỉ
-     *  tạm thời, chờ hộp thoại hệ thống trả kết quả về). TRƯỚC ĐÂY app finish() NGAY LẬP TỨC
-     *  ngay khi 2 hộp thoại hệ thống đó vừa hiện lên - người dùng CHƯA KỊP bấm gì cả app đã tự
-     *  đóng, tưởng như "lỗi out liên tục" mỗi lần cần bật Bluetooth. Cờ này bật lên NGAY TRƯỚC
-     *  lúc gọi các launcher đó, tắt đi khi có kết quả trả về - [onUserLeaveHint] chỉ finish()
-     *  khi cờ này ĐANG TẮT (nghĩa là chắc chắn không phải do chính app tự mở hộp thoại hệ thống). */
+     *  (hộp thoại "Cho phép bật Bluetooth?") - vì xét theo Android, đó CŨNG là 1 kiểu "rời khỏi
+     *  app" (dù chỉ tạm thời, chờ hộp thoại hệ thống trả kết quả về). TRƯỚC ĐÂY app finish() NGAY
+     *  LẬP TỨC ngay khi hộp thoại hệ thống đó vừa hiện lên - người dùng CHƯA KỊP bấm gì cả app đã
+     *  tự đóng, tưởng như "lỗi out liên tục" mỗi lần cần bật Bluetooth. Cờ này bật lên NGAY TRƯỚC
+     *  lúc gọi launcher đó, tắt đi khi có kết quả trả về - [onUserLeaveHint] chỉ finish() khi cờ
+     *  này ĐANG TẮT (nghĩa là chắc chắn không phải do chính app tự mở hộp thoại hệ thống). */
     private var expectingSystemActivityResult = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -315,9 +308,9 @@ class MainActivity : AppCompatActivity() {
      *  sao/cần làm gì, khiến người dùng không biết phải làm sao khi kẹt ở trạng thái này. */
     private fun setStatusDisconnected() {
         statusText.setTextColor(ContextCompat.getColor(this, R.color.key_danger))
-        statusText.text = "Chưa kết nối. Cần đủ 2 điều kiện: (1) điện thoại và TV/Laptop CHƯA " +
-            "từng ghép nối/lưu thiết bị với nhau trước đó, (2) phải dò và kết nối TỪ PHÍA " +
-            "TV/Laptop (không sử dụng được nếu kết nối bằng điện thoại)."
+        statusText.text = "Chưa kết nối. Ứng dụng sẽ tự quét tìm TV và kết nối (bấm \"Chọn " +
+            "thiết bị\" nếu chưa tự tìm thấy) - đảm bảo TV đang bật Bluetooth và cho phép " +
+            "ghép nối thiết bị mới."
     }
 
     /** Hiện trạng thái ĐÃ kết nối: giữ nguyên màu chữ mặc định (text_on_surface) như trước đây,
@@ -336,10 +329,12 @@ class MainActivity : AppCompatActivity() {
             // Mở lại app: tự nối lại IM LẶNG thiết bị đã từng kết nối HID gần nhất (lịch sử HID),
             // nếu thiết bị đó đang trong tầm thì sẽ nối được ngay, không hiện hộp thoại nào.
             val reconnecting = hidManager.autoReconnectLastDevice()
-            // CHỈ khi chưa có thiết bị nào từng kết nối HID (lần đầu dùng) mới cần bật discoverable
-            // để TV/PC dò thấy phone và pair. Hộp thoại "hiển thị công khai" là của hệ thống Android
-            // nên không thể tự động bấm Đồng ý -> tránh gọi khi đã có thiết bị cũ để nối lại.
-            if (!reconnecting) requestDiscoverable()
+            // THIẾT KẾ NGƯỢC (theo yêu cầu): ĐIỆN THOẠI chủ động quét tìm TV rồi tự kết nối,
+            // thay vì bắt TV phải dò ngược lại điện thoại (cách cũ hay bị TV "đứng tìm kiếm
+            // phụ kiện" mãi không thấy). CHỈ mở dialog quét khi chưa có thiết bị nào trong lịch
+            // sử HID để tự nối lại (lần đầu dùng) - đã có lịch sử thì autoReconnectLastDevice()
+            // ở trên đã tự lo, không cần quét lại nữa.
+            if (!reconnecting) openScanDialog()
             startProximityConnectorIfNeeded()
         }
 
@@ -418,49 +413,6 @@ class MainActivity : AppCompatActivity() {
         btnRegisterHidOverlay.isEnabled = true
         btnRegisterHidOverlay.text = "Đăng ký làm bàn phím và chuột"
         if (!wasRegisteredBefore()) overlayUnregistered.visibility = View.VISIBLE
-    }
-
-    /** Bật discoverable 300 giây để TV/PC tìm thấy phone lần đầu pair.
-     *  Vào BT Settings TV → Quét → thấy tên điện thoại → bấm Kết nối.
-     *
-     *  Hộp thoại "Cho phép hiển thị công khai trong 300 giây..." NGAY SAU hàm này là hộp thoại
-     *  CỦA HỆ THỐNG ANDROID (ACTION_REQUEST_DISCOVERABLE) - app không tự vẽ ra nên KHÔNG thể
-     *  sửa chữ trong đó được (Android tự hiện đúng ngôn ngữ máy đang đặt). Để người dùng hiểu rõ
-     *  chuyện gì sắp xảy ra TRƯỚC khi hộp thoại hệ thống đó hiện lên, thêm 1 hộp thoại CỦA APP
-     *  (100% tiếng Việt, app tự vẽ nên sửa được) giải thích trước, bấm "Đồng ý" rồi mới gọi tiếp
-     *  qua hộp thoại hệ thống như cũ. */
-    private fun requestDiscoverable() {
-        // Set cờ NGAY TRƯỚC khi show dialog (không phải bên trong callback nút OK):
-        // onUserLeaveHint có thể fire giữa lúc dialog đang mở (vì dialog hệ thống kế tiếp
-        // khiến app "rời foreground") — nếu cờ chưa set thì app tự finish() ngay lúc đó.
-        expectingSystemActivityResult = true
-        AlertDialog.Builder(this)
-            .setTitle("Cho phép TV/Laptop tìm thấy điện thoại")
-            .setMessage(
-                "Tiếp theo Android sẽ hỏi xác nhận cho phép điện thoại hiển thị công khai " +
-                "qua Bluetooth trong 300 giây để TV/Laptop dò thấy và ghép nối. " +
-                "Bấm \"Đồng ý\" rồi xác nhận thêm 1 lần ở hộp thoại hệ thống."
-            )
-            .setPositiveButton("Đồng ý") { _, _ ->
-                try {
-                    discoverableLauncher.launch(
-                        Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
-                            putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300)
-                        }
-                    )
-                } catch (_: Exception) {
-                    expectingSystemActivityResult = false
-                }
-            }
-            .setNegativeButton("Huỷ") { _, _ ->
-                // Người dùng huỷ → bỏ cờ để onUserLeaveHint hoạt động bình thường trở lại
-                expectingSystemActivityResult = false
-            }
-            .setOnCancelListener {
-                expectingSystemActivityResult = false
-            }
-            .setCancelable(true)
-            .show()
     }
 
     /** Chỉ cho phép 1 thiết bị HID duy nhất. Chưa có thiết bị nào trong lịch sử -> cho quét/kết

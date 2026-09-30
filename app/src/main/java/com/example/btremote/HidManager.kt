@@ -37,6 +37,12 @@ class HidManager(private val context: Context) {
     // Địa chỉ thiết bị mà app vừa chủ động gọi disconnect() (vì user chọn thiết bị
     // khác) — dùng để phân biệt với trường hợp thiết bị tự rớt vì ra xa.
     @Volatile private var pendingIntentionalDisconnectAddress: String? = null
+    // true trong lúc đang "bounce" (ngắt + unregister + register lại) ngay sau lần
+    // pair ĐẦU TIÊN do điện thoại tự quét/kết nối - xem bounceHidAfterFirstPair().
+    // Khi cờ này bật, onAppStatusChanged(registered=false) sẽ TỰ registerApp() lại
+    // ngay trong nội bộ HidManager, KHÔNG báo onUnregistered() ra ngoài cho
+    // MainActivity (tránh UI nhấp nháy "chưa đăng ký" trong lúc bounce).
+    @Volatile private var pendingRebounce = false
     val isConnected: Boolean get() = connectedDevice != null
     val currentConnectedAddress: String? get() = connectedDevice?.address
     // true nếu app còn giữ proxy HID hợp lệ với hệ thống (đã registerApp thành
@@ -76,7 +82,16 @@ class HidManager(private val context: Context) {
 
     private val hidCallback = object : BluetoothHidDevice.Callback() {
         override fun onAppStatusChanged(pluggedDevice: BluetoothDevice?, registered: Boolean) {
-            if (registered) listener?.onRegistered() else listener?.onUnregistered()
+            if (registered) {
+                listener?.onRegistered()
+            } else if (pendingRebounce) {
+                // Đang bounce (xem bounceHidAfterFirstPair) - tự register lại NGAY, không báo
+                // onUnregistered() ra ngoài để UI không nhấp nháy "chưa đăng ký".
+                pendingRebounce = false
+                registerApp()
+            } else {
+                listener?.onUnregistered()
+            }
         }
 
         override fun onConnectionStateChanged(device: BluetoothDevice?, state: Int) {
@@ -91,13 +106,43 @@ class HidManager(private val context: Context) {
                 return
             }
             connectedDevice = if (connected) device else null
+            var firstEverPair = false
             if (connected && device != null) {
+                // Lần pair ĐẦU TIÊN (lịch sử HID còn trống trước khi ghi dòng này) - đánh dấu
+                // lại để bounce HID app ngay bên dưới (xem bounceHidAfterFirstPair).
+                firstEverPair = connectionHistory().isEmpty()
                 // Nhớ lại thiết bị vừa kết nối thành công -> lần mở app sau tự kết nối
                 // lại luôn, không cần vào "Chọn thiết bị" chọn lại từ đầu.
                 prefs.edit().putString(PREF_LAST_DEVICE, device.address).apply()
                 recordConnectionHistory(device)
             }
             listener?.onConnectionStateChanged(device, connected, wasIntentional)
+            // THIẾT KẾ NGƯỢC (điện thoại tự quét + kết nối tới TV thay vì TV dò ngược lại):
+            // lần pair đầu tiên do CHÍNH điện thoại chủ động tạo bond + connect thường bị TV
+            // nhận nhầm thành 1 thiết bị Bluetooth thường (không thấy là bàn phím/chuột) vì
+            // record SDP HID chưa kịp "mới" với TV ngay lúc vừa bond xong. Ngắt + đăng ký lại
+            // HID app ngay sau đó rồi để luồng onRegistered() có sẵn TỰ kết nối lại (xem
+            // autoReconnectLastDevice() trong MainActivity.onRegistered) giúp TV nhận diện lại
+            // đúng loại thiết bị ở lần kết nối thứ 2 này.
+            if (connected && device != null && firstEverPair) bounceHidAfterFirstPair()
+        }
+    }
+
+    /** Ngắt kết nối hiện tại rồi unregisterApp() - CHỈ dùng ngay sau lần pair đầu tiên do điện
+     *  thoại tự quét/kết nối (xem lời gọi trong hidCallback.onConnectionStateChanged ở trên).
+     *  KHÔNG gọi keySender.shutdownNow() như unregister() (dùng lúc thoát app) vì app vẫn đang
+     *  chạy tiếp bình thường, cần giữ nguyên hàng đợi gõ phím cho lần kết nối lại ngay sau. */
+    private fun bounceHidAfterFirstPair() {
+        pendingRebounce = true
+        connectedDevice?.let {
+            pendingIntentionalDisconnectAddress = it.address
+            try { hidDevice?.disconnect(it) } catch (_: Exception) {}
+        }
+        try {
+            hidDevice?.unregisterApp()
+        } catch (e: Exception) {
+            Log.w(TAG, "unregisterApp lỗi lúc bounce (bỏ qua)", e)
+            pendingRebounce = false
         }
     }
 
